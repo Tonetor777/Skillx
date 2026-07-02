@@ -1,0 +1,142 @@
+from rest_framework import serializers
+
+from accounts.serializers import CurrentUserSerializer
+from applications.models import Application, Invitation
+from applications.services import accept_invitation
+
+
+ALLOWED_UPLOAD_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp"}
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024
+
+
+class ApplicationSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
+    first_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    last_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    program_id = serializers.CharField(write_only=True)
+    program_name = serializers.CharField(source="program.title", read_only=True)
+    status = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(source="submitted_at", read_only=True)
+    reviewed_by_id = serializers.SerializerMethodField()
+    reviewed_by_name = serializers.SerializerMethodField()
+    resume_url = serializers.SerializerMethodField()
+    payment_proof_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Application
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "program_id",
+            "program_name",
+            "motivation",
+            "phone",
+            "country",
+            "experience",
+            "resume",
+            "resume_url",
+            "payment_proof",
+            "payment_proof_url",
+            "status",
+            "created_at",
+            "reviewed_by_id",
+            "reviewed_by_name",
+            "reviewed_at",
+        ]
+
+    def get_id(self, obj):
+        return str(obj.id)
+
+    def get_status(self, obj):
+        return obj.status.lower()
+
+    def get_reviewed_by_id(self, obj):
+        return str(obj.reviewed_by_id) if obj.reviewed_by_id else None
+
+    def get_reviewed_by_name(self, obj):
+        if not obj.reviewed_by:
+            return None
+        name = f"{obj.reviewed_by.first_name} {obj.reviewed_by.last_name}".strip()
+        return name or obj.reviewed_by.email
+
+    def _absolute_file_url(self, file_field):
+        if not file_field:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(file_field.url) if request else file_field.url
+
+    def get_resume_url(self, obj):
+        return self._absolute_file_url(obj.resume)
+
+    def get_payment_proof_url(self, obj):
+        return self._absolute_file_url(obj.payment_proof)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        first, _, last = instance.name.partition(" ")
+        data["first_name"] = first
+        data["last_name"] = last
+        data["program_id"] = str(instance.program_id)
+        return data
+
+    def validate_resume(self, value):
+        return self._validate_upload(value)
+
+    def validate_payment_proof(self, value):
+        return self._validate_upload(value)
+
+    def _validate_upload(self, value):
+        if value is None:
+            return value
+        name = value.name.lower()
+        if not any(name.endswith(extension) for extension in ALLOWED_UPLOAD_EXTENSIONS):
+            raise serializers.ValidationError("Upload must be a PDF or image file.")
+        if value.size > MAX_UPLOAD_SIZE:
+            raise serializers.ValidationError("Upload must be 5MB or smaller.")
+        return value
+
+    def validate(self, attrs):
+        first_name = attrs.pop("first_name", "").strip()
+        last_name = attrs.pop("last_name", "").strip()
+        attrs["name"] = f"{first_name} {last_name}".strip()
+        if not attrs["name"]:
+            raise serializers.ValidationError({"first_name": "Applicant name is required."})
+        attrs.setdefault("phone", "Not provided")
+        attrs.setdefault("country", "Not provided")
+        attrs.setdefault("experience", "Not provided")
+        return attrs
+
+
+class InvitationSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
+    cohort_id = serializers.SerializerMethodField()
+    cohort_name = serializers.CharField(source="cohort.name", read_only=True)
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Invitation
+        fields = ["id", "email", "cohort_id", "cohort_name", "status", "expires_at", "accepted_at"]
+
+    def get_id(self, obj):
+        return str(obj.id)
+
+    def get_cohort_id(self, obj):
+        return str(obj.cohort_id)
+
+    def get_status(self, obj):
+        return obj.status.lower()
+
+
+class InvitationAcceptSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    password = serializers.CharField(min_length=8, write_only=True)
+    user = serializers.SerializerMethodField(read_only=True)
+
+    def save(self, **kwargs):
+        self.instance = accept_invitation(self.validated_data["token"], self.validated_data["password"])
+        return self.instance
+
+    def get_user(self, obj):
+        return CurrentUserSerializer(obj, context=self.context).data

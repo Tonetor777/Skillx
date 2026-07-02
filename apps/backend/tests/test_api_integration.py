@@ -1,0 +1,224 @@
+from datetime import timedelta
+
+import pytest
+from django.contrib.auth import get_user_model
+from django.core import mail
+from django.utils import timezone
+from rest_framework.test import APIClient
+
+from accounts.choices import UserRole, UserStatus
+from applications.models import Application, ApplicationStatus, Invitation
+from announcements.models import Announcement
+from cohorts.models import Cohort, CohortStatus, TeacherAssignment, TeacherAssignmentRole
+from learning.models import Assignment, Week, WeekStatus
+from programs.models import Program, ProgramStatus
+from submissions.models import Submission
+
+
+pytestmark = pytest.mark.django_db
+
+
+def create_user(email, role, *, cohort=None, status=UserStatus.ACTIVE, password="password"):
+    User = get_user_model()
+    user = User.objects.create_user(
+        username=email,
+        email=email,
+        password=password,
+        first_name=email.split("@")[0].title(),
+        last_name="User",
+        name=f"{email.split('@')[0].title()} User",
+        role=role,
+        status=status,
+        cohort=cohort,
+    )
+    return user
+
+
+def auth_client(user):
+    client = APIClient()
+    client.force_authenticate(user=user)
+    return client
+
+
+@pytest.fixture
+def domain():
+    admin = create_user("admin@example.com", UserRole.ADMIN)
+    teacher = create_user("teacher@example.com", UserRole.TEACHER)
+    program = Program.objects.create(
+        title="React Engineering",
+        slug="react-engineering",
+        description="A practical full-stack program.",
+        syllabus=[],
+        status=ProgramStatus.ACTIVE,
+    )
+    cohort = Cohort.objects.create(
+        program=program,
+        name="July 2026",
+        start_date=timezone.localdate(),
+        end_date=timezone.localdate() + timedelta(weeks=12),
+        status=CohortStatus.ACTIVE,
+    )
+    TeacherAssignment.objects.create(teacher=teacher, cohort=cohort, role=TeacherAssignmentRole.LEAD)
+    student = create_user("student@example.com", UserRole.STUDENT, cohort=cohort)
+    week = Week.objects.create(
+        cohort=cohort,
+        week_number=1,
+        title="Foundations",
+        status=WeekStatus.PUBLISHED,
+        created_by=teacher,
+    )
+    assignment = Assignment.objects.create(
+        cohort=cohort,
+        week=week,
+        title="First Build",
+        description="Submit a link.",
+        max_points=100,
+        due_date=timezone.now() + timedelta(days=7),
+        week_number=1,
+        created_by=teacher,
+    )
+    return {
+        "admin": admin,
+        "teacher": teacher,
+        "program": program,
+        "cohort": cohort,
+        "student": student,
+        "assignment": assignment,
+    }
+
+
+def test_active_token_returns_frontend_user_dto(domain):
+    client = APIClient()
+    response = client.post("/api/auth/token/", {"email": "student@example.com", "password": "password"}, format="json")
+
+    assert response.status_code == 200
+    assert response.data["access"]
+    assert response.data["refresh"]
+    assert response.data["user"]["role"] == "student"
+    assert response.data["user"]["cohort_id"] == str(domain["cohort"].id)
+
+
+def test_inactive_user_cannot_log_in():
+    create_user("inactive@example.com", UserRole.STUDENT, status=UserStatus.SUSPENDED)
+    client = APIClient()
+
+    response = client.post("/api/auth/token/", {"email": "inactive@example.com", "password": "password"}, format="json")
+
+    assert response.status_code == 400
+
+
+def test_program_and_cohort_endpoints_emit_ui_dtos(domain):
+    client = auth_client(domain["admin"])
+
+    program_response = client.get("/api/programs/")
+    cohort_response = client.get("/api/cohorts/")
+
+    assert program_response.status_code == 200
+    assert program_response.data[0]["name"] == "React Engineering"
+    assert "weeks" in program_response.data[0]
+    assert cohort_response.status_code == 200
+    assert cohort_response.data[0]["program_name"] == "React Engineering"
+    assert cohort_response.data[0]["students_count"] == 1
+    assert cohort_response.data[0]["teachers"][0]["role"] == "teacher"
+
+
+def test_application_approval_is_admin_only_and_creates_invitation(domain):
+    application = Application.objects.create(
+        name="Ada Lovelace",
+        email="ada@example.com",
+        phone="Not provided",
+        country="Not provided",
+        experience="Not provided",
+        motivation="I want to build production systems.",
+        program=domain["program"],
+    )
+
+    teacher_response = auth_client(domain["teacher"]).post(f"/api/applications/{application.id}/approve/")
+    admin_response = auth_client(domain["admin"]).post(f"/api/applications/{application.id}/approve/")
+
+    application.refresh_from_db()
+    assert teacher_response.status_code == 403
+    assert admin_response.status_code == 200
+    assert application.status == ApplicationStatus.APPROVED
+    assert Invitation.objects.get(email="ada@example.com").cohort == domain["cohort"]
+    assert len(mail.outbox) == 1
+    assert admin_response.data["reviewed_by_name"]
+
+
+def test_student_only_sees_own_cohort_assignments(domain):
+    other_program = Program.objects.create(title="Other", slug="other", description="", status=ProgramStatus.ACTIVE)
+    other_cohort = Cohort.objects.create(
+        program=other_program,
+        name="Other Cohort",
+        start_date=timezone.localdate(),
+        end_date=timezone.localdate() + timedelta(weeks=4),
+        status=CohortStatus.ACTIVE,
+    )
+    other_week = Week.objects.create(cohort=other_cohort, week_number=1, title="Other Week", created_by=domain["teacher"])
+    Assignment.objects.create(
+        cohort=other_cohort,
+        week=other_week,
+        title="Hidden",
+        description="Hidden",
+        max_points=100,
+        due_date=timezone.now() + timedelta(days=1),
+        week_number=1,
+        created_by=domain["teacher"],
+    )
+
+    response = auth_client(domain["student"]).get("/api/assignments/")
+
+    assert response.status_code == 200
+    assert [item["title"] for item in response.data] == ["First Build"]
+
+
+def test_submission_create_and_grade_permissions(domain):
+    student_client = auth_client(domain["student"])
+    teacher_client = auth_client(domain["teacher"])
+
+    create_response = student_client.post(
+        "/api/submissions/",
+        {"assignment_id": str(domain["assignment"].id), "content": "https://example.com/submission"},
+        format="json",
+    )
+    submission = Submission.objects.get()
+    student_grade_response = student_client.post(
+        f"/api/submissions/{submission.id}/grade/",
+        {"grade": 90, "feedback": "Strong work."},
+        format="json",
+    )
+    teacher_grade_response = teacher_client.post(
+        f"/api/submissions/{submission.id}/grade/",
+        {"grade": 90, "feedback": "Strong work."},
+        format="json",
+    )
+
+    submission.refresh_from_db()
+    assert create_response.status_code == 201
+    assert student_grade_response.status_code == 403
+    assert teacher_grade_response.status_code == 200
+    assert teacher_grade_response.data["status"] == "graded"
+    assert submission.is_locked is True
+
+
+def test_announcements_and_settings_permissions(domain):
+    Announcement.objects.create(
+        title="Cohort Update",
+        message="Welcome to the cohort.",
+        cohort=domain["cohort"],
+        created_by=domain["admin"],
+    )
+    student_client = auth_client(domain["student"])
+    admin_client = auth_client(domain["admin"])
+    super_admin = create_user("super@example.com", UserRole.SUPER_ADMIN)
+    super_client = auth_client(super_admin)
+
+    announcements = student_client.get("/api/announcements/")
+    admin_settings_update = admin_client.patch("/api/settings/", {"branding_name": "Nope", "theme": "slate"}, format="json")
+    super_settings_update = super_client.patch("/api/settings/", {"branding_name": "Skilix Academy", "theme": "slate"}, format="json")
+
+    assert announcements.status_code == 200
+    assert announcements.data[0]["target_type"] == "cohort"
+    assert admin_settings_update.status_code == 403
+    assert super_settings_update.status_code == 200
+    assert super_settings_update.data["branding_name"] == "Skilix Academy"

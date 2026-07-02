@@ -1,0 +1,22 @@
+{
+  "name": "skilix",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.3",
+  "scripts": {
+    "dev": "docker compose up --build",
+    "dev:detached": "docker compose up --build -d",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f",
+    "frontend:dev": "npm --prefix apps/frontend run dev",
+    "frontend:build": "npm --prefix apps/frontend run build",
+    "frontend:lint": "npm --prefix apps/frontend run lint",
+    "frontend:typecheck": "npm --prefix apps/frontend run typecheck",
+    "backend:test": "docker compose run --rm backend pytest",
+    "backend:migrate": "docker compose run --rm backend python manage.py migrate",
+    "backend:createsuperuser": "docker compose run --rm backend python manage.py createsuperuser"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}
