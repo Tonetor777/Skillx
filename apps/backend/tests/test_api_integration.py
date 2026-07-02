@@ -1,8 +1,10 @@
 from datetime import timedelta
+from base64 import b64decode
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -16,6 +18,10 @@ from submissions.models import Submission
 
 
 pytestmark = pytest.mark.django_db
+
+PNG_1X1 = b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
+)
 
 
 def create_user(email, role, *, cohort=None, status=UserStatus.ACTIVE, password="password"):
@@ -120,6 +126,61 @@ def test_program_and_cohort_endpoints_emit_ui_dtos(domain):
     assert cohort_response.data[0]["program_name"] == "React Engineering"
     assert cohort_response.data[0]["students_count"] == 1
     assert cohort_response.data[0]["teachers"][0]["role"] == "teacher"
+
+
+def test_profile_update_accepts_json_and_photo_upload(domain):
+    client = auth_client(domain["student"])
+
+    json_response = client.patch(
+        "/api/accounts/me/",
+        {"first_name": "Updated", "last_name": "Student"},
+        format="json",
+    )
+    photo = SimpleUploadedFile("avatar.png", PNG_1X1, content_type="image/png")
+    photo_response = client.patch("/api/accounts/me/", {"photo": photo}, format="multipart")
+
+    assert json_response.status_code == 200
+    assert json_response.data["first_name"] == "Updated"
+    assert photo_response.status_code == 200
+    assert photo_response.data["avatar_url"]
+
+
+def test_profile_photo_upload_validation_and_authentication(domain):
+    invalid = SimpleUploadedFile("avatar.txt", b"not an image", content_type="text/plain")
+    anonymous_response = APIClient().patch("/api/accounts/me/", {"photo": invalid}, format="multipart")
+    invalid_response = auth_client(domain["student"]).patch("/api/accounts/me/", {"photo": invalid}, format="multipart")
+
+    assert anonymous_response.status_code == 401
+    assert invalid_response.status_code == 400
+    assert "photo" in invalid_response.data
+
+
+def test_program_thumbnail_upload_and_permissions(domain):
+    admin_client = auth_client(domain["admin"])
+    student_client = auth_client(domain["student"])
+    thumbnail = SimpleUploadedFile("thumbnail.png", PNG_1X1, content_type="image/png")
+    blocked_thumbnail = SimpleUploadedFile("blocked.png", PNG_1X1, content_type="image/png")
+
+    create_response = admin_client.post(
+        "/api/programs/",
+        {
+            "name": "Media Program",
+            "description": "A program with a thumbnail image.",
+            "weeks": "[]",
+            "thumbnail": thumbnail,
+        },
+        format="multipart",
+    )
+    program_id = create_response.data["id"]
+    forbidden_response = student_client.patch(
+        f"/api/programs/{program_id}/",
+        {"thumbnail": blocked_thumbnail},
+        format="multipart",
+    )
+
+    assert create_response.status_code == 201
+    assert create_response.data["thumbnail_url"]
+    assert forbidden_response.status_code == 403
 
 
 def test_application_approval_is_admin_only_and_creates_invitation(domain):

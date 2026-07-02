@@ -1,26 +1,80 @@
+# Environment and secrets
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
 
+# Local AI agent state and chat/tool caches
+.agents/
+.codex/
+.aistudio/
+.claude/
+.cursor/
+.continue/
+.aider*
+.roo/
+.windsurf/
+.kilocode/
+*.code-workspace
+
+# Node, pnpm, Vite, Next, and frontend build output
 node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.vite/
 .next/
 out/
 dist/
+build/
 coverage/
 .turbo/
+*.tsbuildinfo
+vite.config.ts.timestamp-*
+vite.config.js.timestamp-*
 
+# Python, Django, and backend runtime output
 __pycache__/
 *.py[cod]
+*$py.class
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
 .venv/
 venv/
-htmlcov/
-
+env/
+ENV/
+*.sqlite
+*.sqlite3
+db.sqlite3
 media/
 staticfiles/
+apps/backend/media/
+apps/backend/staticfiles/
 
-.DS_Store
+# Logs and temporary files
 *.log
-*.tsbuildinfo
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

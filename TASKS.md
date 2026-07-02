@@ -102,6 +102,14 @@ Build the first production-ready version of Skilix.
 
 ---
 
+# Media Storage
+
+| Feature | Status | Notes |
+|----------|--------|-------|
+| Cloudinary media URLs | 🟡 In Progress | Wiring Cloudinary-backed uploads and URL responses for application files, profile photos, and program thumbnails. |
+
+---
+
 # Assignments
 
 | Feature | Status | Notes |

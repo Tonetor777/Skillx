@@ -43,6 +43,7 @@ export interface Program {
   id: string;
   name: string;
   description: string;
+  thumbnail_url?: string;
   weeks: Week[];
   cohorts_count: number;
   status: 'draft' | 'active' | 'archived';

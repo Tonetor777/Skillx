@@ -1,4 +1,5 @@
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -11,6 +12,7 @@ class ProgramViewSet(ModelViewSet):
     serializer_class = ProgramSerializer
     permission_classes = [IsActiveUser]
     http_method_names = ["get", "post", "patch", "head", "options"]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_queryset(self):
         queryset = Program.objects.prefetch_related("cohorts", "cohorts__students")

@@ -1,6 +1,9 @@
+import json
+
 from rest_framework import serializers
 
 from programs.models import Program, ProgramStatus
+from core.upload_validation import validate_image_upload
 
 
 class ProgramSerializer(serializers.ModelSerializer):
@@ -10,16 +13,48 @@ class ProgramSerializer(serializers.ModelSerializer):
     cohorts_count = serializers.IntegerField(source="cohorts.count", read_only=True)
     status = serializers.SerializerMethodField()
     cohorts = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Program
-        fields = ["id", "name", "description", "weeks", "cohorts_count", "status", "cohorts", "created_at"]
+        fields = [
+            "id",
+            "name",
+            "description",
+            "weeks",
+            "thumbnail",
+            "thumbnail_url",
+            "cohorts_count",
+            "status",
+            "cohorts",
+            "created_at",
+        ]
+        extra_kwargs = {"thumbnail": {"required": False, "allow_null": True}}
 
     def get_id(self, obj):
         return str(obj.id)
 
     def get_status(self, obj):
         return obj.status.lower()
+
+    def get_thumbnail_url(self, obj):
+        if not obj.thumbnail:
+            return ""
+        request = self.context.get("request")
+        url = obj.thumbnail.url
+        return request.build_absolute_uri(url) if request else url
+
+    def validate_thumbnail(self, value):
+        return validate_image_upload(value)
+
+    def validate(self, attrs):
+        syllabus = attrs.get("syllabus")
+        if isinstance(syllabus, str):
+            try:
+                attrs["syllabus"] = json.loads(syllabus)
+            except json.JSONDecodeError as exc:
+                raise serializers.ValidationError({"weeks": "Weeks must be valid JSON."}) from exc
+        return attrs
 
     def get_cohorts(self, obj):
         return [

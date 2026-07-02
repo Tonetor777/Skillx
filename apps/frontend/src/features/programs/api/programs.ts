@@ -19,7 +19,7 @@ export const useProgram = (id: string | undefined) => {
 
 export const useCreateProgram = () => {
   const queryClient = useQueryClient();
-  return useMutation<Program, Error, Partial<Program>>({
+  return useMutation<Program, Error, Partial<Program> | FormData>({
     mutationFn: (data) => apiClient.post('/programs', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['programs'] });
@@ -29,7 +29,7 @@ export const useCreateProgram = () => {
 
 export const useUpdateProgram = () => {
   const queryClient = useQueryClient();
-  return useMutation<Program, Error, { id: string; data: Partial<Program> }>({
+  return useMutation<Program, Error, { id: string; data: Partial<Program> | FormData }>({
     mutationFn: ({ id, data }) => apiClient.patch(`/programs/${id}`, data),
     onSuccess: (updatedProgram) => {
       queryClient.invalidateQueries({ queryKey: ['programs'] });

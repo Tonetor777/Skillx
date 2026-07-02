@@ -3,10 +3,7 @@ from rest_framework import serializers
 from accounts.serializers import CurrentUserSerializer
 from applications.models import Application, Invitation
 from applications.services import accept_invitation
-
-
-ALLOWED_UPLOAD_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp"}
-MAX_UPLOAD_SIZE = 5 * 1024 * 1024
+from core.upload_validation import validate_document_upload
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
@@ -82,20 +79,10 @@ class ApplicationSerializer(serializers.ModelSerializer):
         return data
 
     def validate_resume(self, value):
-        return self._validate_upload(value)
+        return validate_document_upload(value)
 
     def validate_payment_proof(self, value):
-        return self._validate_upload(value)
-
-    def _validate_upload(self, value):
-        if value is None:
-            return value
-        name = value.name.lower()
-        if not any(name.endswith(extension) for extension in ALLOWED_UPLOAD_EXTENSIONS):
-            raise serializers.ValidationError("Upload must be a PDF or image file.")
-        if value.size > MAX_UPLOAD_SIZE:
-            raise serializers.ValidationError("Upload must be 5MB or smaller.")
-        return value
+        return validate_document_upload(value)
 
     def validate(self, attrs):
         first_name = attrs.pop("first_name", "").strip()

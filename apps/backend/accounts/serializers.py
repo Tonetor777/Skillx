@@ -4,6 +4,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from accounts.choices import UserStatus
 from accounts.models import User
 from accounts.services import confirm_email_verification, confirm_password_reset
+from core.upload_validation import validate_image_upload
 
 
 class CurrentUserSerializer(serializers.ModelSerializer):
@@ -12,6 +13,7 @@ class CurrentUserSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
     cohort_id = serializers.SerializerMethodField()
+    photo = serializers.ImageField(write_only=True, required=False)
 
     class Meta:
         model = User
@@ -23,6 +25,7 @@ class CurrentUserSerializer(serializers.ModelSerializer):
             "role",
             "status",
             "avatar_url",
+            "photo",
             "bio",
             "cohort_id",
             "created_at",
@@ -48,12 +51,17 @@ class CurrentUserSerializer(serializers.ModelSerializer):
     def get_cohort_id(self, obj):
         return str(obj.cohort_id) if obj.cohort_id else None
 
+    def validate_photo(self, value):
+        return validate_image_upload(value)
+
     def update(self, instance, validated_data):
         instance.first_name = validated_data.get("first_name", instance.first_name)
         instance.last_name = validated_data.get("last_name", instance.last_name)
         instance.bio = validated_data.get("bio", instance.bio)
+        if "photo" in validated_data:
+            instance.photo = validated_data["photo"]
         instance.name = f"{instance.first_name} {instance.last_name}".strip()
-        instance.save(update_fields=["first_name", "last_name", "bio", "name"])
+        instance.save(update_fields=["first_name", "last_name", "bio", "photo", "name"])
         return instance
 
 

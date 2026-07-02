@@ -4,29 +4,27 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../../features/authentication/context/AuthContext';
 import { useCohorts } from '../../features/cohorts/api/cohorts';
+import apiClient from '../../shared/api/client';
 import { 
-  User, 
   Save, 
   Mail, 
   Shield, 
   Users, 
-  GraduationCap, 
   CheckCircle2, 
-  Loader2,
-  Bookmark
+  Camera
 } from 'lucide-react';
-import { motion } from 'motion/react';
 
 const profileSchema = z.object({
   first_name: z.string().min(2, { message: 'First name must be at least 2 characters long' }),
   last_name: z.string().min(2, { message: 'Last name must be at least 2 characters long' }),
+  photo: z.instanceof(FileList).optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function MyProfile() {
   const { user, updateUser } = useAuth();
-  const { data: cohorts, isLoading: cohortsLoading } = useCohorts();
+  const { data: cohorts } = useCohorts();
   const [showSuccess, setShowSuccess] = useState(false);
 
   if (!user) return null;
@@ -44,13 +42,14 @@ export default function MyProfile() {
   });
 
   const onSubmit = async (data: ProfileFormValues) => {
-    // Simulate updating user profile
-    await new Promise(r => setTimeout(r, 400));
-    const updated = {
-      ...user,
-      first_name: data.first_name,
-      last_name: data.last_name,
-    };
+    const formData = new FormData();
+    formData.append('first_name', data.first_name);
+    formData.append('last_name', data.last_name);
+    if (data.photo?.[0]) {
+      formData.append('photo', data.photo[0]);
+    }
+
+    const updated = await apiClient.patch('/accounts/me/', formData);
     updateUser(updated);
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
@@ -96,7 +95,7 @@ export default function MyProfile() {
               className="w-24 h-24 rounded-full border-2 border-indigo-100 object-cover"
             />
             <div className="absolute bottom-0 right-1 w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center border border-white">
-              <User className="w-3.5 h-3.5" />
+              <Camera className="w-3.5 h-3.5" />
             </div>
           </div>
 
@@ -166,6 +165,17 @@ export default function MyProfile() {
                     value={user.email}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Profile Photo</label>
+                <input
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+                  className="mt-1.5 block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm shadow-xs focus:border-indigo-500"
+                  {...register('photo')}
+                />
+                <p className="mt-1 text-xs text-gray-400">PNG, JPG, JPEG, or WEBP. Max 5MB.</p>
               </div>
 
               <button
