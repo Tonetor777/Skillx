@@ -1,4 +1,4 @@
-import { ApiErrorResponse, User, Application, Program, Cohort, Assignment, Submission, Announcement } from '../types';
+import { ApiErrorResponse, User, Application, Program, Cohort, Assignment, Submission, Announcement, Module, Lesson, Resource } from '../types';
 import { MockDatabase } from './mockDb';
 
 // Backend Base URL configuration
@@ -261,9 +261,11 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
         description: body.description,
         max_points: body.max_points,
         due_date: body.due_date,
-        week_number: body.week_number,
-        cohort_id: body.cohort_id,
+        cohort_id: body.cohort_id || coh.id,
         cohort_name: coh.name,
+        module_id: body.module_id,
+        lesson_id: body.lesson_id,
+        resource_id: body.resource_id,
         is_locked: false
       };
       asgs.push(newAsg);
@@ -271,6 +273,164 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
       return newAsg;
     }
     return asgs;
+  }
+
+  // Module Endpoints
+  if (endpoint.includes('/modules')) {
+    const modules = MockDatabase.get<Module>('modules');
+    const idMatch = endpoint.match(/\/modules\/([^\/]+)/);
+    if (idMatch) {
+      const moduleId = idMatch[1];
+      const moduleIndex = modules.findIndex(module => module.id === moduleId);
+      if (moduleIndex > -1) {
+        if (endpoint.includes('/publish')) {
+          modules[moduleIndex] = {
+            ...modules[moduleIndex],
+            status: 'published',
+            publish_date: new Date().toISOString(),
+            published_by_name: 'Current User'
+          };
+          MockDatabase.set('modules', modules);
+          return modules[moduleIndex];
+        }
+        if (method === 'PATCH') {
+          modules[moduleIndex] = { ...modules[moduleIndex], ...body };
+          MockDatabase.set('modules', modules);
+          return modules[moduleIndex];
+        }
+        if (method === 'DELETE') {
+          MockDatabase.set('modules', modules.filter(module => module.id !== moduleId));
+          return null;
+        }
+        return modules[moduleIndex];
+      }
+      throw new ApiError(404, 'Module not found');
+    }
+    if (method === 'POST') {
+      const cohorts = MockDatabase.get<Cohort>('cohorts');
+      const cohort = cohorts.find(item => item.id === body.cohort_id) || cohorts[0];
+      const newModule: Module = {
+        id: `mod_${Math.random().toString(36).substr(2, 9)}`,
+        cohort_id: cohort.id,
+        cohort_name: cohort.name,
+        module_number: body.module_number,
+        title: body.title,
+        description: body.description,
+        notes: body.notes,
+        status: body.status || 'draft',
+        lessons: []
+      };
+      modules.push(newModule);
+      MockDatabase.set('modules', modules);
+      return newModule;
+    }
+    return modules;
+  }
+
+  // Lesson Endpoints
+  if (endpoint.includes('/lessons')) {
+    const modules = MockDatabase.get<Module>('modules');
+    const lessons = modules.flatMap(module => module.lessons);
+    const idMatch = endpoint.match(/\/lessons\/([^\/]+)/);
+    if (idMatch) {
+      const lessonId = idMatch[1];
+      const currentLesson = lessons.find(lesson => lesson.id === lessonId);
+      if (!currentLesson) throw new ApiError(404, 'Lesson not found');
+      if (method === 'PATCH') {
+        const nextModules = modules.map(module => ({
+          ...module,
+          lessons: module.lessons.map(lesson => (
+            lesson.id === lessonId ? { ...lesson, ...body } : lesson
+          ))
+        }));
+        MockDatabase.set('modules', nextModules);
+        return { ...currentLesson, ...body };
+      }
+      if (method === 'DELETE') {
+        const nextModules = modules.map(module => ({
+          ...module,
+          lessons: module.lessons.filter(lesson => lesson.id !== lessonId)
+        }));
+        MockDatabase.set('modules', nextModules);
+        return null;
+      }
+      return currentLesson;
+    }
+    if (method === 'POST') {
+      const moduleIndex = modules.findIndex(module => module.id === body.module_id);
+      if (moduleIndex < 0) throw new ApiError(404, 'Module not found');
+      const newLesson: Lesson = {
+        id: `les_${Math.random().toString(36).substr(2, 9)}`,
+        module_id: body.module_id,
+        title: body.title,
+        objectives: body.objectives,
+        content: body.content,
+        recording: body.recording,
+        order: body.order,
+        resources: []
+      };
+      modules[moduleIndex].lessons.push(newLesson);
+      MockDatabase.set('modules', modules);
+      return newLesson;
+    }
+    const moduleId = endpoint.includes('?module_id=') ? new URLSearchParams(endpoint.split('?')[1]).get('module_id') : null;
+    return moduleId ? lessons.filter(lesson => lesson.module_id === moduleId) : lessons;
+  }
+
+  // Resource Endpoints
+  if (endpoint.includes('/resources')) {
+    const modules = MockDatabase.get<Module>('modules');
+    const resources = modules.flatMap(module => module.lessons.flatMap(lesson => lesson.resources));
+    const idMatch = endpoint.match(/\/resources\/([^\/]+)/);
+    if (idMatch && method === 'PATCH') {
+      const resourceId = idMatch[1];
+      const currentResource = resources.find(resource => resource.id === resourceId);
+      if (!currentResource) throw new ApiError(404, 'Resource not found');
+      const nextModules = modules.map(module => ({
+        ...module,
+        lessons: module.lessons.map(lesson => ({
+          ...lesson,
+          resources: lesson.resources.map(resource => (
+            resource.id === resourceId ? { ...resource, ...body } : resource
+          ))
+        }))
+      }));
+      MockDatabase.set('modules', nextModules);
+      return { ...currentResource, ...body };
+    }
+    if (idMatch && method === 'DELETE') {
+      const resourceId = idMatch[1];
+      const nextModules = modules.map(module => ({
+        ...module,
+        lessons: module.lessons.map(lesson => ({
+          ...lesson,
+          resources: lesson.resources.filter(resource => resource.id !== resourceId)
+        }))
+      }));
+      MockDatabase.set('modules', nextModules);
+      return null;
+    }
+    if (method === 'POST') {
+      const newResource: Resource = {
+        id: `res_${Math.random().toString(36).substr(2, 9)}`,
+        lesson_id: body.lesson_id,
+        title: body.title,
+        type: body.type || 'link',
+        url: body.url,
+        description: body.description,
+        order: body.order ?? 0
+      };
+      const nextModules = modules.map(module => ({
+        ...module,
+        lessons: module.lessons.map(lesson => (
+          lesson.id === body.lesson_id ? { ...lesson, resources: [...lesson.resources, newResource] } : lesson
+        ))
+      }));
+      MockDatabase.set('modules', nextModules);
+      return newResource;
+    }
+    const lessonId = endpoint.includes('?lesson_id=') ? new URLSearchParams(endpoint.split('?')[1]).get('lesson_id') : null;
+    return lessonId ? resources.filter(resource => resource.lesson_id === lessonId) : resources;
   }
 
   // Submission Endpoints

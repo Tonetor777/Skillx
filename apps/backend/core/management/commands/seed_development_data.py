@@ -8,7 +8,7 @@ from accounts.choices import UserRole, UserStatus
 from announcements.models import Announcement
 from cohorts.models import Cohort, CohortStatus, TeacherAssignment, TeacherAssignmentRole
 from dashboard.models import PlatformSettings
-from learning.models import Assignment, Resource, Week, WeekStatus
+from learning.models import Assignment, Lesson, Module, ModuleStatus, Resource
 from programs.models import Program, ProgramLevel, ProgramStatus
 
 
@@ -100,32 +100,40 @@ class Command(BaseCommand):
 
         TeacherAssignment.objects.get_or_create(teacher=teacher, cohort=cohort, role=TeacherAssignmentRole.LEAD)
 
-        week, _ = Week.objects.update_or_create(
+        module, _ = Module.objects.update_or_create(
             cohort=cohort,
-            week_number=1,
+            module_number=1,
             defaults={
                 "title": "Foundations",
-                "objectives": "Set up tooling, review cohort expectations, and submit a first project link.",
+                "description": "Set up tooling, review cohort expectations, and submit a first project link.",
                 "notes": "",
-                "assignment": "Submit your project repository and deployment URL.",
-                "recording": "",
-                "status": WeekStatus.PUBLISHED,
+                "status": ModuleStatus.PUBLISHED,
                 "publish_date": timezone.now(),
                 "created_by": teacher,
                 "published_by": teacher,
             },
         )
+        lesson, _ = Lesson.objects.update_or_create(
+            module=module,
+            order=1,
+            defaults={
+                "title": "Environment and Cohort Orientation",
+                "objectives": "Prepare the development workspace and understand delivery expectations.",
+                "content": "Submit your project repository and deployment URL after setup.",
+                "recording": "",
+            },
+        )
         Resource.objects.update_or_create(
-            week=week,
+            lesson=lesson,
             title="Welcome Playbook",
             defaults={"url": "https://example.com/welcome", "order": 1},
         )
         Assignment.objects.update_or_create(
             cohort=cohort,
-            week_number=1,
             title="Build and Deploy a Full-Stack React App",
             defaults={
-                "week": week,
+                "module": module,
+                "lesson": lesson,
                 "description": "Submit a repository and deployment link for a small full-stack application.",
                 "max_points": 100,
                 "due_date": timezone.now() + timedelta(days=7),

@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 from accounts.choices import UserRole, UserStatus
 from announcements.models import Announcement
 from cohorts.models import Cohort, CohortStatus, TeacherAssignment, TeacherAssignmentRole
-from learning.models import Assignment, Week, WeekStatus
+from learning.models import Assignment, Lesson, Module, ModuleStatus
 from programs.models import Program, ProgramStatus
 from submissions.models import Submission
 
@@ -52,15 +52,16 @@ def domain():
     )
     TeacherAssignment.objects.create(teacher=teacher, cohort=cohort, role=TeacherAssignmentRole.LEAD)
     student = create_user("student-final@example.com", UserRole.STUDENT, cohort=cohort)
-    week = Week.objects.create(cohort=cohort, week_number=1, title="Final Week", status=WeekStatus.PUBLISHED, created_by=teacher)
+    module = Module.objects.create(cohort=cohort, module_number=1, title="Final Module", status=ModuleStatus.PUBLISHED, created_by=teacher)
+    lesson = Lesson.objects.create(module=module, title="Final Lesson", order=1)
     assignment = Assignment.objects.create(
         cohort=cohort,
-        week=week,
+        module=module,
+        lesson=lesson,
         title="Final Assignment",
         description="Submit work.",
         max_points=100,
         due_date=timezone.now() + timedelta(days=1),
-        week_number=1,
         created_by=teacher,
     )
     submission = Submission.objects.create(assignment=assignment, student=student, primary_link="https://example.com")

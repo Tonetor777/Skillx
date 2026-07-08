@@ -17,7 +17,7 @@ import Programs from './pages/dashboard/Programs';
 import Cohorts from './pages/dashboard/Cohorts';
 import Applications from './pages/dashboard/Applications';
 import Assignments from './pages/dashboard/Assignments';
-import Weeks from './pages/dashboard/Weeks';
+import Modules from './pages/dashboard/Weeks';
 import Announcements from './pages/dashboard/Announcements';
 import Settings from './pages/dashboard/Settings';
 import Profile from './pages/dashboard/Profile';
@@ -130,10 +130,10 @@ export default function App() {
               } 
             />
             <Route 
-              path="/dashboard/weeks" 
+              path="/dashboard/modules" 
               element={
                 <ProtectedRoute>
-                  <Weeks />
+                  <Modules />
                 </ProtectedRoute>
               } 
             />

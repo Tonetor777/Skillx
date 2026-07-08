@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "django_filters",
     "corsheaders",
+    "storages",
     "core",
     "accounts",
     "programs",
@@ -48,10 +49,6 @@ INSTALLED_APPS = [
     "announcements",
     "dashboard",
 ]
-
-CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "")
-if CLOUDINARY_URL:
-    INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -116,10 +113,19 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-if CLOUDINARY_URL:
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "")
+AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL", "")
+AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-1")
+AWS_S3_ADDRESSING_STYLE = os.getenv("AWS_S3_ADDRESSING_STYLE", "path")
+AWS_QUERYSTRING_AUTH = os.getenv("AWS_QUERYSTRING_AUTH", "true").lower() == "true"
+AWS_QUERYSTRING_EXPIRE = int(os.getenv("AWS_QUERYSTRING_EXPIRE", "3600"))
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None
+
+if AWS_STORAGE_BUCKET_NAME and AWS_S3_ENDPOINT_URL:
     STORAGES = {
         "default": {
-            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+            "BACKEND": "storages.backends.s3.S3Storage",
         },
         "staticfiles": {
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",

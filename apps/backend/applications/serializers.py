@@ -3,7 +3,6 @@ from rest_framework import serializers
 from accounts.serializers import CurrentUserSerializer
 from applications.models import Application, Invitation
 from applications.services import accept_invitation
-from core.upload_validation import validate_document_upload
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
@@ -16,8 +15,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(source="submitted_at", read_only=True)
     reviewed_by_id = serializers.SerializerMethodField()
     reviewed_by_name = serializers.SerializerMethodField()
-    resume_url = serializers.SerializerMethodField()
-    payment_proof_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Application
@@ -32,10 +29,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "phone",
             "country",
             "experience",
-            "resume",
-            "resume_url",
-            "payment_proof",
-            "payment_proof_url",
             "status",
             "created_at",
             "reviewed_by_id",
@@ -58,18 +51,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
         name = f"{obj.reviewed_by.first_name} {obj.reviewed_by.last_name}".strip()
         return name or obj.reviewed_by.email
 
-    def _absolute_file_url(self, file_field):
-        if not file_field:
-            return None
-        request = self.context.get("request")
-        return request.build_absolute_uri(file_field.url) if request else file_field.url
-
-    def get_resume_url(self, obj):
-        return self._absolute_file_url(obj.resume)
-
-    def get_payment_proof_url(self, obj):
-        return self._absolute_file_url(obj.payment_proof)
-
     def to_representation(self, instance):
         data = super().to_representation(instance)
         first, _, last = instance.name.partition(" ")
@@ -77,12 +58,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
         data["last_name"] = last
         data["program_id"] = str(instance.program_id)
         return data
-
-    def validate_resume(self, value):
-        return validate_document_upload(value)
-
-    def validate_payment_proof(self, value):
-        return validate_document_upload(value)
 
     def validate(self, attrs):
         first_name = attrs.pop("first_name", "").strip()

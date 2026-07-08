@@ -16,6 +16,14 @@ The Vite frontend uses a local presentation layer in `apps/frontend/src/shared/c
 
 Global theme tokens live in `apps/frontend/src/index.css`. The current MVP visual system uses a monochrome academy style with grid-paper backgrounds, sharp bordered panels, black primary actions, `Space Grotesk` display typography, and `Noto Sans Ethiopic` for major Amharic titles.
 
+Lesson authoring uses TipTap in the weeks feature to provide structured in-app lesson content without building a custom editor engine. TipTap JSON is serialized into the existing `Lesson.content` field and rendered through React components so legacy plain-text lessons continue to display safely.
+
+## Media Storage
+
+Django uses local `MEDIA_ROOT` storage in development by default. When `AWS_STORAGE_BUCKET_NAME` and `AWS_S3_ENDPOINT_URL` are configured, Django switches uploaded media to private S3-compatible storage through `django-storages`. The Docker/Dokploy stack uses MinIO as the S3-compatible media service.
+
+Current media surfaces are user profile photos and program thumbnails. API serializers return stable URL fields such as `avatar_url` and `thumbnail_url`; with MinIO enabled these URLs are signed and expire according to `AWS_QUERYSTRING_EXPIRE`.
+
 ## Local Services
 
 Docker Compose runs PostgreSQL, Redis, Django, Celery worker, Celery beat, and the Vite frontend dev server.

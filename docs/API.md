@@ -22,16 +22,16 @@ Use JWT bearer authentication in Swagger UI with the value `Bearer <access_token
 - `POST /api/auth/password-reset/request/`: request a password reset email.
 - `POST /api/auth/password-reset/confirm/`: confirm a password reset token and set a new password.
 - `GET /api/accounts/me/`: current authenticated user.
-- `PATCH /api/accounts/me/`: update current user's profile fields.
+- `PATCH /api/accounts/me/`: update current user's profile fields. Supports JSON for text fields and multipart uploads for optional `photo`; returns `avatar_url`.
 
 ## Dashboard Resources
 
 All dashboard endpoints require an active JWT user unless noted otherwise.
 
 - `GET /api/programs/`: list programs.
-- `POST /api/programs/`: create a program. Teacher/Admin/Super Admin only.
+- `POST /api/programs/`: create a program. Teacher/Admin/Super Admin only. Supports multipart uploads for optional `thumbnail`; returns `thumbnail_url`.
 - `GET /api/programs/{id}/`: retrieve a program.
-- `PATCH /api/programs/{id}/`: update a program. Teacher/Admin/Super Admin only.
+- `PATCH /api/programs/{id}/`: update a program. Teacher/Admin/Super Admin only. Supports multipart uploads for optional `thumbnail`; returns `thumbnail_url`.
 - `PATCH /api/programs/{id}/archive/`: archive a program without deleting data. Teacher/Admin/Super Admin only.
 - `GET /api/cohorts/`: list cohorts scoped to the current user.
 - `POST /api/cohorts/`: create a cohort. Teacher/Admin/Super Admin only.
@@ -41,17 +41,21 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `POST /api/teacher-assignments/`: assign a teacher to a cohort with `lead`, `assistant`, or `mentor` role. Admin/Super Admin only.
 - `PATCH /api/teacher-assignments/{id}/`: update a teacher assignment role. Admin/Super Admin only.
 - `DELETE /api/teacher-assignments/{id}/`: remove a teacher assignment. Admin/Super Admin only.
-- `GET /api/weeks/`: list weeks scoped to the current user. Students only see published weeks.
-- `POST /api/weeks/`: create a week. Teacher/Admin/Super Admin only.
-- `PATCH /api/weeks/{id}/`: update a week. Teacher/Admin/Super Admin only.
-- `DELETE /api/weeks/{id}/`: delete a week. Teacher/Admin/Super Admin only.
-- `POST /api/weeks/{id}/publish/`: publish a week and stamp publish metadata. Teacher/Admin/Super Admin only.
-- `GET /api/resources/`: list resources scoped to accessible weeks. Supports `?week_id=`.
+- `GET /api/modules/`: list modules scoped to the current user. Students only see published modules.
+- `POST /api/modules/`: create a cohort module. Teacher/Admin/Super Admin only.
+- `PATCH /api/modules/{id}/`: update a module. Teacher/Admin/Super Admin only.
+- `DELETE /api/modules/{id}/`: delete a module. Teacher/Admin/Super Admin only.
+- `POST /api/modules/{id}/publish/`: publish a module and stamp publish metadata. Teacher/Admin/Super Admin only.
+- `GET /api/lessons/`: list lessons scoped to accessible modules. Supports `?module_id=`.
+- `POST /api/lessons/`: create an ordered lesson/submodule. Teacher/Admin/Super Admin only. `content` may contain serialized TipTap JSON for native lesson rendering, and existing plain text remains supported.
+- `PATCH /api/lessons/{id}/`: update a lesson. Teacher/Admin/Super Admin only. `content` is stored and returned unchanged.
+- `DELETE /api/lessons/{id}/`: delete a lesson. Teacher/Admin/Super Admin only.
+- `GET /api/resources/`: list resources scoped to accessible lessons. Supports `?lesson_id=`.
 - `POST /api/resources/`: create an ordered URL resource. Teacher/Admin/Super Admin only.
 - `PATCH /api/resources/{id}/`: update a resource. Teacher/Admin/Super Admin only.
 - `DELETE /api/resources/{id}/`: delete a resource. Teacher/Admin/Super Admin only.
 - `GET /api/applications/`: list admissions applications. Admin/Super Admin only.
-- `POST /api/applications/`: create a public application. Supports JSON or multipart uploads for `resume` and `payment_proof`.
+- `POST /api/applications/`: create a public application with contact details, program selection, and motivation.
 - `GET /api/applications/{id}/`: retrieve an application. Admin/Super Admin only.
 - `POST /api/applications/{id}/approve/`: approve an application and send an expiring cohort invitation. Admin/Super Admin only.
 - `POST /api/applications/{id}/reject/`: reject an application. Admin/Super Admin only.
@@ -59,8 +63,8 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `POST /api/invitations/{token}/accept/`: accept a pending invitation and create or activate the student account.
 - `POST /api/invitations/{id}/resend/`: resend a pending invitation. Admin/Super Admin only.
 - `POST /api/invitations/{id}/revoke/`: revoke a pending invitation. Admin/Super Admin only.
-- `GET /api/assignments/`: list assignments scoped to the current user. Supports `?cohort_id=`.
-- `POST /api/assignments/`: create an assignment. Teacher/Admin/Super Admin only.
+- `GET /api/assignments/`: list assignments scoped to the current user. Supports `?cohort_id=`, `?lesson_id=`, and `?resource_id=`.
+- `POST /api/assignments/`: create an assignment for a lesson, optionally attached to a resource. Teacher/Admin/Super Admin only.
 - `GET /api/assignments/{id}/`: retrieve an assignment.
 - `PATCH /api/assignments/{id}/`: update an assignment. Teacher/Admin/Super Admin only.
 - `GET /api/submissions/`: list submissions scoped to the current user. Supports `?assignment_id=`.
@@ -77,3 +81,10 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `PATCH /api/settings/`: update platform settings. Super Admin only.
 
 Response DTOs are shaped for the Vite frontend, including string IDs, lower-case role/status values, and display fields such as `program_name`, `cohort_name`, `students_count`, `teachers`, `author_name`, and `reviewed_by_name`.
+
+## Media Uploads
+
+When `AWS_STORAGE_BUCKET_NAME` and `AWS_S3_ENDPOINT_URL` are configured, new media uploads are stored in private S3-compatible storage such as MinIO and returned through signed URL fields. Without these variables, local Django media storage is used for development.
+
+- Profile `photo`: image files only (`.png`, `.jpg`, `.jpeg`, `.webp`), max 5MB.
+- Program `thumbnail`: image files only (`.png`, `.jpg`, `.jpeg`, `.webp`), max 5MB.

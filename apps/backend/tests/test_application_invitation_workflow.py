@@ -3,7 +3,6 @@ from datetime import timedelta
 import pytest
 from django.contrib.auth import get_user_model
 from django.core import mail
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -48,11 +47,9 @@ def domain():
     return program, cohort
 
 
-def test_public_application_submission_accepts_valid_uploads():
+def test_public_application_submission_accepts_contact_and_motivation_details():
     program, _ = domain()
     client = APIClient()
-    resume = SimpleUploadedFile("resume.pdf", b"%PDF-1.4", content_type="application/pdf")
-    payment = SimpleUploadedFile("proof.png", b"image", content_type="image/png")
 
     response = client.post(
         "/api/applications/",
@@ -65,38 +62,14 @@ def test_public_application_submission_accepts_valid_uploads():
             "experience": "Intermediate",
             "motivation": "I want to join this cohort and build reliable software.",
             "program_id": str(program.id),
-            "resume": resume,
-            "payment_proof": payment,
         },
-        format="multipart",
+        format="json",
     )
 
     assert response.status_code == 201
     assert response.data["status"] == "pending"
-    assert response.data["resume_url"]
-    assert response.data["payment_proof_url"]
-
-
-def test_invalid_application_upload_type_is_rejected():
-    program, _ = domain()
-    client = APIClient()
-    resume = SimpleUploadedFile("resume.exe", b"binary", content_type="application/octet-stream")
-
-    response = client.post(
-        "/api/applications/",
-        {
-            "first_name": "Bad",
-            "last_name": "Upload",
-            "email": "bad@example.com",
-            "motivation": "I want to join this cohort and build reliable software.",
-            "program_id": str(program.id),
-            "resume": resume,
-        },
-        format="multipart",
-    )
-
-    assert response.status_code == 400
-    assert "resume" in response.data
+    assert "resume_url" not in response.data
+    assert "payment_proof_url" not in response.data
 
 
 def test_invitation_accept_creates_student_and_prevents_reuse():

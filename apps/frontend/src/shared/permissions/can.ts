@@ -25,6 +25,10 @@ export const can = {
     return role === 'super_admin' || role === 'admin' || role === 'teacher';
   },
 
+  manageCurriculum: (role: UserRole): boolean => {
+    return role === 'super_admin' || role === 'admin' || role === 'teacher';
+  },
+
   // Teachers, Admins, and Super Admins can grade submissions.
   gradeSubmissions: (role: UserRole): boolean => {
     return role === 'super_admin' || role === 'admin' || role === 'teacher';

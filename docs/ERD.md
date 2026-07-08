@@ -8,9 +8,10 @@ Initial entities:
 - `TeacherAssignment`: teacher-to-cohort relationship.
 - `Application`: public student application.
 - `Invitation`: secure expiring invitation for approved applicants, accepted to activate a student account.
-- `Week`: cohort weekly learning content.
-- `Resource`: links attached to a week.
-- `Assignment`: cohort assignment, optionally linked to a week.
+- `Module`: cohort learning unit.
+- `Lesson`: ordered submodule/lesson inside a module.
+- `Resource`: ordered links attached to a lesson.
+- `Assignment`: cohort assignment linked to a lesson and optionally to a resource.
 - `Submission`: one student submission per assignment.
 - `Announcement`: program or cohort scoped message.
 - `PlatformSettings`: singleton platform branding/theme settings.

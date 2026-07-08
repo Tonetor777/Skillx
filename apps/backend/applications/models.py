@@ -24,8 +24,6 @@ class Application(models.Model):
     experience = models.CharField(max_length=128)
     motivation = models.TextField()
     program = models.ForeignKey("programs.Program", on_delete=models.PROTECT, related_name="applications")
-    payment_proof = models.FileField(upload_to="applications/payment-proofs/", blank=True, null=True)
-    resume = models.FileField(upload_to="applications/resumes/", blank=True, null=True)
     status = models.CharField(max_length=32, choices=ApplicationStatus.choices, default=ApplicationStatus.PENDING)
     submitted_at = models.DateTimeField(auto_now_add=True)
     reviewed_by = models.ForeignKey(
@@ -57,4 +55,3 @@ class Invitation(models.Model):
 
     def __str__(self) -> str:
         return f"{self.email} - {self.cohort}"
-

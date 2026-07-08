@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAssignments, useCreateAssignment } from '../../features/assignments/api/assignments';
 import { useSubmissions, useCreateSubmission, useGradeSubmission } from '../../features/submissions/api/submissions';
-import { useCohorts } from '../../features/cohorts/api/cohorts';
+import { useModules } from '../../features/weeks/api/weeks';
 import { useAuth } from '../../features/authentication/context/AuthContext';
 import { can } from '../../shared/permissions/can';
 import { 
@@ -32,8 +32,8 @@ const assignmentSchema = z.object({
   description: z.string().min(15, { message: 'Description must be at least 15 characters' }),
   max_points: z.number().min(1, { message: 'Max points must be at least 1' }),
   due_date: z.string().min(1, { message: 'Due date is required' }),
-  week_number: z.number().min(1, { message: 'Week number must be at least 1' }),
-  cohort_id: z.string().min(1, { message: 'Cohort selection is required' }),
+  module_id: z.string().min(1, { message: 'Module selection is required' }),
+  lesson_id: z.string().min(1, { message: 'Lesson selection is required' }),
 });
 
 type AssignmentFormValues = z.infer<typeof assignmentSchema>;
@@ -57,7 +57,7 @@ export default function Assignments() {
   const { user } = useAuth();
   
   // Queries
-  const { data: cohorts } = useCohorts();
+  const { data: modules } = useModules(user?.role === 'student' ? user.cohort_id : undefined);
   const { data: assignments, isLoading: assignmentsLoading, isError: assignmentsError, error, refetch } = useAssignments(
     user?.role === 'student' ? user.cohort_id : undefined
   );
@@ -77,7 +77,7 @@ export default function Assignments() {
   // Forms
   const createAsgForm = useForm<AssignmentFormValues>({
     resolver: zodResolver(assignmentSchema),
-    defaultValues: { title: '', description: '', max_points: 100, due_date: '', week_number: 1, cohort_id: '' }
+    defaultValues: { title: '', description: '', max_points: 100, due_date: '', module_id: '', lesson_id: '' }
   });
 
   const submitForm = useForm<SubmissionFormValues>({
@@ -102,10 +102,18 @@ export default function Assignments() {
 
   // Submissions associated with selected assignment (for instructors)
   const instructorSubmissions = submissions?.filter(s => s.assignment_id === selectedAsgId) || [];
+  const selectedModuleId = createAsgForm.watch('module_id');
+  const selectedModule = modules?.find(module => module.id === selectedModuleId);
 
   const handleCreateAssignment = async (data: AssignmentFormValues) => {
     try {
-      await createAssignmentMutation.mutateAsync(data);
+      await createAssignmentMutation.mutateAsync({
+        title: data.title,
+        description: data.description,
+        max_points: data.max_points,
+        due_date: data.due_date,
+        lesson_id: data.lesson_id,
+      });
       setIsCreating(false);
       createAsgForm.reset();
       triggerToast('Assignment task published successfully!');
@@ -200,7 +208,9 @@ export default function Assignments() {
         <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
           <div className="flex justify-between items-start flex-col sm:flex-row gap-3">
             <div>
-              <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider font-mono">Week {selectedAsg.week_number} Homework Assignment</span>
+              <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider font-mono">
+                {selectedAsg.module_title ?? 'Module'} · {selectedAsg.lesson_title ?? 'Lesson'} Assignment
+              </span>
               <h1 className="text-xl md:text-2xl font-sans font-bold text-gray-900 tracking-tight mt-0.5">{selectedAsg.title}</h1>
               <p className="text-xs text-gray-500 mt-1">Cohort: {selectedAsg.cohort_name}</p>
             </div>
@@ -544,44 +554,51 @@ export default function Assignments() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700">Week Number</label>
-                  <input
-                    type="number"
+                  <label className="block text-xs font-semibold text-gray-700">Module</label>
+                  <select
                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                    {...createAsgForm.register('week_number', { valueAsNumber: true })}
-                  />
-                  {createAsgForm.formState.errors.week_number && (
-                    <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.week_number.message}</span>
+                    {...createAsgForm.register('module_id', {
+                      onChange: () => createAsgForm.setValue('lesson_id', ''),
+                    })}
+                  >
+                    <option value="">-- Choose Module --</option>
+                    {modules?.map(module => (
+                      <option key={module.id} value={module.id}>Module {module.module_number}: {module.title}</option>
+                    ))}
+                  </select>
+                  {createAsgForm.formState.errors.module_id && (
+                    <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.module_id.message}</span>
                   )}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700">Max Points Limit</label>
-                  <input
-                    type="number"
+                  <label className="block text-xs font-semibold text-gray-700">Lesson</label>
+                  <select
                     className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                    {...createAsgForm.register('max_points', { valueAsNumber: true })}
-                  />
-                  {createAsgForm.formState.errors.max_points && (
-                    <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.max_points.message}</span>
+                    {...createAsgForm.register('lesson_id')}
+                    disabled={!selectedModule}
+                  >
+                    <option value="">-- Choose Lesson --</option>
+                    {selectedModule?.lessons.map(lesson => (
+                      <option key={lesson.id} value={lesson.id}>Lesson {lesson.order}: {lesson.title}</option>
+                    ))}
+                  </select>
+                  {createAsgForm.formState.errors.lesson_id && (
+                    <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.lesson_id.message}</span>
                   )}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700">Associated Class Cohort</label>
-                <select
+                <label className="block text-xs font-semibold text-gray-700">Max Points Limit</label>
+                <input
+                  type="number"
                   className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                  {...createAsgForm.register('cohort_id')}
-                >
-                  <option value="">-- Choose Target Cohort --</option>
-                  {cohorts?.map(c => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.program_name})</option>
-                  ))}
-                </select>
-                {createAsgForm.formState.errors.cohort_id && (
-                  <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.cohort_id.message}</span>
+                  {...createAsgForm.register('max_points', { valueAsNumber: true })}
+                />
+                {createAsgForm.formState.errors.max_points && (
+                  <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.max_points.message}</span>
                 )}
               </div>
 
@@ -646,7 +663,7 @@ export default function Assignments() {
                 <div>
                   <div className="flex justify-between items-start mb-3">
                     <span className="text-xs font-bold text-indigo-600 uppercase font-mono tracking-wider">
-                      Week {asg.week_number} Module
+                      {asg.module_title ?? 'Module'} · {asg.lesson_title ?? 'Lesson'}
                     </span>
                     
                     {/* Status Badge */}

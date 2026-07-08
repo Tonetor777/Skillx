@@ -205,7 +205,9 @@ export default function Overview() {
                       return (
                         <div key={asg.id} className="border border-slate-100 rounded-lg p-4 flex justify-between items-center hover:border-indigo-200 transition-all bg-white shadow-xs">
                           <div>
-                            <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase">Week {asg.week_number} Task</span>
+                            <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase">
+                              {asg.module_title ?? 'Module'} Task
+                            </span>
                             <h5 className="font-bold text-sm text-slate-800 mt-2">{asg.title}</h5>
                             <span className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                               Max Points: {asg.max_points} • Due: {new Date(asg.due_date).toLocaleDateString()}
@@ -290,8 +292,8 @@ export default function Overview() {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="border border-slate-100 rounded-lg p-3.5 bg-slate-50/50">
-                <span className="font-semibold text-sm text-slate-800 block">Syllabus-focused Weeks</span>
-                <span className="text-xs text-slate-500 mt-1 block">Course modules contain weeks defining primary curriculum objectives and assets.</span>
+                <span className="font-semibold text-sm text-slate-800 block">Module-based Lessons</span>
+                <span className="text-xs text-slate-500 mt-1 block">Cohorts organize learning into modules, lessons, resources, and assignments.</span>
               </div>
               <div className="border border-slate-100 rounded-lg p-3.5 bg-slate-50/50">
                 <span className="font-semibold text-sm text-slate-800 block">Assignment Locks</span>

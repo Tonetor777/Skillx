@@ -1,27 +1,30 @@
 from datetime import timedelta
-from base64 import b64decode
+from io import BytesIO
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
+from PIL import Image
 from rest_framework.test import APIClient
 
 from accounts.choices import UserRole, UserStatus
 from applications.models import Application, ApplicationStatus, Invitation
 from announcements.models import Announcement
 from cohorts.models import Cohort, CohortStatus, TeacherAssignment, TeacherAssignmentRole
-from learning.models import Assignment, Week, WeekStatus
+from learning.models import Assignment, Lesson, Module, ModuleStatus
 from programs.models import Program, ProgramStatus
 from submissions.models import Submission
 
 
 pytestmark = pytest.mark.django_db
 
-PNG_1X1 = b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
-)
+def png_file(name: str):
+    buffer = BytesIO()
+    Image.new("RGB", (1, 1), color="white").save(buffer, format="PNG")
+    buffer.seek(0)
+    return SimpleUploadedFile(name, buffer.read(), content_type="image/png")
 
 
 def create_user(email, role, *, cohort=None, status=UserStatus.ACTIVE, password="password"):
@@ -66,21 +69,22 @@ def domain():
     )
     TeacherAssignment.objects.create(teacher=teacher, cohort=cohort, role=TeacherAssignmentRole.LEAD)
     student = create_user("student@example.com", UserRole.STUDENT, cohort=cohort)
-    week = Week.objects.create(
+    module = Module.objects.create(
         cohort=cohort,
-        week_number=1,
+        module_number=1,
         title="Foundations",
-        status=WeekStatus.PUBLISHED,
+        status=ModuleStatus.PUBLISHED,
         created_by=teacher,
     )
+    lesson = Lesson.objects.create(module=module, title="First Lesson", order=1)
     assignment = Assignment.objects.create(
         cohort=cohort,
-        week=week,
+        module=module,
+        lesson=lesson,
         title="First Build",
         description="Submit a link.",
         max_points=100,
         due_date=timezone.now() + timedelta(days=7),
-        week_number=1,
         created_by=teacher,
     )
     return {
@@ -136,7 +140,7 @@ def test_profile_update_accepts_json_and_photo_upload(domain):
         {"first_name": "Updated", "last_name": "Student"},
         format="json",
     )
-    photo = SimpleUploadedFile("avatar.png", PNG_1X1, content_type="image/png")
+    photo = png_file("avatar.png")
     photo_response = client.patch("/api/accounts/me/", {"photo": photo}, format="multipart")
 
     assert json_response.status_code == 200
@@ -158,8 +162,8 @@ def test_profile_photo_upload_validation_and_authentication(domain):
 def test_program_thumbnail_upload_and_permissions(domain):
     admin_client = auth_client(domain["admin"])
     student_client = auth_client(domain["student"])
-    thumbnail = SimpleUploadedFile("thumbnail.png", PNG_1X1, content_type="image/png")
-    blocked_thumbnail = SimpleUploadedFile("blocked.png", PNG_1X1, content_type="image/png")
+    thumbnail = png_file("thumbnail.png")
+    blocked_thumbnail = png_file("blocked.png")
 
     create_response = admin_client.post(
         "/api/programs/",
@@ -215,15 +219,16 @@ def test_student_only_sees_own_cohort_assignments(domain):
         end_date=timezone.localdate() + timedelta(weeks=4),
         status=CohortStatus.ACTIVE,
     )
-    other_week = Week.objects.create(cohort=other_cohort, week_number=1, title="Other Week", created_by=domain["teacher"])
+    other_module = Module.objects.create(cohort=other_cohort, module_number=1, title="Other Module", created_by=domain["teacher"])
+    other_lesson = Lesson.objects.create(module=other_module, title="Other Lesson", order=1)
     Assignment.objects.create(
         cohort=other_cohort,
-        week=other_week,
+        module=other_module,
+        lesson=other_lesson,
         title="Hidden",
         description="Hidden",
         max_points=100,
         due_date=timezone.now() + timedelta(days=1),
-        week_number=1,
         created_by=domain["teacher"],
     )
 

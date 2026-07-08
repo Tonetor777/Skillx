@@ -16,8 +16,6 @@ const schema = z.object({
   experience: z.string().min(1, 'Experience is required'),
   program_id: z.string().min(1, 'Select a program'),
   motivation: z.string().min(20, 'Motivation must be at least 20 characters'),
-  resume: z.instanceof(FileList).optional(),
-  payment_proof: z.instanceof(FileList).optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -31,15 +29,7 @@ export default function Apply() {
   });
 
   const onSubmit = async (values: FormValues) => {
-    const formData = new FormData();
-    Object.entries(values).forEach(([key, value]) => {
-      if (value instanceof FileList) {
-        if (value[0]) formData.append(key, value[0]);
-      } else if (value !== undefined) {
-        formData.append(key, String(value));
-      }
-    });
-    await createApplication.mutateAsync(formData);
+    await createApplication.mutateAsync(values);
     setSubmitted(true);
   };
 
@@ -73,8 +63,6 @@ export default function Apply() {
             {programs.map((program) => <option key={program.id} value={program.id}>{program.name}</option>)}
           </select>
           <textarea className="skx-field md:col-span-2 min-h-32" placeholder="Why do you want to join?" {...register('motivation')} />
-          <label className="skx-field-label normal-case text-sm text-[#5f5f5a]">Resume<input type="file" className="mt-2 block w-full text-sm" {...register('resume')} /></label>
-          <label className="skx-field-label normal-case text-sm text-[#5f5f5a]">Payment proof<input type="file" className="mt-2 block w-full text-sm" {...register('payment_proof')} /></label>
           {Object.values(errors)[0] && <p className="md:col-span-2 text-sm font-medium text-red-600">{Object.values(errors)[0]?.message?.toString()}</p>}
           <button disabled={isSubmitting} className="skx-primary-btn md:col-span-2">
             <Send className="w-4 h-4" /> {isSubmitting ? 'Submitting...' : 'Submit application'}

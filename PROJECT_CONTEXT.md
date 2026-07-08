@@ -71,7 +71,7 @@ Deliver a production-ready LMS that supports:
 - Programs
 - Cohorts
 - Teacher assignment
-- Weekly learning content
+- Module and lesson learning content
 - Assignment submissions
 - Grading
 - Announcements
@@ -109,7 +109,7 @@ Priority Order
 4. Applications
 5. Invitations
 6. Teacher Assignment
-7. Weekly Content
+7. Module Content
 8. Assignments
 9. Grading
 10. Dashboard
@@ -145,7 +145,7 @@ Do not begin lower-priority modules unless dependencies are complete.
 
 ## Storage
 
-- Cloudinary
+- MinIO / S3-compatible object storage
 
 ## Email
 
@@ -167,6 +167,9 @@ Database
 
 ## Recent Foundation Fixes
 
+- Lesson delivery now uses a TipTap-powered native lesson editor for teacher-authored structured content, rendered inline for students while preserving existing plain-text lesson content.
+- Media uploads now support private MinIO/S3-compatible storage when S3 environment variables are configured, with signed URL responses for profile photos and program thumbnails.
+- Application signup no longer collects resume or payment proof uploads.
 - Vite frontend now has a Nexus-inspired monochrome academy UI layer with grid backgrounds, sharp bordered surfaces, reusable presentation components, and Amharic major titles.
 - Local Docker development allows Django requests addressed to `0.0.0.0:8000` through `DJANGO_ALLOWED_HOSTS`.
 - Development-only Swagger/OpenAPI documentation is available at `/api/docs/` and `/api/schema/`.
@@ -264,7 +267,8 @@ Primary Entities
 - Applications
 - Invitations
 - TeacherAssignments
-- Weeks
+- Modules
+- Lessons
 - Resources
 - Assignments
 - Submissions
@@ -293,9 +297,9 @@ Teacher Assignments
 
 ✅ Admin/Super Admin assignment, removal, and role validation API integrated
 
-Weekly Content
+Module Content
 
-✅ Week CRUD, publish workflow, and ordered resource API integrated
+✅ Frontend curriculum controls use nested week/module/lesson panels in Program detail and Modules views, including native rich lesson authoring and inline student rendering.
 
 Applications
 
@@ -332,9 +336,10 @@ Leaderboard and Summaries
 - Vite frontend to Django API integration
 - Dashboard APIs for programs, cohorts, applications, assignments, submissions, announcements, and settings
 - Program archive/details and cohort current-week/status management
-- Public applications with resume/payment proof validation and expiring invitations
+- Public applications without document uploads and expiring invitations
 - Teacher assignment workflow with lead, assistant, and mentor roles
-- Week CRUD/publishing and ordered resource management
+- Program detail live curriculum management, nested week/module/lesson panels, module CRUD/publishing, lesson management, and ordered resource management
+- Native rich lesson editor with plain-text fallback rendering for existing lessons
 - Grade notifications, scheduled announcement visibility, leaderboard visibility, and role-specific summaries
 - User flow documentation
 - Local development seed command
@@ -518,7 +523,7 @@ The MVP is considered successful when:
 - Students can apply to programs.
 - Admins can approve applications.
 - Invitations create accounts securely.
-- Teachers can manage weekly content.
+- Teachers can manage module and lesson content.
 - Students can submit assignments.
 - Teachers can grade assignments.
 - Students can track progress.

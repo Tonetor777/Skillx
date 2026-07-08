@@ -2,7 +2,7 @@
 
 ## Applicant to Student
 
-1. Applicant submits `/apply` with program, motivation, contact details, resume, and payment proof.
+1. Applicant submits `/apply` with program, motivation, and contact details.
 2. Admin or Super Admin reviews the application in the dashboard.
 3. Approval creates an expiring invitation email for the selected cohort.
 4. Applicant accepts the invitation, sets a password, and becomes an active student in exactly one cohort.
@@ -25,14 +25,16 @@
 
 ## Learning Delivery
 
-1. Teacher, Admin, or Super Admin creates weekly content for an accessible cohort.
-2. Draft weeks remain hidden from students.
+1. Teacher, Admin, or Super Admin creates modules for an accessible cohort.
+2. Draft modules remain hidden from students.
 3. Publishing stamps publish date and publisher.
-4. Resources are ordered links attached to weeks and can be deleted by staff.
+4. Staff add ordered lessons/submodules beneath modules with a native rich editor for lesson content.
+5. Students read lesson content inline inside the dashboard.
+6. Resources are ordered supporting links attached to lessons and can be deleted by staff.
 
 ## Assignments and Grading
 
-1. Teacher, Admin, or Super Admin creates assignments.
+1. Teacher, Admin, or Super Admin creates assignments for lessons, optionally tied to a resource.
 2. Students submit only to assignments in their own cohort.
 3. Late submissions are flagged automatically.
 4. Grading locks the submission and sends an email notification to the student.
@@ -40,6 +42,6 @@
 
 ## Dashboards
 
-1. Student dashboard summarizes progress, current week, grades, and announcements.
+1. Student dashboard summarizes progress, current module, grades, and announcements.
 2. Teacher dashboard summarizes assigned cohorts, pending grading, and delivery analytics.
 3. Admin dashboard summarizes applications, programs, cohorts, and reporting metrics.

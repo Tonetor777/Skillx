@@ -1,4 +1,4 @@
-import { User, Program, Cohort, Assignment, Submission, Application, Announcement } from '../types';
+import { User, Program, Cohort, Assignment, Submission, Application, Announcement, Module } from '../types';
 
 // Initial seed data
 const initialUsers: User[] = [
@@ -145,9 +145,14 @@ const initialAssignments: Assignment[] = [
     description: 'Implement a comprehensive library replicating lodash closures including `memoize`, `debounce`, `throttle`, and custom async queues. Write comprehensive test logs verifying concurrency control.',
     max_points: 100,
     due_date: '2026-06-15T23:59:59Z',
-    week_number: 1,
     cohort_id: 'coh_react_active',
     cohort_name: 'Frontend Cohort Alpha',
+    module_id: 'mod_frontend_foundations',
+    module_title: 'JavaScript Foundations',
+    lesson_id: 'les_js_execution',
+    lesson_title: 'Execution Contexts and Closures',
+    resource_id: 'res_js_doc',
+    resource_title: 'ES6+ Execution Contexts & Closures Guide',
     is_locked: false
   },
   {
@@ -156,10 +161,82 @@ const initialAssignments: Assignment[] = [
     description: 'Design a TypeScript-powered virtual repository schema compiler matching type specifications with strict validation. Must leverage conditional mappings, generic signatures, and mapped types.',
     max_points: 100,
     due_date: '2026-07-20T23:59:59Z',
-    week_number: 2,
     cohort_id: 'coh_react_active',
     cohort_name: 'Frontend Cohort Alpha',
+    module_id: 'mod_frontend_typescript',
+    module_title: 'TypeScript Systems',
+    lesson_id: 'les_ts_generics',
+    lesson_title: 'Generics and Schema Mapping',
     is_locked: false
+  }
+];
+
+const initialModules: Module[] = [
+  {
+    id: 'mod_frontend_foundations',
+    cohort_id: 'coh_react_active',
+    cohort_name: 'Frontend Cohort Alpha',
+    module_number: 1,
+    title: 'JavaScript Foundations',
+    description: 'Master the JavaScript runtime features needed for production frontend work.',
+    notes: '',
+    status: 'published',
+    publish_date: '2026-05-01T09:00:00Z',
+    published_by_name: 'David Malan',
+    lessons: [
+      {
+        id: 'les_js_execution',
+        module_id: 'mod_frontend_foundations',
+        title: 'Execution Contexts and Closures',
+        objectives: 'Understand closures, event loop behavior, and async execution.',
+        content: 'Read the guide, watch the runtime walkthrough, then complete the functional utility assignment.',
+        recording: 'https://example.com/js-loop-video',
+        order: 1,
+        resources: [
+          {
+            id: 'res_js_doc',
+            lesson_id: 'les_js_execution',
+            title: 'ES6+ Execution Contexts & Closures Guide',
+            type: 'document',
+            url: 'https://example.com/js-closures',
+            order: 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'mod_frontend_typescript',
+    cohort_id: 'coh_react_active',
+    cohort_name: 'Frontend Cohort Alpha',
+    module_number: 2,
+    title: 'TypeScript Systems',
+    description: 'Design type-safe frontend data layers with strict schemas.',
+    notes: '',
+    status: 'published',
+    publish_date: '2026-05-08T09:00:00Z',
+    published_by_name: 'David Malan',
+    lessons: [
+      {
+        id: 'les_ts_generics',
+        module_id: 'mod_frontend_typescript',
+        title: 'Generics and Schema Mapping',
+        objectives: 'Apply advanced generics and mapped types to API-facing models.',
+        content: '',
+        recording: '',
+        order: 1,
+        resources: [
+          {
+            id: 'res_ts_pdf',
+            lesson_id: 'les_ts_generics',
+            title: 'TypeScript Handbook: Intermediate and Advanced Types',
+            type: 'pdf',
+            url: 'https://example.com/ts-advanced.pdf',
+            order: 1
+          }
+        ]
+      }
+    ]
   }
 ];
 
@@ -253,6 +330,7 @@ export class MockDatabase {
       localStorage.setItem('skilix_users', JSON.stringify(initialUsers));
       localStorage.setItem('skilix_programs', JSON.stringify(initialPrograms));
       localStorage.setItem('skilix_cohorts', JSON.stringify(initialCohorts));
+      localStorage.setItem('skilix_modules', JSON.stringify(initialModules));
       localStorage.setItem('skilix_assignments', JSON.stringify(initialAssignments));
       localStorage.setItem('skilix_submissions', JSON.stringify(initialSubmissions));
       localStorage.setItem('skilix_applications', JSON.stringify(initialApplications));

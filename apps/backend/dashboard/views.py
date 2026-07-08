@@ -10,7 +10,7 @@ from announcements.models import Announcement
 from cohorts.models import Cohort
 from dashboard.models import PlatformSettings
 from dashboard.serializers import PlatformSettingsSerializer
-from learning.models import Assignment, Week
+from learning.models import Assignment, Module
 from programs.models import Program
 from submissions.models import Submission
 
@@ -94,7 +94,7 @@ class DashboardSummaryView(APIView):
                         "submissions_total": submissions.count(),
                         "graded_total": submissions.filter(score__isnull=False).count(),
                     },
-                    "current_week": Week.objects.filter(cohort_id=user.cohort_id, status="PUBLISHED").order_by("-week_number").values("week_number", "title").first(),
+                    "current_module": Module.objects.filter(cohort_id=user.cohort_id, status="PUBLISHED").order_by("-module_number").values("module_number", "title").first(),
                     "grades": {"average": submissions.filter(score__isnull=False).aggregate(value=Avg("score"))["value"] or 0},
                     "announcements": Announcement.objects.filter(Q(cohort_id=user.cohort_id) | Q(program_id=user.cohort.program_id if user.cohort_id else None)).count(),
                 }

@@ -5,15 +5,16 @@ from rest_framework.viewsets import ModelViewSet
 
 from accounts.choices import UserRole
 from accounts.permissions import IsActiveUser, IsTeacherAdminOrSuperAdmin
-from learning.models import Assignment, Resource, Week, WeekStatus
-from learning.serializers import AssignmentSerializer, ResourceSerializer, WeekSerializer
+from learning.models import Assignment, Lesson, Module, ModuleStatus, Resource
+from learning.serializers import AssignmentSerializer, LessonSerializer, ModuleSerializer, ResourceSerializer
 
 
-def scope_queryset_to_user(queryset, user, cohort_field="cohort_id"):
+def scope_queryset_to_user(queryset, user, cohort_path="cohort_id"):
     if user.role == UserRole.STUDENT:
-        return queryset.filter(**{cohort_field: user.cohort_id})
+        return queryset.filter(**{cohort_path: user.cohort_id})
     if user.role == UserRole.TEACHER:
-        return queryset.filter(**{f"{cohort_field.replace('_id', '')}__teacher_assignments__teacher": user}).distinct()
+        teacher_path = cohort_path.replace("_id", "")
+        return queryset.filter(**{f"{teacher_path}__teacher_assignments__teacher": user}).distinct()
     return queryset
 
 
@@ -24,12 +25,18 @@ class AssignmentViewSet(ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Assignment.objects.select_related("cohort", "week").prefetch_related("submissions")
+        queryset = Assignment.objects.select_related("cohort", "module", "lesson", "resource").prefetch_related("submissions")
         cohort_id = self.request.query_params.get("cohort_id")
+        lesson_id = self.request.query_params.get("lesson_id")
+        resource_id = self.request.query_params.get("resource_id")
         if cohort_id:
             queryset = queryset.filter(cohort_id=cohort_id)
+        if lesson_id:
+            queryset = queryset.filter(lesson_id=lesson_id)
+        if resource_id:
+            queryset = queryset.filter(resource_id=resource_id)
         if user.role == UserRole.STUDENT:
-            return queryset.filter(cohort_id=user.cohort_id)
+            return queryset.filter(cohort_id=user.cohort_id, module__status=ModuleStatus.PUBLISHED)
         if user.role == UserRole.TEACHER:
             return queryset.filter(cohort__teacher_assignments__teacher=user).distinct()
         return queryset
@@ -40,20 +47,20 @@ class AssignmentViewSet(ModelViewSet):
         return super().get_permissions()
 
 
-class WeekViewSet(ModelViewSet):
-    serializer_class = WeekSerializer
+class ModuleViewSet(ModelViewSet):
+    serializer_class = ModuleSerializer
     permission_classes = [IsActiveUser]
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Week.objects.select_related("cohort", "published_by").prefetch_related("resources")
+        queryset = Module.objects.select_related("cohort", "published_by").prefetch_related("lessons__resources")
         cohort_id = self.request.query_params.get("cohort_id")
         if cohort_id:
             queryset = queryset.filter(cohort_id=cohort_id)
         queryset = scope_queryset_to_user(queryset, user)
         if user.role == UserRole.STUDENT:
-            queryset = queryset.filter(status=WeekStatus.PUBLISHED)
+            queryset = queryset.filter(status=ModuleStatus.PUBLISHED)
         return queryset
 
     def get_permissions(self):
@@ -63,12 +70,35 @@ class WeekViewSet(ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def publish(self, request, pk=None):
-        week = self.get_object()
-        week.status = WeekStatus.PUBLISHED
-        week.publish_date = timezone.now()
-        week.published_by = request.user
-        week.save(update_fields=["status", "publish_date", "published_by"])
-        return Response(self.get_serializer(week).data)
+        module = self.get_object()
+        module.status = ModuleStatus.PUBLISHED
+        module.publish_date = timezone.now()
+        module.published_by = request.user
+        module.save(update_fields=["status", "publish_date", "published_by"])
+        return Response(self.get_serializer(module).data)
+
+
+class LessonViewSet(ModelViewSet):
+    serializer_class = LessonSerializer
+    permission_classes = [IsActiveUser]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Lesson.objects.select_related("module", "module__cohort").prefetch_related("resources")
+        module_id = self.request.query_params.get("module_id")
+        if module_id:
+            queryset = queryset.filter(module_id=module_id)
+        if user.role == UserRole.STUDENT:
+            return queryset.filter(module__cohort_id=user.cohort_id, module__status=ModuleStatus.PUBLISHED)
+        if user.role == UserRole.TEACHER:
+            return queryset.filter(module__cohort__teacher_assignments__teacher=user).distinct()
+        return queryset
+
+    def get_permissions(self):
+        if self.action in {"create", "partial_update", "destroy"}:
+            return [IsTeacherAdminOrSuperAdmin()]
+        return super().get_permissions()
 
 
 class ResourceViewSet(ModelViewSet):
@@ -78,14 +108,14 @@ class ResourceViewSet(ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Resource.objects.select_related("week", "week__cohort")
-        week_id = self.request.query_params.get("week_id")
-        if week_id:
-            queryset = queryset.filter(week_id=week_id)
+        queryset = Resource.objects.select_related("lesson", "lesson__module", "lesson__module__cohort")
+        lesson_id = self.request.query_params.get("lesson_id")
+        if lesson_id:
+            queryset = queryset.filter(lesson_id=lesson_id)
         if user.role == UserRole.STUDENT:
-            return queryset.filter(week__cohort_id=user.cohort_id, week__status=WeekStatus.PUBLISHED)
+            return queryset.filter(lesson__module__cohort_id=user.cohort_id, lesson__module__status=ModuleStatus.PUBLISHED)
         if user.role == UserRole.TEACHER:
-            return queryset.filter(week__cohort__teacher_assignments__teacher=user).distinct()
+            return queryset.filter(lesson__module__cohort__teacher_assignments__teacher=user).distinct()
         return queryset
 
     def get_permissions(self):

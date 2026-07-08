@@ -3,7 +3,6 @@ from pathlib import Path
 from rest_framework import serializers
 
 
-DOCUMENT_UPLOAD_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp"}
 IMAGE_UPLOAD_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024
 
@@ -18,10 +17,6 @@ def validate_upload(value, *, allowed_extensions: set[str], file_kind: str):
     if value.size > MAX_UPLOAD_SIZE:
         raise serializers.ValidationError(f"{file_kind} must be 5MB or smaller.")
     return value
-
-
-def validate_document_upload(value):
-    return validate_upload(value, allowed_extensions=DOCUMENT_UPLOAD_EXTENSIONS, file_kind="Upload")
 
 
 def validate_image_upload(value):

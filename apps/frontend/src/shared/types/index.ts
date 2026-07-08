@@ -13,10 +13,40 @@ export interface User {
 
 export interface Resource {
   id: string;
+  lesson_id?: string;
   title: string;
   type: 'pdf' | 'video' | 'link' | 'document';
   url: string;
   description?: string;
+  order?: number;
+}
+
+export interface Lesson {
+  id?: string;
+  module_id?: string;
+  module_title?: string;
+  cohort_id?: string;
+  cohort_name?: string;
+  title: string;
+  objectives?: string;
+  content?: string;
+  recording?: string;
+  order: number;
+  resources: Resource[];
+}
+
+export interface Module {
+  id?: string;
+  cohort_id?: string;
+  cohort_name?: string;
+  module_number: number;
+  title: string;
+  description?: string;
+  notes?: string;
+  status?: 'draft' | 'published' | 'archived';
+  publish_date?: string;
+  published_by_name?: string;
+  lessons: Lesson[];
 }
 
 export interface Week {
@@ -91,9 +121,14 @@ export interface Assignment {
   description: string;
   max_points: number;
   due_date: string;
-  week_number: number;
   cohort_id: string;
   cohort_name: string;
+  module_id?: string;
+  module_title?: string;
+  lesson_id?: string;
+  lesson_title?: string;
+  resource_id?: string;
+  resource_title?: string;
   is_locked: boolean; // Locked after grading
 }
 

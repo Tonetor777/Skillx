@@ -60,8 +60,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       roles: ['super_admin', 'admin', 'teacher', 'student'],
     },
     {
-      name: 'Weeks',
-      path: '/dashboard/weeks',
+      name: 'Modules',
+      path: '/dashboard/modules',
       icon: BookOpen,
       roles: ['super_admin', 'admin', 'teacher', 'student'],
     },

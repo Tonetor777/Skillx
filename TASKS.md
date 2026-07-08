@@ -43,8 +43,8 @@ Build the first production-ready version of Skilix.
 | Feature | Status | Notes |
 |----------|--------|-------|
 | Apply to Program | ✅ | Public API/frontend submission flow is implemented. |
-| Upload Resume | ✅ | Upload validation and frontend submission are implemented. |
-| Upload Payment Proof | ✅ | Upload validation and frontend submission are implemented. |
+| Upload Resume | ✅ Removed | Removed from the redesigned MVP application flow. |
+| Upload Payment Proof | ✅ Removed | Removed from the redesigned MVP application flow. |
 | Review Applications | ✅ | Admin/Super Admin API with frontend DTOs and tests. |
 | Approve Application | ✅ | Admin/Super Admin approval API provisions active student accounts. |
 | Reject Application | ✅ | Admin/Super Admin rejection API records review metadata. |
@@ -58,7 +58,7 @@ Build the first production-ready version of Skilix.
 |----------|--------|-------|
 | Program CRUD | ✅ | Backend API and Vite dashboard integration are implemented for list/create/update. |
 | Archive Program | ✅ | Soft archive endpoint preserves data and hides archived programs from default lists. |
-| Program Details | ✅ | Detail API returns cohort summary data for dashboard views. |
+| Program Details | ✅ | Detail API returns cohort summary data and embeds live cohort curriculum management in the dashboard. |
 
 ---
 
@@ -82,13 +82,22 @@ Build the first production-ready version of Skilix.
 
 ---
 
-# Weeks
+# Modules
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| Week CRUD | ✅ | Week API CRUD and dashboard content view are implemented. |
-| Publish Week | ✅ | Publish action sets status, publish date, and publisher. |
-| Draft Support | ✅ | Draft/published/archived API support is implemented. |
+| Module CRUD | ✅ | Backend API and nested frontend controls are implemented in Program curriculum and Modules views. |
+| Publish Module | ✅ | Publish action sets status, publish date, and publisher. |
+| Draft Support | ✅ | Draft/published/archived API support is implemented for modules. |
+
+---
+
+# Lessons
+
+| Feature | Status | Notes |
+|----------|--------|-------|
+| Lesson CRUD | ✅ | Backend API and nested frontend controls are implemented inside module panels. |
+| Native Lesson Editor | ✅ | TipTap-powered lesson authoring stores structured JSON in `Lesson.content` with plain-text fallback rendering for existing lessons. |
 
 ---
 
@@ -96,8 +105,8 @@ Build the first production-ready version of Skilix.
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| Upload Resource | ✅ | Resource URL create/list/update workflow is implemented. |
-| Delete Resource | ✅ | Resource delete API is implemented. |
+| Upload Resource | ✅ | Resource URL create/list/update workflow is lesson-scoped inside nested lesson panels. |
+| Delete Resource | ✅ | Resource delete API and nested lesson-panel deletion controls are implemented. |
 | Ordering | ✅ | Resource ordering is exposed through the API. |
 
 ---
@@ -106,7 +115,7 @@ Build the first production-ready version of Skilix.
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| Cloudinary media URLs | 🟡 In Progress | Wiring Cloudinary-backed uploads and URL responses for application files, profile photos, and program thumbnails. |
+| MinIO media URLs | ✅ Completed | Private S3-compatible MinIO storage is available when configured, with signed URL responses for profile photos and program thumbnails. |
 
 ---
 
@@ -114,7 +123,7 @@ Build the first production-ready version of Skilix.
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| Assignment CRUD | ✅ | Assignment model/API and Vite dashboard integration are implemented for list/create/update. |
+| Assignment CRUD | ✅ | Assignment model/API is linked to lessons and optional resources. |
 | Submission | ✅ | Assignment-based submission API creates or updates the current student's submission. |
 | Late Detection | ✅ | Submissions are flagged late when submitted after assignment due date. |
 | Lock After Grading | ✅ | Grading locks the submitted work after score/feedback are recorded. |

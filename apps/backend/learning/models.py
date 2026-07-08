@@ -2,47 +2,61 @@ from django.conf import settings
 from django.db import models
 
 
-class WeekStatus(models.TextChoices):
+class ModuleStatus(models.TextChoices):
     DRAFT = "DRAFT", "Draft"
     PUBLISHED = "PUBLISHED", "Published"
     ARCHIVED = "ARCHIVED", "Archived"
 
 
-class Week(models.Model):
-    cohort = models.ForeignKey("cohorts.Cohort", on_delete=models.CASCADE, related_name="weeks")
-    week_number = models.PositiveIntegerField()
+class Module(models.Model):
+    cohort = models.ForeignKey("cohorts.Cohort", on_delete=models.CASCADE, related_name="modules")
+    module_number = models.PositiveIntegerField()
     title = models.CharField(max_length=255)
-    objectives = models.TextField(blank=True)
+    description = models.TextField(blank=True)
     notes = models.TextField(blank=True)
-    assignment = models.TextField(blank=True)
-    recording = models.URLField(blank=True)
-    status = models.CharField(max_length=32, choices=WeekStatus.choices, default=WeekStatus.DRAFT)
+    status = models.CharField(max_length=32, choices=ModuleStatus.choices, default=ModuleStatus.DRAFT)
     publish_date = models.DateTimeField(blank=True, null=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="created_weeks")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="created_modules")
     published_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        related_name="published_weeks",
+        related_name="published_modules",
         blank=True,
         null=True,
     )
 
     class Meta:
-        ordering = ["cohort", "week_number"]
-        unique_together = ("cohort", "week_number")
+        ordering = ["cohort", "module_number"]
+        unique_together = ("cohort", "module_number")
 
     def __str__(self) -> str:
-        return f"{self.cohort} - Week {self.week_number}"
+        return f"{self.cohort} - Module {self.module_number}"
+
+
+class Lesson(models.Model):
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="lessons")
+    title = models.CharField(max_length=255)
+    objectives = models.TextField(blank=True)
+    content = models.TextField(blank=True)
+    recording = models.URLField(blank=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["module", "order", "title"]
+        unique_together = ("module", "order")
+
+    def __str__(self) -> str:
+        return self.title
 
 
 class Resource(models.Model):
-    week = models.ForeignKey(Week, on_delete=models.CASCADE, related_name="resources")
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="resources")
     title = models.CharField(max_length=255)
     url = models.URLField()
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ["week", "order", "title"]
+        ordering = ["lesson", "order", "title"]
 
     def __str__(self) -> str:
         return self.title
@@ -50,18 +64,19 @@ class Resource(models.Model):
 
 class Assignment(models.Model):
     cohort = models.ForeignKey("cohorts.Cohort", on_delete=models.CASCADE, related_name="assignments")
-    week = models.ForeignKey(Week, on_delete=models.SET_NULL, related_name="assignments", blank=True, null=True)
+    module = models.ForeignKey(Module, on_delete=models.SET_NULL, related_name="assignments", blank=True, null=True)
+    lesson = models.ForeignKey(Lesson, on_delete=models.SET_NULL, related_name="assignments", blank=True, null=True)
+    resource = models.ForeignKey(Resource, on_delete=models.SET_NULL, related_name="assignments", blank=True, null=True)
     title = models.CharField(max_length=255)
     description = models.TextField()
     max_points = models.PositiveIntegerField(default=100)
     due_date = models.DateTimeField()
-    week_number = models.PositiveIntegerField(default=1)
     is_locked = models.BooleanField(default=False)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="created_assignments")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["cohort", "week_number", "due_date"]
+        ordering = ["cohort", "module__module_number", "lesson__order", "due_date"]
 
     def __str__(self) -> str:
         return f"{self.cohort} - {self.title}"
