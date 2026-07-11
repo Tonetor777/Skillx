@@ -53,26 +53,26 @@ class SubmissionSerializer(serializers.ModelSerializer):
             "is_late",
         ]
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_student_id(self, obj):
+    def get_student_id(self, obj) -> str:
         return str(obj.student_id)
 
-    def get_student_name(self, obj):
+    def get_student_name(self, obj) -> str:
         name = f"{obj.student.first_name} {obj.student.last_name}".strip()
         return name or obj.student.email
 
-    def get_status(self, obj):
+    def get_status(self, obj) -> str:
         return "graded" if obj.score is not None else "pending"
 
-    def get_grade(self, obj):
+    def get_grade(self, obj) -> float | None:
         return float(obj.score) if obj.score is not None else None
 
-    def get_graded_by_id(self, obj):
+    def get_graded_by_id(self, obj) -> str | None:
         return str(obj.graded_by_id) if obj.graded_by_id else None
 
-    def get_graded_by_name(self, obj):
+    def get_graded_by_name(self, obj) -> str | None:
         if not obj.graded_by:
             return None
         name = f"{obj.graded_by.first_name} {obj.graded_by.last_name}".strip()

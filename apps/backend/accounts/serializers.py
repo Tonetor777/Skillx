@@ -32,23 +32,23 @@ class CurrentUserSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "email", "role", "status", "avatar_url", "cohort_id", "created_at"]
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_role(self, obj):
+    def get_role(self, obj) -> str:
         return obj.role.lower()
 
-    def get_status(self, obj):
+    def get_status(self, obj) -> str:
         return obj.status.lower()
 
-    def get_avatar_url(self, obj):
+    def get_avatar_url(self, obj) -> str:
         if not obj.photo:
             return ""
         request = self.context.get("request")
         url = obj.photo.url
         return request.build_absolute_uri(url) if request else url
 
-    def get_cohort_id(self, obj):
+    def get_cohort_id(self, obj) -> str | None:
         return str(obj.cohort_id) if obj.cohort_id else None
 
     def validate_photo(self, value):

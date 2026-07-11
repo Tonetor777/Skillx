@@ -83,8 +83,8 @@ export default function Applications() {
       setIsSimulatingPublicForm(false);
       reset();
       triggerToast('Application simulated successfully. It is now in the pending queue!', 'success');
-    } catch (e) {
-      console.error(e);
+    } catch {
+      return;
     }
   };
 
@@ -93,8 +93,8 @@ export default function Applications() {
       await approveMutation.mutateAsync(id);
       setSelectedAppId(null);
       triggerToast('Application approved! An active student profile has been provisioned.', 'success');
-    } catch (e) {
-      console.error(e);
+    } catch {
+      return;
     }
   };
 
@@ -103,8 +103,8 @@ export default function Applications() {
       await rejectMutation.mutateAsync(id);
       setSelectedAppId(null);
       triggerToast('Application rejected. Registry state updated.', 'info');
-    } catch (e) {
-      console.error(e);
+    } catch {
+      return;
     }
   };
 

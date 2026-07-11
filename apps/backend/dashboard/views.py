@@ -1,6 +1,8 @@
 from django.db.models import Avg, Count, Q, Sum
+from drf_spectacular.utils import OpenApiTypes, extend_schema, inline_serializer
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework import serializers
 from rest_framework.views import APIView
 
 from accounts.choices import UserRole
@@ -17,11 +19,14 @@ from submissions.models import Submission
 
 class PlatformSettingsView(APIView):
     permission_classes = [IsActiveUser]
+    serializer_class = PlatformSettingsSerializer
 
+    @extend_schema(responses=PlatformSettingsSerializer)
     def get(self, request):
         serializer = PlatformSettingsSerializer(PlatformSettings.load())
         return Response(serializer.data)
 
+    @extend_schema(request=PlatformSettingsSerializer, responses=PlatformSettingsSerializer)
     def post(self, request):
         self.check_permissions(request)
         settings = PlatformSettings.load()
@@ -30,6 +35,7 @@ class PlatformSettingsView(APIView):
         serializer.save()
         return Response(serializer.data)
 
+    @extend_schema(request=PlatformSettingsSerializer, responses=PlatformSettingsSerializer)
     def patch(self, request):
         return self.post(request)
 
@@ -42,6 +48,16 @@ class PlatformSettingsView(APIView):
 class LeaderboardView(APIView):
     permission_classes = [IsActiveUser]
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="LeaderboardResponse",
+            fields={
+                "cohort_id": serializers.CharField(),
+                "cohort_name": serializers.CharField(),
+                "results": serializers.ListField(child=serializers.DictField()),
+            },
+        )
+    )
     def get(self, request):
         cohort_id = request.query_params.get("cohort_id") or request.user.cohort_id
         if not cohort_id:
@@ -82,6 +98,7 @@ class LeaderboardView(APIView):
 class DashboardSummaryView(APIView):
     permission_classes = [IsActiveUser]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         user = request.user
         if user.role == UserRole.STUDENT:

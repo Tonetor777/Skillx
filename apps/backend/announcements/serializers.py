@@ -30,24 +30,24 @@ class AnnouncementSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "target_name", "author_id", "author_name", "author_role", "created_at"]
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_target_name(self, obj):
+    def get_target_name(self, obj) -> str:
         if obj.program:
             return obj.program.title
         if obj.cohort:
             return obj.cohort.name
         return "Global Broadcast"
 
-    def get_author_id(self, obj):
+    def get_author_id(self, obj) -> str:
         return str(obj.created_by_id)
 
-    def get_author_name(self, obj):
+    def get_author_name(self, obj) -> str:
         name = f"{obj.created_by.first_name} {obj.created_by.last_name}".strip()
         return name or obj.created_by.email
 
-    def get_author_role(self, obj):
+    def get_author_role(self, obj) -> str:
         return obj.created_by.role.lower()
 
     def to_representation(self, instance):

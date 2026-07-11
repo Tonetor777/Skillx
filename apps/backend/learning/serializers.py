@@ -21,7 +21,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         model = Resource
         fields = ["id", "lesson_id", "title", "url", "order"]
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
     def validate_lesson_id(self, lesson):
@@ -59,10 +59,10 @@ class LessonSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "module_title", "cohort_id", "cohort_name", "resources"]
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_cohort_id(self, obj):
+    def get_cohort_id(self, obj) -> str:
         return str(obj.module.cohort_id)
 
     def validate_module_id(self, module):
@@ -100,10 +100,10 @@ class ModuleSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "cohort_name", "publish_date", "published_by_name", "lessons"]
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_published_by_name(self, obj):
+    def get_published_by_name(self, obj) -> str | None:
         if not obj.published_by:
             return None
         name = f"{obj.published_by.first_name} {obj.published_by.last_name}".strip()
@@ -183,13 +183,13 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "is_locked",
         ]
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_cohort_id(self, obj):
+    def get_cohort_id(self, obj) -> str:
         return str(obj.cohort_id)
 
-    def get_module_id(self, obj):
+    def get_module_id(self, obj) -> str | None:
         return str(obj.module_id) if obj.module_id else None
 
     def validate_lesson_id(self, lesson):

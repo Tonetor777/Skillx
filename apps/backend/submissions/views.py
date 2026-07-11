@@ -15,6 +15,8 @@ class SubmissionViewSet(ModelViewSet):
     http_method_names = ["get", "post", "head", "options"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Submission.objects.none()
         user = self.request.user
         queryset = Submission.objects.select_related("assignment", "assignment__cohort", "student", "graded_by")
         assignment_id = self.request.query_params.get("assignment_id")

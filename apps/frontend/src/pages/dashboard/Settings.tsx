@@ -68,8 +68,8 @@ export default function PlatformSettings() {
       });
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
-    } catch (e) {
-      console.error(e);
+    } catch {
+      return;
     }
   };
 

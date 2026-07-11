@@ -117,8 +117,8 @@ export default function Assignments() {
       setIsCreating(false);
       createAsgForm.reset();
       triggerToast('Assignment task published successfully!');
-    } catch (e) {
-      console.error(e);
+    } catch {
+      return;
     }
   };
 
@@ -131,8 +131,8 @@ export default function Assignments() {
       });
       submitForm.reset();
       triggerToast('Homework submitted successfully! Pending review.');
-    } catch (e) {
-      console.error(e);
+    } catch {
+      return;
     }
   };
 
@@ -147,8 +147,8 @@ export default function Assignments() {
       setGradingSubmissionId(null);
       gradeForm.reset();
       triggerToast('Submission evaluation recorded. Record locked.');
-    } catch (e) {
-      console.error(e);
+    } catch {
+      return;
     }
   };
 

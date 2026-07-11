@@ -61,8 +61,6 @@ let isRefreshing = false;
 
 // Dynamic simulation handler to provide flawless local experience when DRF server is not online
 function handleMockRequest(method: string, endpoint: string, body?: any): any {
-  console.log(`[API MOCK] ${method} ${endpoint}`, body);
-  
   // Login Endpoint
   if (endpoint.includes('/token/') || endpoint.includes('/auth/login/')) {
     const { email, password } = body || {};
@@ -615,8 +613,8 @@ async function attemptTokenRefresh(): Promise<boolean> {
         return true;
       }
     }
-  } catch (e) {
-    console.error('Failed to automatically refresh authentication token:', e);
+  } catch {
+    return false;
   }
   return false;
 }

@@ -10,6 +10,13 @@ This project follows a modified version of Keep a Changelog.
 
 ## Added
 
+- Railway production deployment config with a root backend Dockerfile, migration predeploy command, Gunicorn start command, and `/api/health/` health check.
+- Dokploy all-in-one production compose stack with frontend, backend, migrations, Celery, PostgreSQL, Redis, MinIO, named volumes, and separate frontend/API domain support.
+- Production frontend Dockerfile and Nginx SPA config for serving the Vite build in Dokploy.
+- Dokploy deployment runbook covering environment variables, domains, health checks, backups, smoke tests, and rollback.
+- Production-ready Django settings for strong runtime secrets, HTTPS redirects, secure cookies, HSTS, proxy SSL headers, env-driven CORS/CSRF origins, and DRF request throttling.
+- Resend-compatible Django email backend for production email delivery while retaining console email for local development.
+- Production readiness tests for secure settings and Resend payload delivery.
 - Native TipTap lesson editor for teacher-authored structured lessons, plus safe inline student rendering with plain-text fallback for existing content.
 - MinIO-backed private media storage support with signed URL responses for profile photos and program thumbnails.
 - JWT refresh-token logout, email verification, and password reset API workflows with Vite frontend routes.
@@ -33,6 +40,9 @@ This project follows a modified version of Keep a Changelog.
 
 ## Changed
 
+- Expanded the root README with current local Docker guidance, MinIO service details, automatic migration behavior, root scripts, and Dokploy/Railway/Vercel deployment guidance.
+- Vite route pages are now lazy-loaded to reduce initial production bundle size.
+- README and `.env.example` now document Railway/Vercel production environment variables, migrations, health checks, release checks, and rollback basics.
 - Lessons now treat `content` as first-class in-app learning material, while resources remain ordered supporting links and attachments.
 - Reimplemented cohort learning delivery as Program → Cohort → Module → Lesson → Resource → Assignment, with module/lesson APIs and dashboard updates.
 - Added teacher/elevated-role curriculum CRUD controls and student dropdown navigation for weeks, modules, lessons, and resources.
@@ -45,6 +55,8 @@ This project follows a modified version of Keep a Changelog.
 
 ## Fixed
 
+- OpenAPI schema generation now has safer view/queryset handling and clearer serializer method field typing.
+- Removed frontend API-client debug console output from production-facing request paths.
 - Add Week now opens a visible new-week module form before the week has saved modules.
 - Django local development now accepts requests using the `0.0.0.0:8000` host header.
 - Docker Compose now applies Django migrations before backend startup, preventing JWT token issuance from failing when Simple JWT blacklist tables are missing.

@@ -14,13 +14,13 @@ class CohortTeacherSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "email", "first_name", "last_name", "role", "avatar_url", "created_at"]
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_role(self, obj):
+    def get_role(self, obj) -> str:
         return obj.role.lower()
 
-    def get_avatar_url(self, obj):
+    def get_avatar_url(self, obj) -> str:
         if not obj.photo:
             return ""
         request = self.context.get("request")
@@ -40,7 +40,7 @@ class TeacherAssignmentSerializer(serializers.ModelSerializer):
         model = TeacherAssignment
         fields = ["id", "teacher_id", "teacher", "cohort_id", "cohort_name", "role", "assigned_at"]
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
     def validate_teacher_id(self, value):
@@ -93,10 +93,10 @@ class CohortSerializer(serializers.ModelSerializer):
             "leaderboard_visible",
         ]
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_teachers(self, obj):
+    def get_teachers(self, obj) -> list[dict]:
         teachers = User.objects.filter(teaching_assignments__cohort=obj).distinct()
         return CohortTeacherSerializer(teachers, many=True, context=self.context).data
 

@@ -86,8 +86,8 @@ export default function Programs() {
       reset();
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
-    } catch (e) {
-      console.error(e);
+    } catch {
+      return;
     }
   };
 

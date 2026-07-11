@@ -15,7 +15,7 @@
 
 # Current Sprint
 
-Sprint: MVP Foundation
+Sprint: MVP Production Readiness
 
 Goal:
 
@@ -191,6 +191,22 @@ Build the first production-ready version of Skilix.
 
 ---
 
+# Production Readiness
+
+| Feature | Status | Notes |
+|----------|--------|-------|
+| Production security settings | ✅ Completed | Django settings enforce strong runtime secrets for production and expose env-driven HTTPS, CORS, CSRF, HSTS, cookie, proxy, and throttle settings. |
+| Resend email delivery | ✅ Completed | Resend-compatible Django email backend is implemented while console email remains the local default. |
+| Railway backend deployment | ✅ Completed | Root Railway config and backend Dockerfile are available with migration, Gunicorn, and health check commands. |
+| Vercel frontend deployment | ✅ Completed | Vercel SPA rewrite remains configured; production `VITE_API_URL` is documented. |
+| Dokploy all-in-one deployment | ✅ Completed | Production compose stack, frontend Nginx image, and Dokploy runbook are available for separate frontend/API domains. |
+| Frontend bundle readiness | ✅ Completed | Route-level lazy loading is implemented and API debug logging has been removed. |
+| Frontend production tests | ✅ Completed | Existing tests are preserved and production API-client logging regression coverage has been added. |
+| API schema cleanup | ✅ Completed | Serializer method fields and APIViews are annotated for stable OpenAPI generation. |
+| Release documentation | ✅ Completed | README, environment template, and Dokploy runbook cover local Docker, MinIO, auto-migrations, release checks, and Dokploy/Railway/Vercel deployment guidance. |
+
+---
+
 # Documentation
 
 | Document | Status |
@@ -213,6 +229,7 @@ _None currently._
 
 - Git metadata appears incomplete in this workspace; `git status` may fail until the repository is repaired or reinitialized.
 - Docker image builds may fail if Docker cannot resolve Docker Hub for uncached base images.
+- Manual production smoke tests must be run after real Railway/Vercel URLs and provider credentials are configured.
 
 # Recently Resolved Issues
 

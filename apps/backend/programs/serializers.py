@@ -31,13 +31,13 @@ class ProgramSerializer(serializers.ModelSerializer):
         ]
         extra_kwargs = {"thumbnail": {"required": False, "allow_null": True}}
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_status(self, obj):
+    def get_status(self, obj) -> str:
         return obj.status.lower()
 
-    def get_thumbnail_url(self, obj):
+    def get_thumbnail_url(self, obj) -> str:
         if not obj.thumbnail:
             return ""
         request = self.context.get("request")
@@ -56,7 +56,7 @@ class ProgramSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"weeks": "Weeks must be valid JSON."}) from exc
         return attrs
 
-    def get_cohorts(self, obj):
+    def get_cohorts(self, obj) -> list[dict]:
         return [
             {
                 "id": str(cohort.id),

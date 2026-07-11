@@ -24,6 +24,8 @@ class AssignmentViewSet(ModelViewSet):
     http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Assignment.objects.none()
         user = self.request.user
         queryset = Assignment.objects.select_related("cohort", "module", "lesson", "resource").prefetch_related("submissions")
         cohort_id = self.request.query_params.get("cohort_id")
@@ -53,6 +55,8 @@ class ModuleViewSet(ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Module.objects.none()
         user = self.request.user
         queryset = Module.objects.select_related("cohort", "published_by").prefetch_related("lessons__resources")
         cohort_id = self.request.query_params.get("cohort_id")
@@ -84,6 +88,8 @@ class LessonViewSet(ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Lesson.objects.none()
         user = self.request.user
         queryset = Lesson.objects.select_related("module", "module__cohort").prefetch_related("resources")
         module_id = self.request.query_params.get("module_id")
@@ -107,6 +113,8 @@ class ResourceViewSet(ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Resource.objects.none()
         user = self.request.user
         queryset = Resource.objects.select_related("lesson", "lesson__module", "lesson__module__cohort")
         lesson_id = self.request.query_params.get("lesson_id")

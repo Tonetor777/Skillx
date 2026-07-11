@@ -36,16 +36,16 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "reviewed_at",
         ]
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_status(self, obj):
+    def get_status(self, obj) -> str:
         return obj.status.lower()
 
-    def get_reviewed_by_id(self, obj):
+    def get_reviewed_by_id(self, obj) -> str | None:
         return str(obj.reviewed_by_id) if obj.reviewed_by_id else None
 
-    def get_reviewed_by_name(self, obj):
+    def get_reviewed_by_name(self, obj) -> str | None:
         if not obj.reviewed_by:
             return None
         name = f"{obj.reviewed_by.first_name} {obj.reviewed_by.last_name}".strip()
@@ -81,13 +81,13 @@ class InvitationSerializer(serializers.ModelSerializer):
         model = Invitation
         fields = ["id", "email", "cohort_id", "cohort_name", "status", "expires_at", "accepted_at"]
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         return str(obj.id)
 
-    def get_cohort_id(self, obj):
+    def get_cohort_id(self, obj) -> str:
         return str(obj.cohort_id)
 
-    def get_status(self, obj):
+    def get_status(self, obj) -> str:
         return obj.status.lower()
 
 

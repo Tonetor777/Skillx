@@ -14,6 +14,8 @@ class AnnouncementViewSet(ModelViewSet):
     http_method_names = ["get", "post", "head", "options"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Announcement.objects.none()
         user = self.request.user
         queryset = Announcement.objects.select_related("program", "cohort", "created_by").filter(
             Q(scheduled_for__isnull=True) | Q(scheduled_for__lte=timezone.now())

@@ -27,8 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setStoredTokens(stored.access, stored.refresh || '', currentUser);
           setUser(currentUser);
         }
-      } catch (e) {
-        console.error('Failed to load authenticated session:', e);
+      } catch {
         clearStoredTokens();
       } finally {
         setIsLoading(false);

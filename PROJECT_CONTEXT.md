@@ -26,7 +26,7 @@ Skilix
 
 **Development Phase**
 
-Foundation Development
+MVP Production Readiness
 
 **Repository Type**
 
@@ -85,17 +85,17 @@ The MVP intentionally excludes advanced collaboration and AI features.
 
 # Current Sprint
 
-Sprint 1 – Foundation
+Sprint 2 – Production Readiness
 
 Primary Goals
 
-- Establish project architecture
-- Configure monorepo
-- Set up frontend
-- Set up backend
-- Configure authentication
-- Design database
-- Create reusable UI components
+- Harden Django production security settings
+- Configure Resend-backed production email delivery
+- Prepare Railway backend deployment
+- Prepare Vercel frontend deployment
+- Clean OpenAPI schema generation
+- Reduce frontend production bundle risk
+- Expand release validation coverage
 
 ---
 
@@ -155,18 +155,22 @@ Do not begin lower-priority modules unless dependencies are complete.
 
 Frontend
 
-- Static hosting or containerized Vite build
+- Dokploy Nginx static container or Vercel static hosting
 
 Backend
 
-- Railway
+- Dokploy Django/Gunicorn container or Railway
 
 Database
 
-- Railway PostgreSQL (development) or Supabase PostgreSQL
+- Dokploy PostgreSQL named volume, Railway PostgreSQL, or Supabase PostgreSQL
 
 ## Recent Foundation Fixes
 
+- Production-readiness work is now underway: Django settings enforce strong production secrets, expose env-driven HTTPS/CORS/CSRF settings, add DRF throttling, and support a Resend email backend when configured.
+- Dokploy all-in-one production deployment is available through `docker-compose.dokploy.yml`, with frontend, backend, migrations, Celery, PostgreSQL, Redis, and MinIO services.
+- Railway deployment configuration now builds the backend from the repository root, runs migrations before deploy, starts Gunicorn, and uses `/api/health/` as the health check.
+- Vite route pages are lazy-loaded to improve production bundle splitting, and frontend API debug logging has been removed.
 - Lesson delivery now uses a TipTap-powered native lesson editor for teacher-authored structured content, rendered inline for students while preserving existing plain-text lesson content.
 - Media uploads now support private MinIO/S3-compatible storage when S3 environment variables are configured, with signed URL responses for profile photos and program thumbnails.
 - Application signup no longer collects resume or payment proof uploads.

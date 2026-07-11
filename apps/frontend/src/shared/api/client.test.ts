@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { beforeEach, test } from 'node:test';
 
 import { apiClient, ApiError, clearStoredTokens } from './client';
@@ -61,4 +62,11 @@ test('apiClient surfaces network errors instead of silently falling back to mock
     assert.equal(error.message, 'Failed to fetch');
     return true;
   });
+});
+
+test('apiClient does not write debug logs in production-facing request paths', () => {
+  const source = readFileSync(new URL('./client.ts', import.meta.url), 'utf8');
+
+  assert.equal(source.includes('console.log'), false);
+  assert.equal(source.includes('console.error'), false);
 });

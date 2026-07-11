@@ -12,6 +12,8 @@ class CohortViewSet(ModelViewSet):
     http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Cohort.objects.none()
         user = self.request.user
         queryset = Cohort.objects.select_related("program").prefetch_related("students", "teacher_assignments__teacher")
         if user.role == UserRole.STUDENT:
@@ -32,4 +34,6 @@ class TeacherAssignmentViewSet(ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return TeacherAssignment.objects.none()
         return TeacherAssignment.objects.select_related("teacher", "cohort", "cohort__program")
