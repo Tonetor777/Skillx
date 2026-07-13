@@ -39,11 +39,20 @@
 1. Teacher, Admin, or Super Admin creates assignments for lessons, optionally tied to a resource.
 2. Students submit only to assignments in their own cohort.
 3. Late submissions are flagged automatically.
-4. Grading locks the submission and sends an email notification to the student.
-5. Leaderboards are derived from graded submissions and follow cohort visibility settings.
+4. Grading locks the submission for student edits and sends an email notification to the student.
+5. Teachers, Admins, and Super Admins can update score and feedback after initial grading.
+6. Leaderboards are derived from graded submissions and follow cohort visibility settings.
+
+## Attendance and Weighted Grades
+
+1. Assigned teachers, Admins, or Super Admins create one attendance session per cohort date.
+2. Staff mark each student as present, late, excused, or absent.
+3. Present and excused count full attendance credit, late counts half, and absent counts zero.
+4. Assigned teachers, Admins, or Super Admins set cohort assignment and attendance grade weights that total 100%.
+5. Student dashboards show current assignment percent, attendance percent, and weighted total grade.
 
 ## Dashboards
 
-1. Student dashboard summarizes progress, current module, grades, and announcements.
+1. Student dashboard summarizes progress, current module, weighted grades, and announcements.
 2. Teacher dashboard summarizes assigned cohorts, pending grading, and delivery analytics.
 3. Admin dashboard summarizes applications, programs, cohorts, and reporting metrics.

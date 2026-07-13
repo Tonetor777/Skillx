@@ -9,6 +9,7 @@ from accounts.choices import UserRole
 from accounts.permissions import IsActiveUser, IsSuperAdmin
 from applications.models import Application
 from announcements.models import Announcement
+from attendance.models import ATTENDANCE_CREDIT, AttendanceRecord
 from cohorts.models import Cohort
 from dashboard.models import PlatformSettings
 from dashboard.serializers import PlatformSettingsSerializer
@@ -102,7 +103,18 @@ class DashboardSummaryView(APIView):
     def get(self, request):
         user = request.user
         if user.role == UserRole.STUDENT:
-            submissions = Submission.objects.filter(student=user)
+            submissions = Submission.objects.select_related("assignment").filter(student=user)
+            graded_submissions = submissions.filter(score__isnull=False)
+            earned_points = sum(float(submission.score or 0) for submission in graded_submissions)
+            possible_points = sum(float(submission.assignment.max_points) for submission in graded_submissions)
+            assignment_percent = (earned_points / possible_points * 100) if possible_points else 0
+            attendance_records = AttendanceRecord.objects.filter(student=user, session__cohort_id=user.cohort_id)
+            attendance_count = attendance_records.count()
+            attendance_credits = sum(float(ATTENDANCE_CREDIT.get(record.status, 0)) for record in attendance_records)
+            attendance_percent = (attendance_credits / attendance_count * 100) if attendance_count else 0
+            assignment_weight = float(user.cohort.assignment_weight) if user.cohort_id else 90
+            attendance_weight = float(user.cohort.attendance_weight) if user.cohort_id else 10
+            total_percent = (assignment_percent * assignment_weight / 100) + (attendance_percent * attendance_weight / 100)
             return Response(
                 {
                     "role": "student",
@@ -112,7 +124,14 @@ class DashboardSummaryView(APIView):
                         "graded_total": submissions.filter(score__isnull=False).count(),
                     },
                     "current_module": Module.objects.filter(cohort_id=user.cohort_id, status="PUBLISHED").order_by("-module_number").values("module_number", "title").first(),
-                    "grades": {"average": submissions.filter(score__isnull=False).aggregate(value=Avg("score"))["value"] or 0},
+                    "grades": {
+                        "average": graded_submissions.aggregate(value=Avg("score"))["value"] or 0,
+                        "assignment_percent": round(assignment_percent, 2),
+                        "attendance_percent": round(attendance_percent, 2),
+                        "total_percent": round(total_percent, 2),
+                        "assignment_weight": assignment_weight,
+                        "attendance_weight": attendance_weight,
+                    },
                     "announcements": Announcement.objects.filter(Q(cohort_id=user.cohort_id) | Q(program_id=user.cohort.program_id if user.cohort_id else None)).count(),
                 }
             )

@@ -34,6 +34,10 @@ export const can = {
     return role === 'super_admin' || role === 'admin' || role === 'teacher';
   },
 
+  manageAttendance: (role: UserRole): boolean => {
+    return role === 'super_admin' || role === 'admin' || role === 'teacher';
+  },
+
   // Students can submit assignments, others cannot.
   submitAssignment: (role: UserRole): boolean => {
     return role === 'student';
@@ -44,7 +48,7 @@ export const can = {
     return role === 'super_admin' || role === 'admin' || role === 'teacher';
   },
 
-  // Assignments lock after grading (i.e., if a submission is graded, the assignment/submission is locked).
+  // Graded submissions are locked for student edits, while teachers can update the grade.
   isSubmissionLocked: (submission?: Submission): boolean => {
     return submission?.status === 'graded';
   }

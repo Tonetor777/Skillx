@@ -1,9 +1,12 @@
+from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from accounts.choices import UserRole
 from accounts.permissions import IsActiveUser, IsAdminOrSuperAdmin, IsTeacherAdminOrSuperAdmin
 from cohorts.models import Cohort, TeacherAssignment
-from cohorts.serializers import CohortSerializer, TeacherAssignmentSerializer
+from cohorts.serializers import CohortGradeSettingsSerializer, CohortSerializer, TeacherAssignmentSerializer
 
 
 class CohortViewSet(ModelViewSet):
@@ -23,9 +26,27 @@ class CohortViewSet(ModelViewSet):
         return queryset
 
     def get_permissions(self):
-        if self.action in {"create", "partial_update"}:
+        if self.action in {"create", "partial_update", "grade_settings"}:
             return [IsTeacherAdminOrSuperAdmin()]
         return super().get_permissions()
+
+    def _can_manage_grade_settings(self, cohort):
+        user = self.request.user
+        if user.role in {UserRole.ADMIN, UserRole.SUPER_ADMIN}:
+            return True
+        return user.role == UserRole.TEACHER and cohort.teacher_assignments.filter(teacher=user).exists()
+
+    @action(detail=True, methods=["get", "patch"], url_path="grade-settings")
+    def grade_settings(self, request, pk=None):
+        cohort = self.get_object()
+        if not self._can_manage_grade_settings(cohort):
+            raise PermissionDenied("You can only manage grade settings for assigned cohorts.")
+        if request.method == "GET":
+            return Response(CohortGradeSettingsSerializer(cohort).data)
+        serializer = CohortGradeSettingsSerializer(cohort, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class TeacherAssignmentViewSet(ModelViewSet):

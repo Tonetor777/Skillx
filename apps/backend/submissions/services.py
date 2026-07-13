@@ -9,10 +9,9 @@ from submissions.models import Submission
 
 @transaction.atomic
 def grade_submission(submission: Submission, grader, grade, feedback: str):
-    if submission.is_locked:
-        raise ValidationError({"detail": "This submission has already been graded and locked."})
     if grade < 0 or grade > submission.assignment.max_points:
         raise ValidationError({"grade": f"Grade must be between 0 and {submission.assignment.max_points}."})
+    was_graded = submission.score is not None
     submission.score = grade
     submission.feedback = feedback
     submission.graded_by = grader
@@ -20,9 +19,9 @@ def grade_submission(submission: Submission, grader, grade, feedback: str):
     submission.is_locked = True
     submission.save(update_fields=["score", "feedback", "graded_by", "graded_at", "is_locked"])
     send_mail(
-        subject=f"Your Skilix submission was graded: {submission.assignment.title}",
+        subject=f"Your Skilix submission grade was {'updated' if was_graded else 'posted'}: {submission.assignment.title}",
         message=(
-            f"Your submission for {submission.assignment.title} has been graded.\n"
+            f"Your submission for {submission.assignment.title} has been {'updated' if was_graded else 'graded'}.\n"
             f"Score: {submission.score}/{submission.assignment.max_points}\n\n"
             f"Feedback:\n{submission.feedback}\n"
         ),

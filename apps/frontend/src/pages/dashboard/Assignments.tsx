@@ -146,7 +146,7 @@ export default function Assignments() {
       });
       setGradingSubmissionId(null);
       gradeForm.reset();
-      triggerToast('Submission evaluation recorded. Record locked.');
+      triggerToast('Submission evaluation saved. Student edits remain locked.');
     } catch {
       return;
     }
@@ -334,7 +334,7 @@ export default function Assignments() {
                     className="bg-white rounded-xl border border-gray-100 p-6 max-w-lg w-full shadow-2xl space-y-4"
                   >
                     <h3 className="font-sans font-bold text-lg text-gray-900">Evaluate Student Submission</h3>
-                    <p className="text-xs text-gray-500">Record score metrics and write descriptive feedback. Once graded, the submission locks.</p>
+                    <p className="text-xs text-gray-500">Record or update score metrics and feedback. Student edits stay locked after grading.</p>
 
                     <form onSubmit={gradeForm.handleSubmit(handleTeacherGrade)} className="space-y-4">
                       <div>

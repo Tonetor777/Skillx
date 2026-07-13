@@ -5,6 +5,7 @@ import { usePrograms } from '../../features/programs/api/programs';
 import { useApplications } from '../../features/applications/api/applications';
 import { useAssignments } from '../../features/assignments/api/assignments';
 import { useSubmissions } from '../../features/submissions/api/submissions';
+import { useDashboardSummary } from '../../features/attendance/api/attendance';
 import { useAnnouncements } from '../../features/announcements/api/announcements';
 import { can } from '../../shared/permissions/can';
 import { Link } from 'react-router-dom';
@@ -31,6 +32,7 @@ export default function Overview() {
   const { data: applications, isLoading: appsLoading } = useApplications();
   const { data: assignments, isLoading: assignmentsLoading } = useAssignments(user?.cohort_id);
   const { data: submissions, isLoading: submissionsLoading } = useSubmissions();
+  const { data: dashboardSummary } = useDashboardSummary();
   const { data: announcements, isLoading: announcementsLoading } = useAnnouncements();
 
   if (!user) return null;
@@ -188,6 +190,30 @@ export default function Overview() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Grade</span>
+                  <span className="mt-2 block text-3xl font-bold text-slate-900">
+                    {dashboardSummary?.grades ? `${dashboardSummary.grades.total_percent.toFixed(1)}%` : '--'}
+                  </span>
+                  <span className="mt-1 block text-xs text-slate-500">Weighted current score</span>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Assignments</span>
+                  <span className="mt-2 block text-2xl font-bold text-indigo-700">
+                    {dashboardSummary?.grades ? `${dashboardSummary.grades.assignment_percent.toFixed(1)}%` : '--'}
+                  </span>
+                  <span className="mt-1 block text-xs text-slate-500">{dashboardSummary?.grades?.assignment_weight ?? 90}% of total</span>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Attendance</span>
+                  <span className="mt-2 block text-2xl font-bold text-emerald-700">
+                    {dashboardSummary?.grades ? `${dashboardSummary.grades.attendance_percent.toFixed(1)}%` : '--'}
+                  </span>
+                  <span className="mt-1 block text-xs text-slate-500">{dashboardSummary?.grades?.attendance_weight ?? 10}% of total</span>
+                </div>
+              </div>
+
               {/* Assignment due next */}
               <div>
                 <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
@@ -297,7 +323,7 @@ export default function Overview() {
               </div>
               <div className="border border-slate-100 rounded-lg p-3.5 bg-slate-50/50">
                 <span className="font-semibold text-sm text-slate-800 block">Assignment Locks</span>
-                <span className="text-xs text-slate-500 mt-1 block">Submissions remain pending until reviewed. Graded submissions lock immediately.</span>
+                <span className="text-xs text-slate-500 mt-1 block">Graded submissions lock for student edits, while teachers can update score and feedback.</span>
               </div>
             </div>
           </div>

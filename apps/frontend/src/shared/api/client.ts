@@ -1,4 +1,4 @@
-import { ApiErrorResponse, User, Application, Program, Cohort, Assignment, Submission, Announcement, Module, Lesson, LessonImage, Resource } from '../types';
+import { ApiErrorResponse, User, Application, Program, Cohort, Assignment, Submission, Announcement, Module, Lesson, LessonImage, Resource, AttendanceSession } from '../types';
 import { MockDatabase } from './mockDb';
 
 // Backend Base URL configuration
@@ -195,6 +195,18 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
     const cohs = MockDatabase.get<Cohort>('cohorts');
     const idMatch = endpoint.match(/\/cohorts\/([^\/]+)/);
     if (idMatch) {
+      if (endpoint.includes('/grade-settings')) {
+        const index = cohs.findIndex(c => c.id === idMatch[1]);
+        if (index === -1) throw new ApiError(404, 'Cohort not found');
+        if (method === 'PATCH') {
+          cohs[index] = { ...cohs[index], ...body };
+          MockDatabase.set('cohorts', cohs);
+        }
+        return {
+          assignment_weight: cohs[index].assignment_weight,
+          attendance_weight: cohs[index].attendance_weight
+        };
+      }
       const found = cohs.find(c => c.id === idMatch[1]);
       if (found) return found;
       throw new ApiError(404, 'Cohort not found');
@@ -216,7 +228,9 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
         status: 'active',
         current_week: 1,
         duration_weeks: 12,
-        leaderboard_visible: true
+        leaderboard_visible: true,
+        assignment_weight: 90,
+        attendance_weight: 10
       };
       cohs.push(newCoh);
       MockDatabase.set('cohorts', cohs);
@@ -506,6 +520,91 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
       return newSub;
     }
     return subs;
+  }
+
+  // Attendance Endpoints
+  if (endpoint.includes('/attendance-sessions')) {
+    const sessions = MockDatabase.get<AttendanceSession>('attendance_sessions');
+    const idMatch = endpoint.match(/\/attendance-sessions\/([^\/]+)/);
+    if (idMatch) {
+      const index = sessions.findIndex(session => session.id === idMatch[1]);
+      if (index === -1) throw new ApiError(404, 'Attendance session not found');
+      if (endpoint.includes('/records') && method === 'POST') {
+        const users = MockDatabase.get<User>('users');
+        const records = (body.records || []).map((record: { student_id: string; status: string; note?: string }) => {
+          const student = users.find(u => u.id === record.student_id);
+          const credit = record.status === 'late' ? 0.5 : record.status === 'absent' ? 0 : 1;
+          return {
+            id: `att_rec_${record.student_id}`,
+            student_id: record.student_id,
+            student_name: `${student?.first_name || ''} ${student?.last_name || ''}`.trim() || student?.email || 'Student',
+            student_email: student?.email || '',
+            status: record.status,
+            note: record.note || '',
+            credit,
+            updated_at: new Date().toISOString()
+          };
+        });
+        sessions[index] = { ...sessions[index], records, updated_at: new Date().toISOString() };
+        MockDatabase.set('attendance_sessions', sessions);
+        return sessions[index];
+      }
+      if (method === 'PATCH') {
+        sessions[index] = { ...sessions[index], ...body, updated_at: new Date().toISOString() };
+        MockDatabase.set('attendance_sessions', sessions);
+      }
+      return sessions[index];
+    }
+    if (method === 'POST') {
+      const cohorts = MockDatabase.get<Cohort>('cohorts');
+      const cohort = cohorts.find(c => c.id === body.cohort_id);
+      const newSession: AttendanceSession = {
+        id: `att_${Math.random().toString(36).substr(2, 9)}`,
+        cohort_id: body.cohort_id,
+        cohort_name: cohort?.name || 'Cohort',
+        date: body.date,
+        title: body.title || '',
+        recorded_by_name: 'Mock Teacher',
+        records: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      sessions.push(newSession);
+      MockDatabase.set('attendance_sessions', sessions);
+      return newSession;
+    }
+    const cohortId = endpoint.includes('?cohort_id=') ? new URLSearchParams(endpoint.split('?')[1]).get('cohort_id') : null;
+    return cohortId ? sessions.filter(session => session.cohort_id === cohortId) : sessions;
+  }
+
+  // Dashboard Summary Endpoint
+  if (endpoint.includes('/dashboard/summary')) {
+    const authUser = getStoredTokens().user;
+    const submissions = MockDatabase.get<Submission>('submissions').filter(sub => sub.student_id === authUser?.id);
+    const assignments = MockDatabase.get<Assignment>('assignments');
+    const cohorts = MockDatabase.get<Cohort>('cohorts');
+    const cohort = cohorts.find(c => c.id === authUser?.cohort_id);
+    const graded = submissions.filter(sub => sub.status === 'graded');
+    const earned = graded.reduce((total, sub) => total + (sub.grade || 0), 0);
+    const possible = graded.reduce((total, sub) => total + (assignments.find(asg => asg.id === sub.assignment_id)?.max_points || 0), 0);
+    const assignmentPercent = possible ? (earned / possible) * 100 : 0;
+    return {
+      role: authUser?.role || 'student',
+      progress: {
+        assignments_total: assignments.filter(asg => asg.cohort_id === authUser?.cohort_id).length,
+        submissions_total: submissions.length,
+        graded_total: graded.length
+      },
+      grades: {
+        average: graded.length ? earned / graded.length : 0,
+        assignment_percent: assignmentPercent,
+        attendance_percent: 0,
+        total_percent: assignmentPercent * ((cohort?.assignment_weight || 90) / 100),
+        assignment_weight: cohort?.assignment_weight || 90,
+        attendance_weight: cohort?.attendance_weight || 10
+      },
+      announcements: 0
+    };
   }
 
   // Announcement Endpoints

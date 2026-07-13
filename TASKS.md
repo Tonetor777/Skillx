@@ -129,7 +129,7 @@ Build the first production-ready version of Skilix.
 | Assignment CRUD | ✅ | Assignment model/API is linked to lessons and optional resources. |
 | Submission | ✅ | Assignment-based submission API creates or updates the current student's submission. |
 | Late Detection | ✅ | Submissions are flagged late when submitted after assignment due date. |
-| Lock After Grading | ✅ | Grading locks the submitted work after score/feedback are recorded. |
+| Lock After Grading | ✅ | Grading locks student edits after score/feedback are recorded, while staff can correct grades. |
 
 ---
 
@@ -137,9 +137,19 @@ Build the first production-ready version of Skilix.
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| Grade Submission | ✅ | Teacher/Admin/Super Admin grading API is implemented and tested. |
+| Grade Submission | ✅ | Teacher/Admin/Super Admin grading API supports initial grading and later grade corrections. |
 | Feedback | ✅ | Feedback is stored with grading and returned in frontend DTOs. |
 | Notifications | ✅ | Grade email notification is sent when a submission is graded. |
+
+---
+
+# Attendance
+
+| Feature | Status | Notes |
+|----------|--------|-------|
+| Cohort Attendance | ✅ Completed | Assigned teachers/Admin/Super Admins can record per-date cohort attendance. |
+| Attendance Grade Weight | ✅ Completed | Cohort assignment/attendance weights default to 90/10 and must total 100. |
+| Student Total Grade | ✅ Completed | Student dashboard shows weighted total grade from assignments and attendance. |
 
 ---
 
@@ -168,7 +178,7 @@ Build the first production-ready version of Skilix.
 
 - ✅ Progress
 - ✅ Current Week
-- ✅ Grades
+- ✅ Weighted Grades
 - ✅ Announcements
 
 ## Teacher

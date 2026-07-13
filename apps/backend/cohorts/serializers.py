@@ -72,6 +72,7 @@ class CohortSerializer(serializers.ModelSerializer):
     program_name = serializers.CharField(source="program.title", read_only=True)
     is_active = serializers.BooleanField(write_only=True, required=False)
     students_count = serializers.IntegerField(source="students.count", read_only=True)
+    students = serializers.SerializerMethodField()
     teachers = serializers.SerializerMethodField()
     status = serializers.CharField(required=False)
 
@@ -86,11 +87,14 @@ class CohortSerializer(serializers.ModelSerializer):
             "end_date",
             "is_active",
             "students_count",
+            "students",
             "teachers",
             "status",
             "current_week",
             "duration_weeks",
             "leaderboard_visible",
+            "assignment_weight",
+            "attendance_weight",
         ]
 
     def get_id(self, obj) -> str:
@@ -99,6 +103,22 @@ class CohortSerializer(serializers.ModelSerializer):
     def get_teachers(self, obj) -> list[dict]:
         teachers = User.objects.filter(teaching_assignments__cohort=obj).distinct()
         return CohortTeacherSerializer(teachers, many=True, context=self.context).data
+
+    def get_students(self, obj) -> list[dict]:
+        students = obj.students.order_by("first_name", "last_name", "email")
+        request = self.context.get("request")
+        if request and request.user.role == UserRole.STUDENT:
+            students = students.filter(id=request.user.id)
+        return [
+            {
+                "id": str(student.id),
+                "email": student.email,
+                "first_name": student.first_name,
+                "last_name": student.last_name,
+                "name": f"{student.first_name} {student.last_name}".strip() or student.email,
+            }
+            for student in students
+        ]
 
     def _frontend_status(self, obj):
         if obj.status == CohortStatus.ACTIVE:
@@ -150,3 +170,18 @@ class CohortSerializer(serializers.ModelSerializer):
             end_date = validated_data.get("end_date", instance.end_date)
             validated_data["duration_weeks"] = max((end_date - start_date).days // 7, 1)
         return super().update(instance, validated_data)
+
+
+class CohortGradeSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cohort
+        fields = ["assignment_weight", "attendance_weight"]
+
+    def validate(self, attrs):
+        assignment_weight = attrs.get("assignment_weight", getattr(self.instance, "assignment_weight", 90))
+        attendance_weight = attrs.get("attendance_weight", getattr(self.instance, "attendance_weight", 10))
+        if assignment_weight < 0 or attendance_weight < 0:
+            raise serializers.ValidationError("Grade weights cannot be negative.")
+        if assignment_weight + attendance_weight != 100:
+            raise serializers.ValidationError("Assignment and attendance weights must total 100.")
+        return attrs

@@ -173,6 +173,7 @@ Database
 - Vite route pages are lazy-loaded to improve production bundle splitting, and frontend API debug logging has been removed.
 - Lesson delivery now uses a TipTap-powered native lesson editor for teacher-authored structured content, uploaded inline images, and appended YouTube embeds, rendered inline for students while preserving existing plain-text lesson content.
 - Curriculum delivery now uses a reference-style two-pane layout with a left module/lesson navigator and a right lesson reading canvas in both Modules and embedded Program curriculum views.
+- Attendance is now cohort-date based, contributes to weighted student total grades, and can be recorded by assigned teachers/Admin/Super Admins.
 - Media uploads now support private MinIO/S3-compatible storage when S3 environment variables are configured, with signed URL responses for profile photos, program thumbnails, and lesson images.
 - Student signup no longer collects resume or payment proof uploads and now uses `/signup` with `/apply` redirected for compatibility.
 - Student program APIs are scoped so students only see the program attached to their enrolled cohort.
@@ -325,7 +326,7 @@ Dashboard
 
 Leaderboard and Summaries
 
-✅ Cohort leaderboard, scheduled announcements, grade notification, and role-specific summary APIs integrated
+✅ Cohort leaderboard, scheduled announcements, grade notification, attendance-weighted grade totals, and role-specific summary APIs integrated
 
 ---
 
@@ -495,7 +496,6 @@ Never skip documentation updates.
 
 ## Version 1.1
 
-- Attendance
 - Calendar
 - Certificates
 

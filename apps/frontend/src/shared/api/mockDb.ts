@@ -115,11 +115,22 @@ const initialCohorts: Cohort[] = [
     end_date: '2026-08-01',
     is_active: true,
     students_count: 18,
+    students: [
+      {
+        id: 'usr_student',
+        email: 'student@skilix.com',
+        first_name: 'Alex',
+        last_name: 'Mercer',
+        name: 'Alex Mercer'
+      }
+    ],
     teachers: [initialUsers[2]], // David Malan
     status: 'active',
     current_week: 6,
     duration_weeks: 12,
-    leaderboard_visible: true
+    leaderboard_visible: true,
+    assignment_weight: 90,
+    attendance_weight: 10
   },
   {
     id: 'coh_ai_upcoming',
@@ -130,11 +141,14 @@ const initialCohorts: Cohort[] = [
     end_date: '2026-12-15',
     is_active: false,
     students_count: 24,
+    students: [],
     teachers: [initialUsers[2]],
     status: 'upcoming',
     current_week: 1,
     duration_weeks: 12,
-    leaderboard_visible: true
+    leaderboard_visible: true,
+    assignment_weight: 90,
+    attendance_weight: 10
   }
 ];
 

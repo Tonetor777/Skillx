@@ -27,6 +27,7 @@ export const useCreateSubmission = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['submissions'] });
       queryClient.invalidateQueries({ queryKey: ['assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
     },
   });
 };
@@ -38,6 +39,7 @@ export const useGradeSubmission = () => {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['submissions'] });
       queryClient.invalidateQueries({ queryKey: ['submissions', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
     },
   });
 };

@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -23,6 +24,8 @@ class Cohort(models.Model):
     duration_weeks = models.PositiveIntegerField(default=12)
     current_week = models.PositiveIntegerField(default=1)
     leaderboard_visible = models.BooleanField(default=True)
+    assignment_weight = models.DecimalField(max_digits=5, decimal_places=2, default=90)
+    attendance_weight = models.DecimalField(max_digits=5, decimal_places=2, default=10)
     status = models.CharField(max_length=32, choices=CohortStatus.choices, default=CohortStatus.DRAFT)
 
     class Meta:
@@ -31,6 +34,12 @@ class Cohort(models.Model):
 
     def __str__(self) -> str:
         return f"{self.program.title} - {self.name}"
+
+    def clean(self) -> None:
+        if self.assignment_weight < 0 or self.attendance_weight < 0:
+            raise ValidationError("Grade weights cannot be negative.")
+        if self.assignment_weight + self.attendance_weight != 100:
+            raise ValidationError("Assignment and attendance weights must total 100.")
 
 
 class TeacherAssignment(models.Model):
@@ -45,4 +54,3 @@ class TeacherAssignment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.teacher.email} - {self.cohort} ({self.role})"
-

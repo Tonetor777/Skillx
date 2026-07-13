@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "accounts",
     "programs",
     "cohorts",
+    "attendance",
     "applications",
     "learning",
     "submissions",

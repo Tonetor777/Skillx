@@ -16,6 +16,7 @@ const Programs = React.lazy(() => import('./pages/dashboard/Programs'));
 const Cohorts = React.lazy(() => import('./pages/dashboard/Cohorts'));
 const Applications = React.lazy(() => import('./pages/dashboard/Applications'));
 const Assignments = React.lazy(() => import('./pages/dashboard/Assignments'));
+const Attendance = React.lazy(() => import('./pages/dashboard/Attendance'));
 const Modules = React.lazy(() => import('./pages/dashboard/Weeks'));
 const Announcements = React.lazy(() => import('./pages/dashboard/Announcements'));
 const Settings = React.lazy(() => import('./pages/dashboard/Settings'));
@@ -136,6 +137,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Assignments />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/attendance" 
+              element={
+                <ProtectedRoute>
+                  <Attendance />
                 </ProtectedRoute>
               } 
             />

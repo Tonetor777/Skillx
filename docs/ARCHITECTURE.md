@@ -34,4 +34,6 @@ When `DJANGO_DEBUG=true`, Django exposes generated OpenAPI documentation at `/ap
 
 ## Backend Domains
 
-The backend is organized into domain apps: accounts, programs, cohorts, applications, learning, submissions, announcements, and dashboard.
+The backend is organized into domain apps: accounts, programs, cohorts, attendance, applications, learning, submissions, announcements, and dashboard.
+
+Attendance is cohort-scoped and date-based. The dashboard grade summary combines graded assignment points with attendance credits using cohort-level weights, while submissions remain locked for student edits after grading and can still be corrected by authorized staff.

@@ -96,6 +96,9 @@ class SubmissionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context["request"]
         assignment = Assignment.objects.get(id=validated_data.pop("assignment_id"))
+        existing = Submission.objects.filter(assignment=assignment, student=request.user).first()
+        if existing and existing.is_locked:
+            raise serializers.ValidationError({"detail": "This submission has been graded and is locked for student edits."})
         submission, _ = Submission.objects.update_or_create(
             assignment=assignment,
             student=request.user,

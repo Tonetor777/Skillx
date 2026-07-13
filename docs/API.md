@@ -38,6 +38,8 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `POST /api/cohorts/`: create a cohort. Teacher/Admin/Super Admin only.
 - `GET /api/cohorts/{id}/`: retrieve a cohort.
 - `PATCH /api/cohorts/{id}/`: update a cohort, including validated `current_week`, `status`, and `leaderboard_visible`. Teacher/Admin/Super Admin only.
+- `GET /api/cohorts/{id}/grade-settings/`: retrieve cohort assignment and attendance grade weights. Assigned Teacher/Admin/Super Admin only.
+- `PATCH /api/cohorts/{id}/grade-settings/`: update cohort grade weights. Weights must be non-negative and total 100. Assigned Teacher/Admin/Super Admin only.
 - `GET /api/teacher-assignments/`: list teacher assignments. Admin/Super Admin only.
 - `POST /api/teacher-assignments/`: assign a teacher to a cohort with `lead`, `assistant`, or `mentor` role. Admin/Super Admin only.
 - `PATCH /api/teacher-assignments/{id}/`: update a teacher assignment role. Admin/Super Admin only.
@@ -72,9 +74,13 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `GET /api/assignments/{id}/`: retrieve an assignment.
 - `PATCH /api/assignments/{id}/`: update an assignment. Teacher/Admin/Super Admin only.
 - `GET /api/submissions/`: list submissions scoped to the current user. Supports `?assignment_id=`.
-- `POST /api/submissions/`: create or update the current student's submission.
+- `POST /api/submissions/`: create or update the current student's submission. Graded submissions remain locked for student edits.
 - `GET /api/submissions/{id}/`: retrieve a submission.
-- `POST /api/submissions/{id}/grade/`: grade and lock a submission. Teacher/Admin/Super Admin only.
+- `POST /api/submissions/{id}/grade/`: create or update a grade and feedback. Teacher/Admin/Super Admin only. The submission remains locked for student edits.
+- `GET /api/attendance-sessions/?cohort_id=...`: list attendance sessions scoped to the current user.
+- `POST /api/attendance-sessions/`: create one attendance session for a cohort date. Assigned Teacher/Admin/Super Admin only.
+- `PATCH /api/attendance-sessions/{id}/`: update attendance session date/title. Assigned Teacher/Admin/Super Admin only.
+- `POST /api/attendance-sessions/{id}/records/`: bulk upsert student attendance records with `present`, `late`, `excused`, or `absent`. Assigned Teacher/Admin/Super Admin only.
 - `GET /api/announcements/`: list announcements scoped to the current user. Supports `?target_type=` and `?target_id=`.
 - `POST /api/announcements/`: create an announcement. Teacher/Admin/Super Admin only.
 - `scheduled_for` may be provided on announcements; future announcements are hidden until due.
@@ -85,6 +91,10 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `PATCH /api/settings/`: update platform settings. Super Admin only.
 
 Response DTOs are shaped for the Vite frontend, including string IDs, lower-case role/status values, and display fields such as `program_name`, `cohort_name`, `students_count`, `teachers`, `author_name`, and `reviewed_by_name`.
+
+## Grades and Attendance
+
+Attendance is recorded per cohort date. Status scoring is `present = 1.0`, `excused = 1.0`, `late = 0.5`, and `absent = 0`. Cohorts default to 90% assignment grade weight and 10% attendance grade weight. Student dashboard summaries include `grades.assignment_percent`, `grades.attendance_percent`, `grades.total_percent`, `grades.assignment_weight`, and `grades.attendance_weight`.
 
 ## Media Uploads
 

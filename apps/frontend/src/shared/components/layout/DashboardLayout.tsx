@@ -7,6 +7,7 @@ import {
   Users, 
   FileText, 
   ClipboardList, 
+  CalendarCheck,
   Megaphone, 
   Settings, 
   User, 
@@ -58,6 +59,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       path: '/dashboard/assignments',
       icon: ClipboardList,
       roles: ['super_admin', 'admin', 'teacher', 'student'],
+    },
+    {
+      name: 'Attendance',
+      path: '/dashboard/attendance',
+      icon: CalendarCheck,
+      roles: ['super_admin', 'admin', 'teacher'],
     },
     {
       name: 'Modules',

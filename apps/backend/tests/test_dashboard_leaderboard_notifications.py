@@ -79,7 +79,7 @@ def test_grading_sends_email_notification(domain):
 
     assert response.status_code == 200
     assert len(mail.outbox) == 1
-    assert "was graded" in mail.outbox[0].subject
+    assert "grade was posted" in mail.outbox[0].subject
 
 
 def test_scheduled_announcement_is_hidden_until_due(domain):

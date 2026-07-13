@@ -108,11 +108,25 @@ export interface Cohort {
   end_date: string;
   is_active: boolean;
   students_count: number;
+  students?: Array<{
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    name: string;
+  }>;
   teachers: User[];
   status: 'upcoming' | 'active' | 'completed' | 'archived';
   current_week: number;
   duration_weeks: number;
   leaderboard_visible: boolean;
+  assignment_weight: number;
+  attendance_weight: number;
+}
+
+export interface CohortGradeSettings {
+  assignment_weight: number;
+  attendance_weight: number;
 }
 
 export interface TeacherAssignment {
@@ -158,6 +172,53 @@ export interface Submission {
   graded_by_name?: string;
   graded_at?: string;
   is_late: boolean; // Flagged automatically if submitted_at > due_date
+}
+
+export type AttendanceStatus = 'present' | 'late' | 'excused' | 'absent';
+
+export interface AttendanceRecord {
+  id: string;
+  student_id: string;
+  student_name: string;
+  student_email: string;
+  status: AttendanceStatus;
+  note: string;
+  credit: number;
+  updated_at: string;
+}
+
+export interface AttendanceSession {
+  id: string;
+  cohort_id: string;
+  cohort_name: string;
+  date: string;
+  title: string;
+  recorded_by_name: string;
+  records: AttendanceRecord[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DashboardSummary {
+  role: UserRole;
+  progress?: {
+    assignments_total: number;
+    submissions_total: number;
+    graded_total: number;
+  };
+  grades?: {
+    average: number;
+    assignment_percent: number;
+    attendance_percent: number;
+    total_percent: number;
+    assignment_weight: number;
+    attendance_weight: number;
+  };
+  current_module?: {
+    module_number: number;
+    title: string;
+  } | null;
+  announcements?: number;
 }
 
 export interface Application {
