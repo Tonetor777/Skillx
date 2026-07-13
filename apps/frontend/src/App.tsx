@@ -10,7 +10,7 @@ const ConfirmPasswordReset = React.lazy(() => import('./pages/ConfirmPasswordRes
 const RequestPasswordReset = React.lazy(() => import('./pages/RequestPasswordReset'));
 const VerifyEmail = React.lazy(() => import('./pages/VerifyEmail'));
 const AcceptInvitation = React.lazy(() => import('./pages/AcceptInvitation'));
-const Apply = React.lazy(() => import('./pages/Apply'));
+const Signup = React.lazy(() => import('./pages/Signup'));
 const Overview = React.lazy(() => import('./pages/dashboard/Overview'));
 const Programs = React.lazy(() => import('./pages/dashboard/Programs'));
 const Cohorts = React.lazy(() => import('./pages/dashboard/Cohorts'));
@@ -94,7 +94,8 @@ export default function App() {
             <Route path="/reset-password" element={<RequestPasswordReset />} />
             <Route path="/reset-password/confirm" element={<ConfirmPasswordReset />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/apply" element={<Apply />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/apply" element={<Navigate to="/signup" replace />} />
             <Route path="/accept-invitation" element={<AcceptInvitation />} />
 
             {/* Protected routes */}

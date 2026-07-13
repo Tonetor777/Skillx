@@ -81,7 +81,7 @@ export default function Login() {
           Sign in to Skilix
         </p>
         <p className="mt-2 text-center text-sm text-[#5f5f5a]">
-          Advanced Cohort-based Learning Management
+          Approved students can sign in after accepting their email invitation.
         </p>
       </div>
 
@@ -164,6 +164,13 @@ export default function Login() {
               </button>
             </div>
           </form>
+
+          <p className="mt-5 text-center text-sm text-[#5f5f5a]">
+            New student?{' '}
+            <Link to="/signup" className="font-semibold text-[#141414] underline underline-offset-4">
+              Submit a signup request
+            </Link>
+          </p>
 
           {/* Quick Sandbox Tester Accounts Panel */}
           <div className="mt-8 border-t border-[#d8d8d4] pt-6">

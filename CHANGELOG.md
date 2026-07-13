@@ -10,6 +10,10 @@ This project follows a modified version of Keep a Changelog.
 
 ## Added
 
+- Public `/signup` route for student signup requests, with `/apply` redirected for compatibility.
+- Public active-program catalog endpoint for unauthenticated signup program selection.
+- Lesson image upload API and inline image rendering for TipTap lesson content.
+- YouTube link detection that appends safe iframe embeds to rendered lesson content.
 - Railway production deployment config with a root backend Dockerfile, migration predeploy command, Gunicorn start command, and `/api/health/` health check.
 - Dokploy all-in-one production compose stack with frontend, backend, migrations, Celery, PostgreSQL, Redis, MinIO, named volumes, and separate frontend/API domain support.
 - Production frontend Dockerfile and Nginx SPA config for serving the Vite build in Dokploy.
@@ -40,6 +44,10 @@ This project follows a modified version of Keep a Changelog.
 
 ## Changed
 
+- Redesigned curriculum management into a reference-style two-pane layout with a left module/lesson navigator and right lesson reading canvas for Modules and embedded Program curriculum views.
+- Student signup review and approval is now Super Admin-only, and approval sends an invitation email for password setup instead of creating a login-ready account immediately.
+- Student program API access is now scoped to the program attached to the student's enrolled cohort.
+- Lesson content now stores uploaded image asset ids instead of expiring media URLs.
 - Expanded the root README with current local Docker guidance, MinIO service details, automatic migration behavior, root scripts, and Dokploy/Railway/Vercel deployment guidance.
 - Vite route pages are now lazy-loaded to reduce initial production bundle size.
 - README and `.env.example` now document Railway/Vercel production environment variables, migrations, health checks, release checks, and rollback basics.

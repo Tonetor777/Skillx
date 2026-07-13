@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Lesson, Module, Resource } from '../../../shared/types';
+import type { Lesson, LessonImage, Module, Resource } from '../../../shared/types';
 import apiClient from '../../../shared/api/client';
 
 export const useModules = (cohortId?: string) => {
@@ -74,6 +74,17 @@ export const useDeleteLesson = () => {
   const queryClient = useQueryClient();
   return useMutation<void, Error, string>({
     mutationFn: (id) => apiClient.delete(`/lessons/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['modules'] });
+      queryClient.invalidateQueries({ queryKey: ['lessons'] });
+    },
+  });
+};
+
+export const useUploadLessonImage = () => {
+  const queryClient = useQueryClient();
+  return useMutation<LessonImage, Error, FormData>({
+    mutationFn: (data) => apiClient.post('/lesson-images', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['modules'] });
       queryClient.invalidateQueries({ queryKey: ['lessons'] });

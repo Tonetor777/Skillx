@@ -28,7 +28,8 @@ Use JWT bearer authentication in Swagger UI with the value `Bearer <access_token
 
 All dashboard endpoints require an active JWT user unless noted otherwise.
 
-- `GET /api/programs/`: list programs.
+- `GET /api/programs/`: list programs scoped to the current user. Students only see the program attached to their enrolled cohort.
+- `GET /api/programs/public/`: public list of active programs for student signup.
 - `POST /api/programs/`: create a program. Teacher/Admin/Super Admin only. Supports multipart uploads for optional `thumbnail`; returns `thumbnail_url`.
 - `GET /api/programs/{id}/`: retrieve a program.
 - `PATCH /api/programs/{id}/`: update a program. Teacher/Admin/Super Admin only. Supports multipart uploads for optional `thumbnail`; returns `thumbnail_url`.
@@ -48,17 +49,20 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `POST /api/modules/{id}/publish/`: publish a module and stamp publish metadata. Teacher/Admin/Super Admin only.
 - `GET /api/lessons/`: list lessons scoped to accessible modules. Supports `?module_id=`.
 - `POST /api/lessons/`: create an ordered lesson/submodule. Teacher/Admin/Super Admin only. `content` may contain serialized TipTap JSON for native lesson rendering, and existing plain text remains supported.
-- `PATCH /api/lessons/{id}/`: update a lesson. Teacher/Admin/Super Admin only. `content` is stored and returned unchanged.
+- `PATCH /api/lessons/{id}/`: update a lesson. Teacher/Admin/Super Admin only. `content` stores serialized TipTap JSON; uploaded image nodes reference lesson image asset ids.
 - `DELETE /api/lessons/{id}/`: delete a lesson. Teacher/Admin/Super Admin only.
+- `GET /api/lesson-images/`: list lesson images scoped to accessible lessons. Supports `?lesson_id=`.
+- `POST /api/lesson-images/`: upload a lesson image. Teacher/Admin/Super Admin only. Supports multipart `lesson_id`, `image`, and optional `alt_text`; returns `image_url`.
+- `DELETE /api/lesson-images/{id}/`: delete a lesson image. Teacher/Admin/Super Admin only.
 - `GET /api/resources/`: list resources scoped to accessible lessons. Supports `?lesson_id=`.
 - `POST /api/resources/`: create an ordered URL resource. Teacher/Admin/Super Admin only.
 - `PATCH /api/resources/{id}/`: update a resource. Teacher/Admin/Super Admin only.
 - `DELETE /api/resources/{id}/`: delete a resource. Teacher/Admin/Super Admin only.
-- `GET /api/applications/`: list admissions applications. Admin/Super Admin only.
-- `POST /api/applications/`: create a public application with contact details, program selection, and motivation.
-- `GET /api/applications/{id}/`: retrieve an application. Admin/Super Admin only.
-- `POST /api/applications/{id}/approve/`: approve an application and send an expiring cohort invitation. Admin/Super Admin only.
-- `POST /api/applications/{id}/reject/`: reject an application. Admin/Super Admin only.
+- `GET /api/applications/`: list admissions applications. Super Admin only.
+- `POST /api/applications/`: create a public signup application with contact details, program selection, and motivation.
+- `GET /api/applications/{id}/`: retrieve an application. Super Admin only.
+- `POST /api/applications/{id}/approve/`: approve an application and send an expiring cohort invitation. Super Admin only.
+- `POST /api/applications/{id}/reject/`: reject an application. Super Admin only.
 - `GET /api/invitations/`: list invitations. Admin/Super Admin only.
 - `POST /api/invitations/{token}/accept/`: accept a pending invitation and create or activate the student account.
 - `POST /api/invitations/{id}/resend/`: resend a pending invitation. Admin/Super Admin only.
@@ -88,3 +92,8 @@ When `AWS_STORAGE_BUCKET_NAME` and `AWS_S3_ENDPOINT_URL` are configured, new med
 
 - Profile `photo`: image files only (`.png`, `.jpg`, `.jpeg`, `.webp`), max 5MB.
 - Program `thumbnail`: image files only (`.png`, `.jpg`, `.jpeg`, `.webp`), max 5MB.
+- Lesson image `image`: image files only (`.png`, `.jpg`, `.jpeg`, `.webp`), max 5MB. Lesson content stores asset ids, while API responses return fresh `image_url` values for rendering.
+
+## Lesson Embeds
+
+Lesson content may include normal YouTube links in text or link marks. The frontend detects `youtube.com/watch`, `youtu.be`, `youtube.com/embed`, and `youtube.com/shorts` URLs, keeps the original links visible, and appends safe YouTube iframe embeds at the end of the rendered lesson.

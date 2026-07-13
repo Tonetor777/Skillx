@@ -1,12 +1,13 @@
 from django.utils import timezone
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from accounts.choices import UserRole
 from accounts.permissions import IsActiveUser, IsTeacherAdminOrSuperAdmin
-from learning.models import Assignment, Lesson, Module, ModuleStatus, Resource
-from learning.serializers import AssignmentSerializer, LessonSerializer, ModuleSerializer, ResourceSerializer
+from learning.models import Assignment, Lesson, LessonImage, Module, ModuleStatus, Resource
+from learning.serializers import AssignmentSerializer, LessonImageSerializer, LessonSerializer, ModuleSerializer, ResourceSerializer
 
 
 def scope_queryset_to_user(queryset, user, cohort_path="cohort_id"):
@@ -58,7 +59,7 @@ class ModuleViewSet(ModelViewSet):
         if getattr(self, "swagger_fake_view", False):
             return Module.objects.none()
         user = self.request.user
-        queryset = Module.objects.select_related("cohort", "published_by").prefetch_related("lessons__resources")
+        queryset = Module.objects.select_related("cohort", "published_by").prefetch_related("lessons__resources", "lessons__images")
         cohort_id = self.request.query_params.get("cohort_id")
         if cohort_id:
             queryset = queryset.filter(cohort_id=cohort_id)
@@ -91,7 +92,7 @@ class LessonViewSet(ModelViewSet):
         if getattr(self, "swagger_fake_view", False):
             return Lesson.objects.none()
         user = self.request.user
-        queryset = Lesson.objects.select_related("module", "module__cohort").prefetch_related("resources")
+        queryset = Lesson.objects.select_related("module", "module__cohort").prefetch_related("resources", "images")
         module_id = self.request.query_params.get("module_id")
         if module_id:
             queryset = queryset.filter(module_id=module_id)
@@ -128,5 +129,36 @@ class ResourceViewSet(ModelViewSet):
 
     def get_permissions(self):
         if self.action in {"create", "partial_update", "destroy"}:
+            return [IsTeacherAdminOrSuperAdmin()]
+        return super().get_permissions()
+
+
+class LessonImageViewSet(ModelViewSet):
+    serializer_class = LessonImageSerializer
+    permission_classes = [IsActiveUser]
+    http_method_names = ["get", "post", "delete", "head", "options"]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return LessonImage.objects.none()
+        user = self.request.user
+        queryset = LessonImage.objects.select_related(
+            "lesson",
+            "lesson__module",
+            "lesson__module__cohort",
+            "uploaded_by",
+        )
+        lesson_id = self.request.query_params.get("lesson_id")
+        if lesson_id:
+            queryset = queryset.filter(lesson_id=lesson_id)
+        if user.role == UserRole.STUDENT:
+            return queryset.filter(lesson__module__cohort_id=user.cohort_id, lesson__module__status=ModuleStatus.PUBLISHED)
+        if user.role == UserRole.TEACHER:
+            return queryset.filter(lesson__module__cohort__teacher_assignments__teacher=user).distinct()
+        return queryset
+
+    def get_permissions(self):
+        if self.action in {"create", "destroy"}:
             return [IsTeacherAdminOrSuperAdmin()]
         return super().get_permissions()

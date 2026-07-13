@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from learning.models import Assignment, Lesson, Module, Resource
+from learning.models import Assignment, Lesson, LessonImage, Module, Resource
 
 
 @admin.register(Module)
@@ -20,6 +20,13 @@ class LessonAdmin(admin.ModelAdmin):
 class ResourceAdmin(admin.ModelAdmin):
     list_display = ("title", "lesson", "order")
     search_fields = ("title", "url")
+
+
+@admin.register(LessonImage)
+class LessonImageAdmin(admin.ModelAdmin):
+    list_display = ("lesson", "alt_text", "uploaded_by", "created_at")
+    list_filter = ("created_at",)
+    search_fields = ("alt_text", "lesson__title", "lesson__module__title")
 
 
 @admin.register(Assignment)

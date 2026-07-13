@@ -42,12 +42,12 @@ Build the first production-ready version of Skilix.
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| Apply to Program | ✅ | Public API/frontend submission flow is implemented. |
+| Signup to Program | ✅ | Public `/signup` frontend submission flow creates pending student signup applications. |
 | Upload Resume | ✅ Removed | Removed from the redesigned MVP application flow. |
 | Upload Payment Proof | ✅ Removed | Removed from the redesigned MVP application flow. |
-| Review Applications | ✅ | Admin/Super Admin API with frontend DTOs and tests. |
-| Approve Application | ✅ | Admin/Super Admin approval API provisions active student accounts. |
-| Reject Application | ✅ | Admin/Super Admin rejection API records review metadata. |
+| Review Applications | ✅ | Super Admin-only API with frontend DTOs and tests. |
+| Approve Application | ✅ | Super Admin approval sends an invitation email for password setup. |
+| Reject Application | ✅ | Super Admin rejection API records review metadata. |
 | Invitation Email | ✅ | Expiring invitation email, accept, resend, and revoke flow is implemented. |
 
 ---
@@ -58,7 +58,7 @@ Build the first production-ready version of Skilix.
 |----------|--------|-------|
 | Program CRUD | ✅ | Backend API and Vite dashboard integration are implemented for list/create/update. |
 | Archive Program | ✅ | Soft archive endpoint preserves data and hides archived programs from default lists. |
-| Program Details | ✅ | Detail API returns cohort summary data and embeds live cohort curriculum management in the dashboard. |
+| Program Details | ✅ | Detail API returns cohort summary data, embeds live cohort curriculum management, and scopes students to their enrolled program. |
 
 ---
 
@@ -86,7 +86,7 @@ Build the first production-ready version of Skilix.
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| Module CRUD | ✅ | Backend API and nested frontend controls are implemented in Program curriculum and Modules views. |
+| Module CRUD | ✅ | Backend API and reference-style two-pane frontend controls are implemented in Program curriculum and Modules views. |
 | Publish Module | ✅ | Publish action sets status, publish date, and publisher. |
 | Draft Support | ✅ | Draft/published/archived API support is implemented for modules. |
 
@@ -96,8 +96,10 @@ Build the first production-ready version of Skilix.
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| Lesson CRUD | ✅ | Backend API and nested frontend controls are implemented inside module panels. |
+| Lesson CRUD | ✅ | Backend API and contextual frontend controls are implemented inside the two-pane curriculum layout. |
 | Native Lesson Editor | ✅ | TipTap-powered lesson authoring stores structured JSON in `Lesson.content` with plain-text fallback rendering for existing lessons. |
+| Inline Lesson Images | ✅ | Lesson-owned image uploads are validated, rendered inline, and referenced by asset id from lesson content. |
+| YouTube Lesson Embeds | ✅ | YouTube links in lesson content are detected and rendered as safe appended iframe embeds. |
 
 ---
 
@@ -116,6 +118,7 @@ Build the first production-ready version of Skilix.
 | Feature | Status | Notes |
 |----------|--------|-------|
 | MinIO media URLs | ✅ Completed | Private S3-compatible MinIO storage is available when configured, with signed URL responses for profile photos and program thumbnails. |
+| Lesson media URLs | ✅ Completed | Lesson image assets return fresh media URLs and avoid storing expiring signed URLs in lesson content. |
 
 ---
 
@@ -188,6 +191,7 @@ Build the first production-ready version of Skilix.
 | Feature | Status | Notes |
 |----------|--------|-------|
 | Nexus-inspired UI refresh | ✅ Completed | Vite UI refreshed with monochrome academy styling, grid backgrounds, sharp bordered panels, reusable presentation components, and Amharic major titles. |
+| Reference-style curriculum layout | ✅ Completed | Modules and embedded Program curriculum now use a left module/lesson navigator with a right reading canvas. |
 
 ---
 

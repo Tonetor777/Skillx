@@ -46,7 +46,7 @@ export default function Applications() {
       <div className="bg-red-50 border border-red-200 text-red-800 p-6 rounded-xl max-w-lg mx-auto text-center my-12">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
         <h3 className="text-lg font-bold">Access Restrict Guard</h3>
-        <p className="text-sm mt-1">Teachers and Students do not possess administrative permissions to view or review student admissions applications.</p>
+        <p className="text-sm mt-1">Only Super Admins can view or review student signup requests.</p>
       </div>
     );
   }
@@ -92,7 +92,7 @@ export default function Applications() {
     try {
       await approveMutation.mutateAsync(id);
       setSelectedAppId(null);
-      triggerToast('Application approved! An active student profile has been provisioned.', 'success');
+      triggerToast('Signup approved. An invitation email has been sent for password setup.', 'success');
     } catch {
       return;
     }
@@ -160,9 +160,9 @@ export default function Applications() {
         <div>
           <p className="skx-page-label">Admissions Applications</p>
           <h1 className="mt-3 text-4xl md:text-5xl skx-amharic-title">የመግቢያ ማመልከቻዎች</h1>
-          <p className="mt-2 font-display text-lg font-bold text-[#141414]">Admissions Applications</p>
+          <p className="mt-2 font-display text-lg font-bold text-[#141414]">Student Signup Requests</p>
           <p className="text-[#5f5f5a] text-sm mt-2">
-            Review applicant profiles, motivation letters, and authorize bootcamp student profiles creation.
+            Review applicant profiles, motivation letters, and send approved students an email invitation.
           </p>
         </div>
         <button
@@ -171,7 +171,7 @@ export default function Applications() {
           id="simulate-application-btn"
         >
           <Sparkles className="w-4 h-4 text-indigo-600" />
-          Simulate Public Apply Form
+          Simulate Public Signup Form
         </button>
       </div>
 
@@ -233,7 +233,7 @@ export default function Applications() {
                   disabled={approveMutation.isPending || rejectMutation.isPending}
                   className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg text-sm transition-colors shadow-xs"
                 >
-                  <Check className="w-4 h-4" /> Approve & Create Account
+                  <Check className="w-4 h-4" /> Approve & Send Invite
                 </button>
               </div>
             ) : (
@@ -268,7 +268,7 @@ export default function Applications() {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white rounded-xl border border-gray-100 p-6 max-w-lg w-full shadow-2xl"
           >
-            <h3 className="font-sans font-bold text-lg text-gray-900 mb-1">Simulated Public Registration Form</h3>
+            <h3 className="font-sans font-bold text-lg text-gray-900 mb-1">Simulated Public Signup Form</h3>
             <p className="text-xs text-gray-500 mb-5">Submit a simulated candidate profile. It is captured here immediately for authorization.</p>
 
             <form onSubmit={handleSubmit(onSimulateSubmit)} className="space-y-4">
@@ -319,7 +319,7 @@ export default function Applications() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700">Why are you applying for this cohort?</label>
+                <label className="block text-xs font-semibold text-gray-700">Why are you signing up for this cohort?</label>
                 <textarea
                   rows={4}
                   className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"

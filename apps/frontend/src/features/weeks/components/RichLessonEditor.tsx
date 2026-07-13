@@ -1,4 +1,5 @@
 import { EditorContent, useEditor } from '@tiptap/react';
+import { mergeAttributes, Node } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -7,6 +8,7 @@ import {
   Code,
   Heading1,
   Heading2,
+  Image as ImageIcon,
   Italic,
   Link as LinkIcon,
   List,
@@ -17,20 +19,25 @@ import {
   Undo2,
   Unlink,
 } from 'lucide-react';
-import { useEffect } from 'react';
-import type { ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 
+import { useUploadLessonImage } from '../api/weeks';
 import {
   createLessonDocumentFromText,
   emptyLessonDocument,
+  hydrateLessonDocumentImages,
   parseLessonContent,
   serializeLessonDocument,
   type LessonContentDocument,
+  type LessonImageAsset,
 } from '../utils/lessonContent';
 
 type RichLessonEditorProps = {
   value: string;
   onChange: (value: string) => void;
+  lessonId?: string;
+  images?: LessonImageAsset[];
 };
 
 type ToolbarButtonProps = {
@@ -41,9 +48,37 @@ type ToolbarButtonProps = {
   children: ReactNode;
 };
 
-const editorContentFromValue = (value: string): LessonContentDocument => {
+const LessonImageNode = Node.create({
+  name: 'image',
+  group: 'block',
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      src: { default: null },
+      asset_id: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-asset-id'),
+        renderHTML: (attributes) => attributes.asset_id ? { 'data-asset-id': attributes.asset_id } : {},
+      },
+      alt: { default: '' },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'img[src]' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['img', mergeAttributes(HTMLAttributes)];
+  },
+});
+
+const editorContentFromValue = (value: string, images: LessonImageAsset[] = []): LessonContentDocument => {
   const parsed = parseLessonContent(value);
-  return parsed.kind === 'document' ? parsed.document : createLessonDocumentFromText(parsed.text);
+  const document = parsed.kind === 'document' ? parsed.document : createLessonDocumentFromText(parsed.text);
+  return hydrateLessonDocumentImages(document, images);
 };
 
 function ToolbarButton({ label, active = false, disabled = false, onClick, children }: ToolbarButtonProps) {
@@ -63,7 +98,9 @@ function ToolbarButton({ label, active = false, disabled = false, onClick, child
   );
 }
 
-export function RichLessonEditor({ value, onChange }: RichLessonEditorProps) {
+export function RichLessonEditor({ value, onChange, lessonId, images = [] }: RichLessonEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadLessonImage = useUploadLessonImage();
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -76,11 +113,12 @@ export function RichLessonEditor({ value, onChange }: RichLessonEditorProps) {
         defaultProtocol: 'https',
         openOnClick: false,
       }),
+      LessonImageNode,
       Placeholder.configure({
         placeholder: 'Write the lesson students will read here...',
       }),
     ],
-    content: editorContentFromValue(value),
+    content: editorContentFromValue(value, images),
     editorProps: {
       attributes: {
         class: 'min-h-56 rounded-b-lg border-x border-b border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-800 outline-none',
@@ -96,11 +134,11 @@ export function RichLessonEditor({ value, onChange }: RichLessonEditorProps) {
     if (!editor) return;
 
     const current = serializeLessonDocument(editor.getJSON() as LessonContentDocument);
-    const next = serializeLessonDocument(editorContentFromValue(value));
+    const next = serializeLessonDocument(editorContentFromValue(value, images));
     if (current !== next) {
-      editor.commands.setContent(value ? editorContentFromValue(value) : emptyLessonDocument, { emitUpdate: false });
+      editor.commands.setContent(value ? editorContentFromValue(value, images) : emptyLessonDocument, { emitUpdate: false });
     }
-  }, [editor, value]);
+  }, [editor, images, value]);
 
   if (!editor) {
     return (
@@ -123,9 +161,45 @@ export function RichLessonEditor({ value, onChange }: RichLessonEditorProps) {
     editor.chain().focus().extendMarkRange('link').setLink({ href: url.trim() }).run();
   };
 
+  const uploadImage = async (file: File) => {
+    if (!lessonId) {
+      window.alert('Save the lesson before adding images.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('lesson_id', lessonId);
+    formData.append('image', file);
+    formData.append('alt_text', file.name.replace(/\.[^.]+$/, ''));
+
+    const uploaded = await uploadLessonImage.mutateAsync(formData);
+    editor.chain().focus().insertContent({
+      type: 'image',
+      attrs: {
+        asset_id: uploaded.id,
+        src: uploaded.image_url,
+        alt: uploaded.alt_text,
+      },
+    }).run();
+  };
+
+  const onImageSelected = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    void uploadImage(file);
+  };
+
   return (
     <div>
       <div className="flex flex-wrap gap-2 rounded-t-lg border border-slate-200 bg-slate-50 p-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+          onChange={onImageSelected}
+        />
         <ToolbarButton label="Heading 1" active={editor.isActive('heading', { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
           <Heading1 className="h-4 w-4" />
         </ToolbarButton>
@@ -152,6 +226,9 @@ export function RichLessonEditor({ value, onChange }: RichLessonEditorProps) {
         </ToolbarButton>
         <ToolbarButton label="Add link" active={editor.isActive('link')} onClick={setLink}>
           <LinkIcon className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton label="Upload image" disabled={uploadLessonImage.isPending} onClick={() => fileInputRef.current?.click()}>
+          <ImageIcon className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton label="Remove link" disabled={!editor.isActive('link')} onClick={() => editor.chain().focus().unsetLink().run()}>
           <Unlink className="h-4 w-4" />

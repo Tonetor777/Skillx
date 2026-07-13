@@ -49,6 +49,20 @@ class Lesson(models.Model):
         return self.title
 
 
+class LessonImage(models.Model):
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to="lessons/images/")
+    alt_text = models.CharField(max_length=255, blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="uploaded_lesson_images")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["lesson", "created_at"]
+
+    def __str__(self) -> str:
+        return self.alt_text or f"Image for {self.lesson}"
+
+
 class Resource(models.Model):
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="resources")
     title = models.CharField(max_length=255)

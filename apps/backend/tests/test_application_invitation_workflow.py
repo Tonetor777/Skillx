@@ -74,7 +74,7 @@ def test_public_application_submission_accepts_contact_and_motivation_details():
 
 def test_invitation_accept_creates_student_and_prevents_reuse():
     program, cohort = domain()
-    admin = create_user("admin-invite@example.com", UserRole.ADMIN)
+    super_admin = create_user("super-admin-invite@example.com", UserRole.SUPER_ADMIN)
     application = Application.objects.create(
         name="Ada Lovelace",
         email="ada-invite@example.com",
@@ -84,12 +84,23 @@ def test_invitation_accept_creates_student_and_prevents_reuse():
         motivation="I want to build production systems.",
         program=program,
     )
-    approve_response = auth_client(admin).post(f"/api/applications/{application.id}/approve/")
+    approve_response = auth_client(super_admin).post(f"/api/applications/{application.id}/approve/")
     invitation = Invitation.objects.get(email=application.email)
+    users_before_acceptance = get_user_model().objects.filter(email=application.email).count()
+    login_before_acceptance = APIClient().post(
+        "/api/auth/token/",
+        {"email": application.email, "password": "student-password"},
+        format="json",
+    )
 
     accept_response = APIClient().post(
         f"/api/invitations/{invitation.token}/accept/",
         {"password": "student-password"},
+        format="json",
+    )
+    login_after_acceptance = APIClient().post(
+        "/api/auth/token/",
+        {"email": application.email, "password": "student-password"},
         format="json",
     )
     reuse_response = APIClient().post(
@@ -102,12 +113,44 @@ def test_invitation_accept_creates_student_and_prevents_reuse():
     invitation.refresh_from_db()
     assert approve_response.status_code == 200
     assert len(mail.outbox) == 1
+    assert users_before_acceptance == 0
+    assert get_user_model().objects.filter(email=application.email).count() == 1
+    assert login_before_acceptance.status_code == 401
     assert accept_response.status_code == 200
+    assert login_after_acceptance.status_code == 200
     assert reuse_response.status_code == 400
     assert user.role == UserRole.STUDENT
     assert user.status == UserStatus.ACTIVE
     assert user.cohort == cohort
     assert invitation.status == InvitationStatus.ACCEPTED
+
+
+def test_only_super_admin_can_review_signup_applications():
+    program, _ = domain()
+    admin = create_user("admin-review@example.com", UserRole.ADMIN)
+    super_admin = create_user("super-admin-review@example.com", UserRole.SUPER_ADMIN)
+    application = Application.objects.create(
+        name="Katherine Johnson",
+        email="katherine@example.com",
+        phone="Not provided",
+        country="Not provided",
+        experience="Not provided",
+        motivation="I want to learn software delivery.",
+        program=program,
+    )
+
+    admin_list_response = auth_client(admin).get("/api/applications/")
+    admin_approve_response = auth_client(admin).post(f"/api/applications/{application.id}/approve/")
+    super_admin_list_response = auth_client(super_admin).get("/api/applications/")
+    super_admin_approve_response = auth_client(super_admin).post(f"/api/applications/{application.id}/approve/")
+
+    application.refresh_from_db()
+    assert admin_list_response.status_code == 403
+    assert admin_approve_response.status_code == 403
+    assert super_admin_list_response.status_code == 200
+    assert super_admin_approve_response.status_code == 200
+    assert application.status == ApplicationStatus.APPROVED
+    assert Invitation.objects.filter(email=application.email, status=InvitationStatus.PENDING).exists()
 
 
 def test_expired_invitation_cannot_be_accepted_and_can_be_resent_or_revoked():

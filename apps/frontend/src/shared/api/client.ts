@@ -1,4 +1,4 @@
-import { ApiErrorResponse, User, Application, Program, Cohort, Assignment, Submission, Announcement, Module, Lesson, Resource } from '../types';
+import { ApiErrorResponse, User, Application, Program, Cohort, Assignment, Submission, Announcement, Module, Lesson, LessonImage, Resource } from '../types';
 import { MockDatabase } from './mockDb';
 
 // Backend Base URL configuration
@@ -104,25 +104,6 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
             reviewed_at: new Date().toISOString()
           };
           MockDatabase.set('applications', apps);
-          
-          // Also automatically register a student profile in users
-          const students = MockDatabase.get<User>('users');
-          const email = apps[index].email;
-          if (!students.some(s => s.email === email)) {
-            const cohortId = 'coh_react_active'; // Default active cohort
-            const newStudent: User = {
-              id: `usr_${Math.random().toString(36).substr(2, 9)}`,
-              email,
-              first_name: apps[index].first_name,
-              last_name: apps[index].last_name,
-              role: 'student',
-              cohort_id: cohortId,
-              avatar_url: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 500000)}?auto=format&fit=crop&w=100&h=100&q=80`,
-              created_at: new Date().toISOString()
-            };
-            students.push(newStudent);
-            MockDatabase.set('users', students);
-          }
           return apps[index];
         }
       }
@@ -172,6 +153,9 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
   // Program Endpoints
   if (endpoint.includes('/programs')) {
     const prgs = MockDatabase.get<Program>('programs');
+    if (endpoint.includes('/programs/public')) {
+      return prgs.filter(program => program.status !== 'archived');
+    }
     const idMatch = endpoint.match(/\/programs\/([^\/]+)/);
     if (idMatch) {
       const progId = idMatch[1];
@@ -373,6 +357,48 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
     }
     const moduleId = endpoint.includes('?module_id=') ? new URLSearchParams(endpoint.split('?')[1]).get('module_id') : null;
     return moduleId ? lessons.filter(lesson => lesson.module_id === moduleId) : lessons;
+  }
+
+  // Lesson Image Endpoints
+  if (endpoint.includes('/lesson-images')) {
+    const modules = MockDatabase.get<Module>('modules');
+    const lessonImages = modules.flatMap(module => module.lessons.flatMap(lesson => lesson.images ?? []));
+    const idMatch = endpoint.match(/\/lesson-images\/([^\/]+)/);
+    if (idMatch && method === 'DELETE') {
+      const imageId = idMatch[1];
+      const nextModules = modules.map(module => ({
+        ...module,
+        lessons: module.lessons.map(lesson => ({
+          ...lesson,
+          images: (lesson.images ?? []).filter(image => image.id !== imageId),
+        })),
+      }));
+      MockDatabase.set('modules', nextModules);
+      return null;
+    }
+    if (method === 'POST') {
+      const formData = body instanceof FormData ? body : null;
+      const lessonId = formData?.get('lesson_id')?.toString() ?? '';
+      const file = formData?.get('image');
+      const newImage: LessonImage = {
+        id: `img_${Math.random().toString(36).substr(2, 9)}`,
+        lesson_id: lessonId,
+        image_url: file instanceof File ? URL.createObjectURL(file) : '',
+        alt_text: formData?.get('alt_text')?.toString() ?? '',
+        uploaded_by_id: getStoredTokens().user?.id ?? 'usr_teacher',
+        created_at: new Date().toISOString(),
+      };
+      const nextModules = modules.map(module => ({
+        ...module,
+        lessons: module.lessons.map(lesson => (
+          lesson.id === lessonId ? { ...lesson, images: [...(lesson.images ?? []), newImage] } : lesson
+        )),
+      }));
+      MockDatabase.set('modules', nextModules);
+      return newImage;
+    }
+    const lessonId = endpoint.includes('?lesson_id=') ? new URLSearchParams(endpoint.split('?')[1]).get('lesson_id') : null;
+    return lessonId ? lessonImages.filter(image => image.lesson_id === lessonId) : lessonImages;
   }
 
   // Resource Endpoints

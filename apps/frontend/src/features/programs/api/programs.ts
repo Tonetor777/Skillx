@@ -9,6 +9,13 @@ export const usePrograms = () => {
   });
 };
 
+export const usePublicPrograms = () => {
+  return useQuery<Program[]>({
+    queryKey: ['programs', 'public'],
+    queryFn: () => apiClient.get('/programs/public'),
+  });
+};
+
 export const useProgram = (id: string | undefined) => {
   return useQuery<Program>({
     queryKey: ['programs', id],

@@ -58,7 +58,7 @@ AI Engineering
 ├── March 2027
 └── July 2027
 
-Students apply to Programs and are enrolled into Cohorts after approval.
+Students sign up for Programs and are enrolled into Cohorts after Super Admin approval and invitation acceptance.
 
 ---
 
@@ -171,9 +171,11 @@ Database
 - Dokploy all-in-one production deployment is available through `docker-compose.dokploy.yml`, with frontend, backend, migrations, Celery, PostgreSQL, Redis, and MinIO services.
 - Railway deployment configuration now builds the backend from the repository root, runs migrations before deploy, starts Gunicorn, and uses `/api/health/` as the health check.
 - Vite route pages are lazy-loaded to improve production bundle splitting, and frontend API debug logging has been removed.
-- Lesson delivery now uses a TipTap-powered native lesson editor for teacher-authored structured content, rendered inline for students while preserving existing plain-text lesson content.
-- Media uploads now support private MinIO/S3-compatible storage when S3 environment variables are configured, with signed URL responses for profile photos and program thumbnails.
-- Application signup no longer collects resume or payment proof uploads.
+- Lesson delivery now uses a TipTap-powered native lesson editor for teacher-authored structured content, uploaded inline images, and appended YouTube embeds, rendered inline for students while preserving existing plain-text lesson content.
+- Curriculum delivery now uses a reference-style two-pane layout with a left module/lesson navigator and a right lesson reading canvas in both Modules and embedded Program curriculum views.
+- Media uploads now support private MinIO/S3-compatible storage when S3 environment variables are configured, with signed URL responses for profile photos, program thumbnails, and lesson images.
+- Student signup no longer collects resume or payment proof uploads and now uses `/signup` with `/apply` redirected for compatibility.
+- Student program APIs are scoped so students only see the program attached to their enrolled cohort.
 - Vite frontend now has a Nexus-inspired monochrome academy UI layer with grid backgrounds, sharp bordered surfaces, reusable presentation components, and Amharic major titles.
 - Local Docker development allows Django requests addressed to `0.0.0.0:8000` through `DJANGO_ALLOWED_HOSTS`.
 - Development-only Swagger/OpenAPI documentation is available at `/api/docs/` and `/api/schema/`.
@@ -307,7 +309,7 @@ Module Content
 
 Applications
 
-✅ Public submission, upload validation, review, approve/reject, and invitation API integrated
+✅ Public signup submission, upload validation, Super Admin-only review, approve/reject, and invitation API integrated
 
 Assignments
 
@@ -524,8 +526,8 @@ Never skip documentation updates.
 
 The MVP is considered successful when:
 
-- Students can apply to programs.
-- Admins can approve applications.
+- Students can sign up for programs.
+- Super Admins can approve signup applications.
 - Invitations create accounts securely.
 - Teachers can manage module and lesson content.
 - Students can submit assignments.

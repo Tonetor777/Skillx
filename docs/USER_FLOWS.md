@@ -2,8 +2,8 @@
 
 ## Applicant to Student
 
-1. Applicant submits `/apply` with program, motivation, and contact details.
-2. Admin or Super Admin reviews the application in the dashboard.
+1. Applicant submits `/signup` with program, motivation, and contact details.
+2. Super Admin reviews the signup application in the dashboard.
 3. Approval creates an expiring invitation email for the selected cohort.
 4. Applicant accepts the invitation, sets a password, and becomes an active student in exactly one cohort.
 5. Rejected applications retain reviewer and review timestamp metadata.
@@ -20,8 +20,9 @@
 
 1. Admin or Super Admin creates programs and cohorts.
 2. Programs can be archived without deleting related cohorts or learning records.
-3. Cohorts expose validated status and current-week management.
-4. Admin or Super Admin assigns teachers as lead, assistant, or mentor.
+3. Students only see the program attached to their enrolled cohort.
+4. Cohorts expose validated status and current-week management.
+5. Admin or Super Admin assigns teachers as lead, assistant, or mentor.
 
 ## Learning Delivery
 
@@ -29,8 +30,9 @@
 2. Draft modules remain hidden from students.
 3. Publishing stamps publish date and publisher.
 4. Staff add ordered lessons/submodules beneath modules with a native rich editor for lesson content.
-5. Students read lesson content inline inside the dashboard.
-6. Resources are ordered supporting links attached to lessons and can be deleted by staff.
+5. Staff upload inline lesson images after a lesson has been saved.
+6. Students read lesson content inline with uploaded images and appended YouTube video embeds inside the dashboard.
+7. Resources are ordered supporting links attached to lessons and can be deleted by staff.
 
 ## Assignments and Grading
 

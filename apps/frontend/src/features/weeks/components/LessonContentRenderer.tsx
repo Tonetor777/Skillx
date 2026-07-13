@@ -2,13 +2,20 @@ import React from 'react';
 
 import {
   getSafeLinkHref,
+  getYouTubeVideoIdsFromContent,
   parseLessonContent,
+  type LessonImageAsset,
   type LessonContentMark,
   type LessonContentNode,
 } from '../utils/lessonContent';
 
 type LessonContentRendererProps = {
   content?: string | null;
+  images?: LessonImageAsset[];
+};
+
+const imageUrlByAssetId = (images: LessonImageAsset[]) => {
+  return new Map(images.map((image) => [image.id, image]));
 };
 
 const renderMarkedText = (text: string, marks: LessonContentMark[] | undefined, key: string): React.ReactNode => {
@@ -39,11 +46,11 @@ const renderMarkedText = (text: string, marks: LessonContentMark[] | undefined, 
   return <React.Fragment key={key}>{node}</React.Fragment>;
 };
 
-const renderChildren = (content: LessonContentNode[] | undefined, keyPrefix: string): React.ReactNode[] => {
-  return content?.map((node, index) => renderNode(node, `${keyPrefix}-${index}`)) ?? [];
+const renderChildren = (content: LessonContentNode[] | undefined, keyPrefix: string, images: Map<string, LessonImageAsset>): React.ReactNode[] => {
+  return content?.map((node, index) => renderNode(node, `${keyPrefix}-${index}`, images)) ?? [];
 };
 
-const renderNode = (node: LessonContentNode, key: string): React.ReactNode => {
+const renderNode = (node: LessonContentNode, key: string, images: Map<string, LessonImageAsset>): React.ReactNode => {
   if (node.type === 'text') {
     return renderMarkedText(node.text ?? '', node.marks, key);
   }
@@ -59,7 +66,7 @@ const renderNode = (node: LessonContentNode, key: string): React.ReactNode => {
       : level === 2
         ? 'mt-5 text-xl font-bold text-slate-950'
         : 'mt-4 text-lg font-bold text-slate-900';
-    const children = renderChildren(node.content, key);
+    const children = renderChildren(node.content, key, images);
 
     if (level === 1) return <h1 key={key} className={className}>{children}</h1>;
     if (level === 2) return <h2 key={key} className={className}>{children}</h2>;
@@ -67,26 +74,26 @@ const renderNode = (node: LessonContentNode, key: string): React.ReactNode => {
   }
 
   if (node.type === 'paragraph') {
-    const children = renderChildren(node.content, key);
+    const children = renderChildren(node.content, key, images);
     return <p key={key} className="leading-7 text-slate-700">{children.length > 0 ? children : '\u00a0'}</p>;
   }
 
   if (node.type === 'bulletList') {
-    return <ul key={key} className="list-disc space-y-2 pl-6 text-slate-700">{renderChildren(node.content, key)}</ul>;
+    return <ul key={key} className="list-disc space-y-2 pl-6 text-slate-700">{renderChildren(node.content, key, images)}</ul>;
   }
 
   if (node.type === 'orderedList') {
-    return <ol key={key} className="list-decimal space-y-2 pl-6 text-slate-700">{renderChildren(node.content, key)}</ol>;
+    return <ol key={key} className="list-decimal space-y-2 pl-6 text-slate-700">{renderChildren(node.content, key, images)}</ol>;
   }
 
   if (node.type === 'listItem') {
-    return <li key={key} className="pl-1 leading-7">{renderChildren(node.content, key)}</li>;
+    return <li key={key} className="pl-1 leading-7">{renderChildren(node.content, key, images)}</li>;
   }
 
   if (node.type === 'blockquote') {
     return (
       <blockquote key={key} className="border-l-4 border-slate-300 bg-slate-50 px-4 py-3 text-slate-700">
-        {renderChildren(node.content, key)}
+        {renderChildren(node.content, key, images)}
       </blockquote>
     );
   }
@@ -99,11 +106,46 @@ const renderNode = (node: LessonContentNode, key: string): React.ReactNode => {
     );
   }
 
-  return <React.Fragment key={key}>{renderChildren(node.content, key)}</React.Fragment>;
+  if (node.type === 'image') {
+    const assetId = typeof node.attrs?.asset_id === 'string' ? node.attrs.asset_id : '';
+    const image = images.get(assetId);
+    if (!image?.image_url) return null;
+    const alt = typeof node.attrs?.alt === 'string' ? node.attrs.alt : image.alt_text ?? '';
+    return (
+      <figure key={key} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <img src={image.image_url} alt={alt} className="h-auto max-h-[520px] w-full object-contain" loading="lazy" />
+        {alt && <figcaption className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">{alt}</figcaption>}
+      </figure>
+    );
+  }
+
+  return <React.Fragment key={key}>{renderChildren(node.content, key, images)}</React.Fragment>;
 };
 
-export function LessonContentRenderer({ content }: LessonContentRendererProps) {
+function YouTubeEmbeds({ videoIds }: { videoIds: string[] }) {
+  if (videoIds.length === 0) return null;
+
+  return (
+    <section className="space-y-4 pt-2">
+      {videoIds.map((videoId) => (
+        <div key={videoId} className="overflow-hidden rounded-lg border border-slate-200 bg-slate-950">
+          <iframe
+            title={`YouTube video ${videoId}`}
+            src={`https://www.youtube.com/embed/${videoId}`}
+            className="aspect-video w-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        </div>
+      ))}
+    </section>
+  );
+}
+
+export function LessonContentRenderer({ content, images = [] }: LessonContentRendererProps) {
   const parsed = parseLessonContent(content);
+  const videoIds = getYouTubeVideoIdsFromContent(content);
+  const imageMap = imageUrlByAssetId(images);
 
   if (parsed.kind === 'text') {
     const paragraphs = parsed.text
@@ -118,13 +160,15 @@ export function LessonContentRenderer({ content }: LessonContentRendererProps) {
         {paragraphs.map((paragraph, index) => (
           <p key={index} className="leading-7 text-slate-700">{paragraph}</p>
         ))}
+        <YouTubeEmbeds videoIds={videoIds} />
       </article>
     );
   }
 
   return (
     <article className="space-y-4">
-      {(parsed.document.content ?? []).map((node, index) => renderNode(node, `lesson-node-${index}`))}
+      {(parsed.document.content ?? []).map((node, index) => renderNode(node, `lesson-node-${index}`, imageMap))}
+      <YouTubeEmbeds videoIds={videoIds} />
     </article>
   );
 }

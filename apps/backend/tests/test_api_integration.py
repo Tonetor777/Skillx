@@ -51,6 +51,7 @@ def auth_client(user):
 
 @pytest.fixture
 def domain():
+    super_admin = create_user("superadmin@example.com", UserRole.SUPER_ADMIN)
     admin = create_user("admin@example.com", UserRole.ADMIN)
     teacher = create_user("teacher@example.com", UserRole.TEACHER)
     program = Program.objects.create(
@@ -88,6 +89,7 @@ def domain():
         created_by=teacher,
     )
     return {
+        "super_admin": super_admin,
         "admin": admin,
         "teacher": teacher,
         "program": program,
@@ -187,7 +189,7 @@ def test_program_thumbnail_upload_and_permissions(domain):
     assert forbidden_response.status_code == 403
 
 
-def test_application_approval_is_admin_only_and_creates_invitation(domain):
+def test_application_approval_is_super_admin_only_and_creates_invitation(domain):
     application = Application.objects.create(
         name="Ada Lovelace",
         email="ada@example.com",
@@ -200,14 +202,16 @@ def test_application_approval_is_admin_only_and_creates_invitation(domain):
 
     teacher_response = auth_client(domain["teacher"]).post(f"/api/applications/{application.id}/approve/")
     admin_response = auth_client(domain["admin"]).post(f"/api/applications/{application.id}/approve/")
+    super_admin_response = auth_client(domain["super_admin"]).post(f"/api/applications/{application.id}/approve/")
 
     application.refresh_from_db()
     assert teacher_response.status_code == 403
-    assert admin_response.status_code == 200
+    assert admin_response.status_code == 403
+    assert super_admin_response.status_code == 200
     assert application.status == ApplicationStatus.APPROVED
     assert Invitation.objects.get(email="ada@example.com").cohort == domain["cohort"]
     assert len(mail.outbox) == 1
-    assert admin_response.data["reviewed_by_name"]
+    assert super_admin_response.data["reviewed_by_name"]
 
 
 def test_student_only_sees_own_cohort_assignments(domain):

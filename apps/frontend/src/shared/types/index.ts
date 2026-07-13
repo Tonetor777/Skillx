@@ -21,6 +21,15 @@ export interface Resource {
   order?: number;
 }
 
+export interface LessonImage {
+  id: string;
+  lesson_id: string;
+  image_url: string;
+  alt_text: string;
+  uploaded_by_id: string;
+  created_at: string;
+}
+
 export interface Lesson {
   id?: string;
   module_id?: string;
@@ -33,6 +42,7 @@ export interface Lesson {
   recording?: string;
   order: number;
   resources: Resource[];
+  images?: LessonImage[];
 }
 
 export interface Module {

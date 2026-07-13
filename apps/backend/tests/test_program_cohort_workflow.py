@@ -117,3 +117,33 @@ def test_teacher_and_student_cohort_scoping_is_preserved():
     assert [item["id"] for item in teacher_response.data] == [str(teacher_cohort.id)]
     assert [item["id"] for item in student_response.data] == [str(student_cohort.id)]
     assert str(hidden_cohort.id) not in [item["id"] for item in teacher_response.data]
+
+
+def test_student_program_access_is_limited_to_enrolled_cohort_program():
+    enrolled_program = create_program("Enrolled Program")
+    other_program = create_program("Other Active Program")
+    cohort = create_cohort(enrolled_program, "Student Cohort")
+    student = create_user("student-program-scope@example.com", UserRole.STUDENT, cohort=cohort)
+    client = auth_client(student)
+
+    list_response = client.get("/api/programs/")
+    enrolled_detail_response = client.get(f"/api/programs/{enrolled_program.id}/")
+    other_detail_response = client.get(f"/api/programs/{other_program.id}/")
+
+    assert list_response.status_code == 200
+    assert [item["id"] for item in list_response.data] == [str(enrolled_program.id)]
+    assert enrolled_detail_response.status_code == 200
+    assert other_detail_response.status_code == 404
+
+
+def test_public_program_catalog_lists_only_active_signup_options():
+    active_program = create_program("Active Signup Program", ProgramStatus.ACTIVE)
+    archived_program = create_program("Archived Signup Program", ProgramStatus.ARCHIVED)
+    client = APIClient()
+
+    response = client.get("/api/programs/public/")
+
+    returned_ids = [item["id"] for item in response.data]
+    assert response.status_code == 200
+    assert str(active_program.id) in returned_ids
+    assert str(archived_program.id) not in returned_ids

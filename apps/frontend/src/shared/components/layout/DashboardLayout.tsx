@@ -51,7 +51,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       name: 'Applications',
       path: '/dashboard/applications',
       icon: FileText,
-      roles: ['super_admin', 'admin'], // Teachers cannot approve applications
+      roles: ['super_admin'],
     },
     {
       name: 'Assignments',

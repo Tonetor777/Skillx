@@ -1,9 +1,9 @@
 import { UserRole, Assignment, Submission } from '../types';
 
 export const can = {
-  // Teachers cannot approve applications. Only Admins and Super Admins can.
+  // Only Super Admins can approve or reject student signups.
   approveApplications: (role: UserRole): boolean => {
-    return role === 'super_admin' || role === 'admin';
+    return role === 'super_admin';
   },
 
   // Only Super Admins can manage platform settings. Admins cannot.

@@ -5,7 +5,8 @@ from rest_framework import serializers
 
 from accounts.choices import UserRole
 from cohorts.models import Cohort
-from learning.models import Assignment, Lesson, Module, ModuleStatus, Resource
+from core.upload_validation import validate_image_upload
+from learning.models import Assignment, Lesson, LessonImage, Module, ModuleStatus, Resource
 
 
 def validate_teacher_scope(user, cohort):
@@ -34,6 +35,48 @@ class ResourceSerializer(serializers.ModelSerializer):
         return data
 
 
+class LessonImageSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
+    lesson_id = serializers.PrimaryKeyRelatedField(source="lesson", queryset=Lesson.objects.select_related("module", "module__cohort"), write_only=True)
+    image = serializers.ImageField(write_only=True)
+    image_url = serializers.SerializerMethodField()
+    uploaded_by_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LessonImage
+        fields = ["id", "lesson_id", "image", "image_url", "alt_text", "uploaded_by_id", "created_at"]
+        read_only_fields = ["id", "image_url", "uploaded_by_id", "created_at"]
+
+    def get_id(self, obj) -> str:
+        return str(obj.id)
+
+    def get_image_url(self, obj) -> str:
+        if not obj.image:
+            return ""
+        request = self.context.get("request")
+        url = obj.image.url
+        return request.build_absolute_uri(url) if request else url
+
+    def get_uploaded_by_id(self, obj) -> str:
+        return str(obj.uploaded_by_id)
+
+    def validate_lesson_id(self, lesson):
+        validate_teacher_scope(self.context["request"].user, lesson.module.cohort)
+        return lesson
+
+    def validate_image(self, value):
+        return validate_image_upload(value)
+
+    def create(self, validated_data):
+        validated_data["uploaded_by"] = self.context["request"].user
+        return super().create(validated_data)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["lesson_id"] = str(instance.lesson_id)
+        return data
+
+
 class LessonSerializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
     module_id = serializers.PrimaryKeyRelatedField(source="module", queryset=Module.objects.all(), write_only=True)
@@ -41,6 +84,7 @@ class LessonSerializer(serializers.ModelSerializer):
     cohort_id = serializers.SerializerMethodField()
     cohort_name = serializers.CharField(source="module.cohort.name", read_only=True)
     resources = ResourceSerializer(many=True, read_only=True)
+    images = LessonImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Lesson
@@ -56,8 +100,9 @@ class LessonSerializer(serializers.ModelSerializer):
             "recording",
             "order",
             "resources",
+            "images",
         ]
-        read_only_fields = ["id", "module_title", "cohort_id", "cohort_name", "resources"]
+        read_only_fields = ["id", "module_title", "cohort_id", "cohort_name", "resources", "images"]
 
     def get_id(self, obj) -> str:
         return str(obj.id)
