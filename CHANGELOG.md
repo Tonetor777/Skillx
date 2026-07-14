@@ -10,6 +10,8 @@ This project follows a modified version of Keep a Changelog.
 
 ## Added
 
+- Per-user in-app announcement notifications with unread counts, dashboard badges, and mark-read actions.
+- Assignment edit controls and delete-or-lock management: staff can delete empty assignments, while submitted assignments are preserved and locked against further student submissions.
 - Public `/signup` route for student signup requests, with `/apply` redirected for compatibility.
 - Public active-program catalog endpoint for unauthenticated signup program selection.
 - Lesson image upload API and inline image rendering for TipTap lesson content.
@@ -46,6 +48,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Changed
 
+- Student overview assignment cards now show status-aware actions such as Submit, Resubmit, View Grade, View Submission, or Closed.
 - Redesigned curriculum management into a reference-style two-pane layout with a left module/lesson navigator and right lesson reading canvas for Modules and embedded Program curriculum views.
 - Graded submissions now stay locked for student edits while allowing authorized staff to update score and feedback.
 - Student signup review and approval is now Super Admin-only, and approval sends an invitation email for password setup instead of creating a login-ready account immediately.

@@ -167,6 +167,8 @@ Database
 
 ## Recent Foundation Fixes
 
+- Announcement notifications now track per-user unread state, expose unread-count and mark-read APIs, and show unread badges in the dashboard.
+- Assignment management now supports staff edits plus delete-or-lock behavior: empty assignments can be deleted, while assignments with submissions are preserved and locked against further student submissions.
 - Production-readiness work is now underway: Django settings enforce strong production secrets, expose env-driven HTTPS/CORS/CSRF settings, add DRF throttling, and support a Resend email backend when configured.
 - Dokploy all-in-one production deployment is available through `docker-compose.dokploy.yml`, with frontend, backend, migrations, Celery, PostgreSQL, Redis, and MinIO services.
 - Railway deployment configuration now builds the backend from the repository root, runs migrations before deploy, starts Gunicorn, and uses `/api/health/` as the health check.
@@ -314,11 +316,12 @@ Applications
 
 Assignments
 
-✅ Assignment and submission APIs integrated
+✅ Assignment edit/delete/lock workflow integrated with submission-history protection.
 
 Announcements
 
 ✅ Announcement API integrated
+✅ Per-user unread announcement notifications integrated.
 
 Dashboard
 
@@ -346,8 +349,10 @@ Leaderboard and Summaries
 - Public applications without document uploads and expiring invitations
 - Teacher assignment workflow with lead, assistant, and mentor roles
 - Program detail live curriculum management, nested week/module/lesson panels, module CRUD/publishing, lesson management, and ordered resource management
+- Assignment staff edit controls and delete-or-lock protection for submitted assignments
 - Native rich lesson editor with plain-text fallback rendering for existing lessons
 - Grade notifications, scheduled announcement visibility, leaderboard visibility, and role-specific summaries
+- Per-user announcement unread counts and mark-read dashboard controls
 - User flow documentation
 - Local development seed command
 - Foundation documentation

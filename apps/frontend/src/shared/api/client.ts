@@ -243,24 +243,65 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
   if (endpoint.includes('/assignments')) {
     const asgs = MockDatabase.get<Assignment>('assignments');
     const idMatch = endpoint.match(/\/assignments\/([^\/]+)/);
+    const modules = MockDatabase.get<Module>('modules');
+    const resolveLessonScope = (lessonId?: string) => {
+      if (!lessonId) return null;
+      for (const module of modules) {
+        const lesson = module.lessons.find(item => item.id === lessonId);
+        if (lesson) return { module, lesson };
+      }
+      return null;
+    };
     if (idMatch) {
-      const found = asgs.find(a => a.id === idMatch[1]);
-      if (found) return found;
+      const assignmentId = idMatch[1];
+      const assignmentIndex = asgs.findIndex(a => a.id === assignmentId);
+      const found = asgs[assignmentIndex];
+      if (found) {
+        if (method === 'PATCH') {
+          const scope = body.lesson_id ? resolveLessonScope(body.lesson_id) : null;
+          asgs[assignmentIndex] = {
+            ...found,
+            ...body,
+            module_id: scope?.module.id ?? found.module_id,
+            module_title: scope?.module.title ?? found.module_title,
+            lesson_id: scope?.lesson.id ?? found.lesson_id,
+            lesson_title: scope?.lesson.title ?? found.lesson_title,
+          };
+          MockDatabase.set('assignments', asgs);
+          return asgs[assignmentIndex];
+        }
+        if (method === 'DELETE') {
+          const subs = MockDatabase.get<Submission>('submissions');
+          const hasSubmissions = subs.some(sub => sub.assignment_id === assignmentId);
+          if (hasSubmissions) {
+            asgs[assignmentIndex] = { ...found, is_locked: true };
+            MockDatabase.set('assignments', asgs);
+            return asgs[assignmentIndex];
+          }
+          MockDatabase.set('assignments', asgs.filter(a => a.id !== assignmentId));
+          return null;
+        }
+        return found;
+      }
       throw new ApiError(404, 'Assignment not found');
     }
     if (method === 'POST') {
       const cohorts = MockDatabase.get<Cohort>('cohorts');
-      const coh = cohorts.find(c => c.id === body.cohort_id) || cohorts[0];
+      const scope = resolveLessonScope(body.lesson_id);
+      const cohortId = scope?.module.cohort_id || body.cohort_id;
+      const coh = cohorts.find(c => c.id === cohortId) || cohorts[0];
       const newAsg: Assignment = {
         id: `asg_${Math.random().toString(36).substr(2, 9)}`,
         title: body.title,
         description: body.description,
         max_points: body.max_points,
         due_date: body.due_date,
-        cohort_id: body.cohort_id || coh.id,
+        cohort_id: cohortId || coh.id,
         cohort_name: coh.name,
-        module_id: body.module_id,
-        lesson_id: body.lesson_id,
+        module_id: scope?.module.id || body.module_id,
+        module_title: scope?.module.title,
+        lesson_id: scope?.lesson.id || body.lesson_id,
+        lesson_title: scope?.lesson.title,
         resource_id: body.resource_id,
         is_locked: false
       };
@@ -501,6 +542,7 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
       const authUser = getStoredTokens().user;
       const asg = asgs.find(a => a.id === body.assignment_id);
       if (!asg) throw new ApiError(404, 'Assignment not found');
+      if (asg.is_locked) throw new ApiError(400, 'This assignment is locked and no longer accepts submissions.');
       
       const isLate = new Date() > new Date(asg.due_date);
       const newSub: Submission = {
@@ -610,8 +652,32 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
   // Announcement Endpoints
   if (endpoint.includes('/announcements')) {
     const anns = MockDatabase.get<Announcement>('announcements');
+    const authUser = getStoredTokens().user;
+    const readStorageKey = `skilix_announcement_reads_${authUser?.id || 'anonymous'}`;
+    const getReadIds = () => new Set<string>(JSON.parse(localStorage.getItem(readStorageKey) || '[]') as string[]);
+    const setReadIds = (readIds: Set<string>) => localStorage.setItem(readStorageKey, JSON.stringify(Array.from(readIds)));
+    const withReadState = (announcements: Announcement[]) => {
+      const readIds = getReadIds();
+      return announcements.map(ann => ({ ...ann, is_read: readIds.has(ann.id) }));
+    };
+
+    if (endpoint.includes('/unread-count')) {
+      const readIds = getReadIds();
+      return { count: anns.filter(ann => !readIds.has(ann.id)).length };
+    }
+    if (endpoint.includes('/mark-all-read') && method === 'POST') {
+      setReadIds(new Set(anns.map(ann => ann.id)));
+      return { marked_read: anns.length, count: 0 };
+    }
+    const markReadMatch = endpoint.match(/\/announcements\/([^\/]+)\/mark-read/);
+    if (markReadMatch && method === 'POST') {
+      const readIds = getReadIds();
+      readIds.add(markReadMatch[1]);
+      setReadIds(readIds);
+      return { is_read: true };
+    }
+
     if (method === 'POST') {
-      const authUser = getStoredTokens().user;
       const newAnn: Announcement = {
         id: `ann_${Math.random().toString(36).substr(2, 9)}`,
         title: body.title,
@@ -622,13 +688,14 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
         author_id: authUser?.id || 'usr_teacher',
         author_name: `${authUser?.first_name || 'David'} ${authUser?.last_name || 'Malan'}`,
         author_role: authUser?.role || 'teacher',
+        is_read: false,
         created_at: new Date().toISOString()
       };
       anns.push(newAnn);
       MockDatabase.set('announcements', anns);
       return newAnn;
     }
-    return anns;
+    return withReadState(anns);
   }
 
   // System Settings Endpoint

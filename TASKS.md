@@ -126,7 +126,7 @@ Build the first production-ready version of Skilix.
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| Assignment CRUD | ✅ | Assignment model/API is linked to lessons and optional resources. |
+| Assignment CRUD | ✅ Completed | Assignment model/API is linked to lessons and optional resources, with staff edit and delete-or-lock controls. |
 | Submission | ✅ | Assignment-based submission API creates or updates the current student's submission. |
 | Late Detection | ✅ | Submissions are flagged late when submitted after assignment due date. |
 | Lock After Grading | ✅ | Grading locks student edits after score/feedback are recorded, while staff can correct grades. |
@@ -160,6 +160,7 @@ Build the first production-ready version of Skilix.
 | Program Announcement | ✅ | Program-scoped announcements are exposed through the API. |
 | Cohort Announcement | ✅ | Cohort-scoped announcements are exposed through the API. |
 | Schedule Announcement | ✅ | Future scheduled announcements remain hidden until due. |
+| Announcement Notifications | ✅ Completed | Per-user unread announcement counts, badges, and mark-read actions are integrated. |
 
 ---
 

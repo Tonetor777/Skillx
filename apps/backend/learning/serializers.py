@@ -253,6 +253,20 @@ class AssignmentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"resource_id": "Resource must belong to the selected lesson."})
         return attrs
 
+    def create(self, validated_data):
+        lesson = validated_data["lesson"]
+        validated_data["module"] = lesson.module
+        validated_data["cohort"] = lesson.module.cohort
+        validated_data["created_by"] = self.context["request"].user
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        lesson = validated_data.get("lesson")
+        if lesson:
+            validated_data["module"] = lesson.module
+            validated_data["cohort"] = lesson.module.cohort
+        return super().update(instance, validated_data)
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data["lesson_id"] = str(instance.lesson_id) if instance.lesson_id else None

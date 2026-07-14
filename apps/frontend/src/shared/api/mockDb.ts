@@ -322,6 +322,7 @@ const initialAnnouncements: Announcement[] = [
     author_id: 'usr_superadmin',
     author_name: 'Sarah Connor',
     author_role: 'super_admin',
+    is_read: false,
     created_at: '2026-06-30T12:00:00Z'
   },
   {
@@ -334,6 +335,7 @@ const initialAnnouncements: Announcement[] = [
     author_id: 'usr_teacher',
     author_name: 'David Malan',
     author_role: 'teacher',
+    is_read: false,
     created_at: '2026-07-01T15:45:00Z'
   }
 ];

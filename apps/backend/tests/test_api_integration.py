@@ -13,7 +13,7 @@ from accounts.choices import UserRole, UserStatus
 from applications.models import Application, ApplicationStatus, Invitation
 from announcements.models import Announcement
 from cohorts.models import Cohort, CohortStatus, TeacherAssignment, TeacherAssignmentRole
-from learning.models import Assignment, Lesson, Module, ModuleStatus
+from learning.models import Assignment, Lesson, Module, ModuleStatus, Resource
 from programs.models import Program, ProgramStatus
 from submissions.models import Submission
 
@@ -240,6 +240,141 @@ def test_student_only_sees_own_cohort_assignments(domain):
 
     assert response.status_code == 200
     assert [item["title"] for item in response.data] == ["First Build"]
+
+
+def test_teacher_can_create_and_edit_assignment_from_lesson_scope(domain):
+    client = auth_client(domain["teacher"])
+    module = Module.objects.create(
+        cohort=domain["cohort"],
+        module_number=2,
+        title="Advanced Foundations",
+        status=ModuleStatus.PUBLISHED,
+        created_by=domain["teacher"],
+    )
+    lesson = Lesson.objects.create(module=module, title="Scoped Lesson", order=1)
+
+    create_response = client.post(
+        "/api/assignments/",
+        {
+            "title": "Scoped Build",
+            "description": "Build against the selected lesson.",
+            "max_points": 50,
+            "due_date": (timezone.now() + timedelta(days=5)).isoformat(),
+            "lesson_id": str(lesson.id),
+        },
+        format="json",
+    )
+    assignment = Assignment.objects.get(title="Scoped Build")
+    update_response = client.patch(
+        f"/api/assignments/{assignment.id}/",
+        {"title": "Updated Scoped Build", "max_points": 75},
+        format="json",
+    )
+
+    assignment.refresh_from_db()
+    assert create_response.status_code == 201
+    assert create_response.data["cohort_id"] == str(domain["cohort"].id)
+    assert create_response.data["module_id"] == str(module.id)
+    assert assignment.created_by == domain["teacher"]
+    assert update_response.status_code == 200
+    assert assignment.title == "Updated Scoped Build"
+    assert assignment.max_points == 75
+
+
+def test_assignment_resource_must_match_selected_lesson(domain):
+    module = Module.objects.create(
+        cohort=domain["cohort"],
+        module_number=2,
+        title="Resource Module",
+        status=ModuleStatus.PUBLISHED,
+        created_by=domain["teacher"],
+    )
+    lesson = Lesson.objects.create(module=module, title="Resource Lesson", order=1)
+    resource = Resource.objects.create(lesson=lesson, title="Reference", url="https://example.com/reference", order=1)
+
+    response = auth_client(domain["teacher"]).patch(
+        f"/api/assignments/{domain['assignment'].id}/",
+        {"resource_id": str(resource.id)},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "resource_id" in response.data
+
+
+def test_assignment_delete_removes_empty_assignment(domain):
+    assignment = Assignment.objects.create(
+        cohort=domain["cohort"],
+        module=domain["assignment"].module,
+        lesson=domain["assignment"].lesson,
+        title="Disposable",
+        description="No submissions yet.",
+        max_points=100,
+        due_date=timezone.now() + timedelta(days=1),
+        created_by=domain["teacher"],
+    )
+
+    response = auth_client(domain["teacher"]).delete(f"/api/assignments/{assignment.id}/")
+
+    assert response.status_code == 204
+    assert not Assignment.objects.filter(id=assignment.id).exists()
+
+
+def test_assignment_delete_locks_when_submissions_exist(domain):
+    submission = Submission.objects.create(
+        assignment=domain["assignment"],
+        student=domain["student"],
+        primary_link="https://example.com/submission",
+    )
+
+    response = auth_client(domain["teacher"]).delete(f"/api/assignments/{domain['assignment'].id}/")
+
+    domain["assignment"].refresh_from_db()
+    assert response.status_code == 200
+    assert response.data["is_locked"] is True
+    assert domain["assignment"].is_locked is True
+    assert Submission.objects.filter(id=submission.id).exists()
+
+
+def test_assignment_management_permissions_respect_teacher_scope(domain):
+    other_teacher = create_user("other-teacher@example.com", UserRole.TEACHER)
+    student_client = auth_client(domain["student"])
+    other_teacher_client = auth_client(other_teacher)
+
+    student_update = student_client.patch(f"/api/assignments/{domain['assignment'].id}/", {"title": "Blocked"}, format="json")
+    student_delete = student_client.delete(f"/api/assignments/{domain['assignment'].id}/")
+    teacher_update = other_teacher_client.patch(f"/api/assignments/{domain['assignment'].id}/", {"title": "Blocked"}, format="json")
+    teacher_delete = other_teacher_client.delete(f"/api/assignments/{domain['assignment'].id}/")
+
+    assert student_update.status_code == 403
+    assert student_delete.status_code == 403
+    assert teacher_update.status_code == 404
+    assert teacher_delete.status_code == 404
+
+
+def test_locked_assignment_rejects_student_submissions(domain):
+    domain["assignment"].is_locked = True
+    domain["assignment"].save(update_fields=["is_locked"])
+
+    new_submission_response = auth_client(domain["student"]).post(
+        "/api/submissions/",
+        {"assignment_id": str(domain["assignment"].id), "content": "https://example.com/submission"},
+        format="json",
+    )
+    Submission.objects.create(
+        assignment=domain["assignment"],
+        student=domain["student"],
+        primary_link="https://example.com/original",
+    )
+    resubmit_response = auth_client(domain["student"]).post(
+        "/api/submissions/",
+        {"assignment_id": str(domain["assignment"].id), "content": "https://example.com/resubmission"},
+        format="json",
+    )
+
+    assert new_submission_response.status_code == 400
+    assert resubmit_response.status_code == 400
+    assert Submission.objects.get().primary_link == "https://example.com/original"
 
 
 def test_submission_create_and_grade_permissions(domain):

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/authentication/context/AuthContext';
+import { useAnnouncementUnreadCount } from '../../../features/announcements/api/announcements';
 import { can } from '../../permissions/can';
 import { 
   LayoutDashboard, 
@@ -26,6 +27,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data: announcementUnreadCount } = useAnnouncementUnreadCount(!!user);
 
   if (!user) return null;
 
@@ -93,6 +95,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   ];
 
   const visibleMenuItems = menuItems.filter(item => item.roles.includes(user.role));
+  const unreadAnnouncements = announcementUnreadCount?.count ?? 0;
 
   const handleLogout = async () => {
     await logout();
@@ -159,7 +162,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 id={`sidebar-item-${item.name.toLowerCase()}`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-[#141414]' : 'text-[#9a9a94]'}`} />
-                {item.name}
+                <span className="flex-1">{item.name}</span>
+                {item.name === 'Announcements' && unreadAnnouncements > 0 && (
+                  <span className="min-w-5 rounded-full bg-red-600 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white">
+                    {unreadAnnouncements > 99 ? '99+' : unreadAnnouncements}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -227,7 +235,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     }`}
                   >
                     <Icon className="w-4 h-4" />
-                    {item.name}
+                    <span className="flex-1">{item.name}</span>
+                    {item.name === 'Announcements' && unreadAnnouncements > 0 && (
+                      <span className="min-w-5 rounded-full bg-red-600 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white">
+                        {unreadAnnouncements > 99 ? '99+' : unreadAnnouncements}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

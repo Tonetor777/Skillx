@@ -18,6 +18,7 @@ Initial entities:
 - `AttendanceSession`: one attendance roll per cohort date.
 - `AttendanceRecord`: one student attendance status per attendance session.
 - `Announcement`: program or cohort scoped message.
+- `AnnouncementRead`: per-user read receipt for an announcement.
 - `PlatformSettings`: singleton platform branding/theme settings.
 
 Students belong to exactly one active cohort and can only access the program attached to that cohort. Teachers can be assigned to multiple cohorts.

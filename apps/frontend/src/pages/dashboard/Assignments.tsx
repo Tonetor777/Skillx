@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAssignments, useCreateAssignment } from '../../features/assignments/api/assignments';
+import { useAssignments, useCreateAssignment, useDeleteAssignment, useUpdateAssignment } from '../../features/assignments/api/assignments';
 import { useSubmissions, useCreateSubmission, useGradeSubmission } from '../../features/submissions/api/submissions';
 import { useModules } from '../../features/weeks/api/weeks';
 import { useAuth } from '../../features/authentication/context/AuthContext';
 import { can } from '../../shared/permissions/can';
+import type { Assignment } from '../../shared/types';
 import { 
   ClipboardList, 
   Plus, 
@@ -14,15 +15,14 @@ import {
   Send, 
   Award, 
   ArrowLeft, 
-  User, 
   CheckCircle2, 
   AlertCircle, 
   Loader2, 
   Lock,
-  LockKeyhole,
-  CheckCircle,
   FileCode,
-  Calendar
+  Edit3,
+  ShieldCheck,
+  Trash2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -53,6 +53,13 @@ const gradingSchema = z.object({
 
 type GradingFormValues = z.infer<typeof gradingSchema>;
 
+const toDateTimeLocalValue = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+};
+
 export default function Assignments() {
   const { user } = useAuth();
   
@@ -65,14 +72,17 @@ export default function Assignments() {
   
   // Mutations
   const createAssignmentMutation = useCreateAssignment();
+  const updateAssignmentMutation = useUpdateAssignment();
+  const deleteAssignmentMutation = useDeleteAssignment();
   const submitAssignmentMutation = useCreateSubmission();
   const gradeSubmissionMutation = useGradeSubmission();
 
   // Selection & UI toggles
   const [selectedAsgId, setSelectedAsgId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [gradingSubmissionId, setGradingSubmissionId] = useState<string | null>(null);
-  const [showToast, setShowToast] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
 
   // Forms
   const createAsgForm = useForm<AssignmentFormValues>({
@@ -104,21 +114,67 @@ export default function Assignments() {
   const instructorSubmissions = submissions?.filter(s => s.assignment_id === selectedAsgId) || [];
   const selectedModuleId = createAsgForm.watch('module_id');
   const selectedModule = modules?.find(module => module.id === selectedModuleId);
+  const isAssignmentFormOpen = isCreating || !!editingAssignment;
 
-  const handleCreateAssignment = async (data: AssignmentFormValues) => {
+  const resetAssignmentForm = () => {
+    setIsCreating(false);
+    setEditingAssignment(null);
+    createAsgForm.reset({ title: '', description: '', max_points: 100, due_date: '', module_id: '', lesson_id: '' });
+  };
+
+  const openCreateAssignment = () => {
+    setEditingAssignment(null);
+    createAsgForm.reset({ title: '', description: '', max_points: 100, due_date: '', module_id: '', lesson_id: '' });
+    setIsCreating(true);
+  };
+
+  const openEditAssignment = (assignment: Assignment) => {
+    setIsCreating(false);
+    setEditingAssignment(assignment);
+    createAsgForm.reset({
+      title: assignment.title,
+      description: assignment.description,
+      max_points: assignment.max_points,
+      due_date: toDateTimeLocalValue(assignment.due_date),
+      module_id: assignment.module_id ?? '',
+      lesson_id: assignment.lesson_id ?? '',
+    });
+  };
+
+  const handleAssignmentSubmit = async (data: AssignmentFormValues) => {
     try {
-      await createAssignmentMutation.mutateAsync({
+      const payload = {
         title: data.title,
         description: data.description,
         max_points: data.max_points,
         due_date: data.due_date,
         lesson_id: data.lesson_id,
-      });
-      setIsCreating(false);
-      createAsgForm.reset();
-      triggerToast('Assignment task published successfully!');
-    } catch {
-      return;
+      };
+      if (editingAssignment) {
+        await updateAssignmentMutation.mutateAsync({ id: editingAssignment.id, data: payload });
+        triggerToast('Assignment task updated successfully!');
+      } else {
+        await createAssignmentMutation.mutateAsync(payload);
+        triggerToast('Assignment task published successfully!');
+      }
+      resetAssignmentForm();
+    } catch (err) {
+      triggerToast(err instanceof Error ? err.message : 'Assignment could not be saved.', 'error');
+    }
+  };
+
+  const handleDeleteOrLockAssignment = async (assignment: Assignment) => {
+    const submissionCount = submissions?.filter(s => s.assignment_id === assignment.id).length ?? 0;
+    try {
+      const result = await deleteAssignmentMutation.mutateAsync(assignment.id);
+      if (result?.is_locked || submissionCount > 0) {
+        triggerToast('Assignment locked because submissions already exist.');
+      } else {
+        if (selectedAsgId === assignment.id) setSelectedAsgId(null);
+        triggerToast('Assignment deleted successfully.');
+      }
+    } catch (err) {
+      triggerToast(err instanceof Error ? err.message : 'Assignment action failed.', 'error');
     }
   };
 
@@ -131,8 +187,8 @@ export default function Assignments() {
       });
       submitForm.reset();
       triggerToast('Homework submitted successfully! Pending review.');
-    } catch {
-      return;
+    } catch (err) {
+      triggerToast(err instanceof Error ? err.message : 'Submission could not be saved.', 'error');
     }
   };
 
@@ -147,15 +203,137 @@ export default function Assignments() {
       setGradingSubmissionId(null);
       gradeForm.reset();
       triggerToast('Submission evaluation saved. Student edits remain locked.');
-    } catch {
-      return;
+    } catch (err) {
+      triggerToast(err instanceof Error ? err.message : 'Grade could not be saved.', 'error');
     }
   };
 
-  const triggerToast = (msg: string) => {
-    setShowToast(msg);
+  const triggerToast = (message: string, tone: 'success' | 'error' = 'success') => {
+    setShowToast({ message, tone });
     setTimeout(() => setShowToast(null), 3000);
   };
+
+  const assignmentFormOverlay = isAssignmentFormOpen ? (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white rounded-xl border border-gray-100 p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto"
+      >
+        <h3 className="font-sans font-bold text-lg text-gray-900 mb-1">
+          {editingAssignment ? 'Edit Course Assignment' : 'Create Course Assignment'}
+        </h3>
+        <p className="text-xs text-gray-500 mb-5 font-sans">
+          {editingAssignment ? 'Correct assignment details while preserving submission history.' : 'Publish a syllabus checkpoints homework task for a specific cohort.'}
+        </p>
+
+        <form onSubmit={createAsgForm.handleSubmit(handleAssignmentSubmit)} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-700">Assignment Title</label>
+            <input
+              type="text"
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+              placeholder="e.g. Building and deploying a full-stack React app"
+              {...createAsgForm.register('title')}
+            />
+            {createAsgForm.formState.errors.title && (
+              <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.title.message}</span>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700">Detailed Description & Specifications</label>
+            <textarea
+              rows={4}
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+              placeholder="Define the task requirements, guidelines, deliverables, and score distribution."
+              {...createAsgForm.register('description')}
+            />
+            {createAsgForm.formState.errors.description && (
+              <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.description.message}</span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700">Module</label>
+              <select
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                {...createAsgForm.register('module_id', {
+                  onChange: () => createAsgForm.setValue('lesson_id', ''),
+                })}
+              >
+                <option value="">-- Choose Module --</option>
+                {modules?.map(module => (
+                  <option key={module.id} value={module.id}>Module {module.module_number}: {module.title}</option>
+                ))}
+              </select>
+              {createAsgForm.formState.errors.module_id && (
+                <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.module_id.message}</span>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700">Lesson</label>
+              <select
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                {...createAsgForm.register('lesson_id')}
+                disabled={!selectedModule}
+              >
+                <option value="">-- Choose Lesson --</option>
+                {selectedModule?.lessons.map(lesson => (
+                  <option key={lesson.id} value={lesson.id}>Lesson {lesson.order}: {lesson.title}</option>
+                ))}
+              </select>
+              {createAsgForm.formState.errors.lesson_id && (
+                <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.lesson_id.message}</span>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700">Max Points Limit</label>
+            <input
+              type="number"
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+              {...createAsgForm.register('max_points', { valueAsNumber: true })}
+            />
+            {createAsgForm.formState.errors.max_points && (
+              <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.max_points.message}</span>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700">Due Date & Time Cutoff</label>
+            <input
+              type="datetime-local"
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+              {...createAsgForm.register('due_date')}
+            />
+            {createAsgForm.formState.errors.due_date && (
+              <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.due_date.message}</span>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-5">
+            <button
+              type="button"
+              onClick={resetAssignmentForm}
+              className="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={createAsgForm.formState.isSubmitting || createAssignmentMutation.isPending || updateAssignmentMutation.isPending}
+              className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg text-sm hover:bg-indigo-500"
+            >
+              {editingAssignment ? 'Save Changes' : 'Publish Task'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  ) : null;
 
   // 1. Loading State
   if (assignmentsLoading) {
@@ -187,14 +365,19 @@ export default function Assignments() {
   // DETAILED VIEW SUB-PAGE
   if (selectedAsg) {
     const isOverdue = new Date() > new Date(selectedAsg.due_date);
+    const selectedSubmissionCount = submissions?.filter(s => s.assignment_id === selectedAsg.id).length ?? 0;
+    const isDeletingOrLocking = deleteAssignmentMutation.isPending;
     return (
       <div className="space-y-6" id="assignment-detail-subview">
         {showToast && (
-          <div className="fixed top-20 right-6 z-50 bg-emerald-600 text-white rounded-lg p-4 shadow-xl flex items-center gap-3.5 border border-emerald-500">
+          <div className={`fixed top-20 right-6 z-50 text-white rounded-lg p-4 shadow-xl flex items-center gap-3.5 border ${
+            showToast.tone === 'error' ? 'bg-red-600 border-red-500' : 'bg-emerald-600 border-emerald-500'
+          }`}>
             <CheckCircle2 className="w-5 h-5 text-white" />
-            <span className="text-sm font-semibold">{showToast}</span>
+            <span className="text-sm font-semibold">{showToast.message}</span>
           </div>
         )}
+        {assignmentFormOverlay}
 
         <button 
           onClick={() => setSelectedAsgId(null)}
@@ -218,6 +401,33 @@ export default function Assignments() {
               <Clock className="w-4 h-4 text-indigo-600 shrink-0" />
               Due: {new Date(selectedAsg.due_date).toLocaleString()}
             </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 border-t border-gray-50 pt-3">
+            {selectedAsg.is_locked && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                <Lock className="h-3.5 w-3.5" /> Locked
+              </span>
+            )}
+            {can.manageAssignments(user.role) && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => openEditAssignment(selectedAsg)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  <Edit3 className="h-3.5 w-3.5" /> Edit
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingOrLocking || selectedAsg.is_locked}
+                  onClick={() => handleDeleteOrLockAssignment(selectedAsg)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {selectedSubmissionCount > 0 ? <ShieldCheck className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  {selectedSubmissionCount > 0 ? 'Lock' : 'Delete'}
+                </button>
+              </>
+            )}
           </div>
           <p className="text-sm text-gray-600 leading-relaxed font-sans border-t border-gray-50 pt-3">{selectedAsg.description}</p>
           <div className="text-xs font-bold text-gray-400">
@@ -282,6 +492,14 @@ export default function Assignments() {
                         </span>
                       </div>
                     )}
+                  </div>
+                </div>
+              ) : selectedAsg.is_locked ? (
+                <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
+                  <h3 className="font-bold text-base text-gray-900 border-b border-gray-100 pb-3">Submission Closed</h3>
+                  <div className="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg p-4 text-sm flex items-center gap-2">
+                    <Lock className="w-4 h-4 shrink-0 text-slate-500" />
+                    <span>This assignment is locked and no longer accepts submissions.</span>
                   </div>
                 </div>
               ) : (
@@ -488,9 +706,11 @@ export default function Assignments() {
   return (
     <div className="space-y-8" id="assignments-list-view">
       {showToast && (
-        <div className="fixed top-20 right-6 z-50 bg-emerald-600 text-white rounded-lg p-4 shadow-xl flex items-center gap-3.5 border border-emerald-500">
+        <div className={`fixed top-20 right-6 z-50 text-white rounded-lg p-4 shadow-xl flex items-center gap-3.5 border ${
+          showToast.tone === 'error' ? 'bg-red-600 border-red-500' : 'bg-emerald-600 border-emerald-500'
+        }`}>
           <CheckCircle2 className="w-5 h-5 text-white" />
-          <span className="text-sm font-semibold">{showToast}</span>
+          <span className="text-sm font-semibold">{showToast.message}</span>
         </div>
       )}
 
@@ -506,7 +726,7 @@ export default function Assignments() {
         </div>
         {can.manageAssignments(user.role) && (
           <button
-            onClick={() => setIsCreating(true)}
+            onClick={openCreateAssignment}
             className="skx-primary-btn"
             id="create-assignment-btn"
           >
@@ -516,124 +736,7 @@ export default function Assignments() {
         )}
       </div>
 
-      {/* Create Assignment Form Overlay */}
-      {isCreating && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl border border-gray-100 p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto"
-          >
-            <h3 className="font-sans font-bold text-lg text-gray-900 mb-1">Create Course Assignment</h3>
-            <p className="text-xs text-gray-500 mb-5 font-sans">Publish a syllabus checkpoints homework task for a specific cohort.</p>
-
-            <form onSubmit={createAsgForm.handleSubmit(handleCreateAssignment)} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700">Assignment Title</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                  placeholder="e.g. Building and deploying a full-stack React app"
-                  {...createAsgForm.register('title')}
-                />
-                {createAsgForm.formState.errors.title && (
-                  <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.title.message}</span>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700">Detailed Description & Specifications</label>
-                <textarea
-                  rows={4}
-                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                  placeholder="Define the task requirements, guidelines, deliverables, and score distribution."
-                  {...createAsgForm.register('description')}
-                />
-                {createAsgForm.formState.errors.description && (
-                  <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.description.message}</span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700">Module</label>
-                  <select
-                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                    {...createAsgForm.register('module_id', {
-                      onChange: () => createAsgForm.setValue('lesson_id', ''),
-                    })}
-                  >
-                    <option value="">-- Choose Module --</option>
-                    {modules?.map(module => (
-                      <option key={module.id} value={module.id}>Module {module.module_number}: {module.title}</option>
-                    ))}
-                  </select>
-                  {createAsgForm.formState.errors.module_id && (
-                    <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.module_id.message}</span>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700">Lesson</label>
-                  <select
-                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                    {...createAsgForm.register('lesson_id')}
-                    disabled={!selectedModule}
-                  >
-                    <option value="">-- Choose Lesson --</option>
-                    {selectedModule?.lessons.map(lesson => (
-                      <option key={lesson.id} value={lesson.id}>Lesson {lesson.order}: {lesson.title}</option>
-                    ))}
-                  </select>
-                  {createAsgForm.formState.errors.lesson_id && (
-                    <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.lesson_id.message}</span>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700">Max Points Limit</label>
-                <input
-                  type="number"
-                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                  {...createAsgForm.register('max_points', { valueAsNumber: true })}
-                />
-                {createAsgForm.formState.errors.max_points && (
-                  <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.max_points.message}</span>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700">Due Date & Time Cutoff</label>
-                <input
-                  type="datetime-local"
-                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                  {...createAsgForm.register('due_date')}
-                />
-                {createAsgForm.formState.errors.due_date && (
-                  <span className="text-xs text-red-600 mt-1 block">{createAsgForm.formState.errors.due_date.message}</span>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-5">
-                <button
-                  type="button"
-                  onClick={() => setIsCreating(false)}
-                  className="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={createAsgForm.formState.isSubmitting}
-                  className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg text-sm hover:bg-indigo-500"
-                >
-                  Publish Task
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
+      {assignmentFormOverlay}
 
       {isEmpty ? (
         <div className="border border-dashed border-gray-200 rounded-xl p-12 text-center bg-gray-50/50" id="assignments-empty-state">
@@ -642,7 +745,7 @@ export default function Assignments() {
           <p className="text-sm text-gray-500 mt-1">Publish a course assignment to a cohort class to begin collecting submissions.</p>
           {can.manageAssignments(user.role) && (
             <button
-              onClick={() => setIsCreating(true)}
+              onClick={openCreateAssignment}
               className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg text-sm hover:bg-indigo-500"
             >
               <Plus className="w-4 h-4" /> Add Assignment
@@ -654,6 +757,7 @@ export default function Assignments() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans" id="assignments-data-grid">
           {assignments.map((asg) => {
             const hasSub = submissions?.find(s => s.assignment_id === asg.id && s.student_id === user.id);
+            const assignmentSubmissionCount = submissions?.filter(s => s.assignment_id === asg.id).length || 0;
             const isOverdue = new Date() > new Date(asg.due_date);
             return (
               <div 
@@ -668,7 +772,11 @@ export default function Assignments() {
                     
                     {/* Status Badge */}
                     {user.role === 'student' ? (
-                      hasSub ? (
+                      asg.is_locked && !hasSub ? (
+                        <span className="bg-slate-50 text-slate-700 border border-slate-200 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                          Locked
+                        </span>
+                      ) : hasSub ? (
                         hasSub.status === 'graded' ? (
                           <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] px-2 py-0.5 rounded-full font-bold">
                             Score: {hasSub.grade}/{asg.max_points}
@@ -686,9 +794,16 @@ export default function Assignments() {
                         </span>
                       )
                     ) : (
-                      <span className="text-[11px] text-gray-400 font-mono">
-                        {submissions?.filter(s => s.assignment_id === asg.id).length || 0} Submissions
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {asg.is_locked && (
+                          <span className="bg-slate-50 text-slate-700 border border-slate-200 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                            Locked
+                          </span>
+                        )}
+                        <span className="text-[11px] text-gray-400 font-mono">
+                          {assignmentSubmissionCount} Submissions
+                        </span>
+                      </div>
                     )}
                   </div>
 
@@ -698,17 +813,39 @@ export default function Assignments() {
                   </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
+                <div className="mt-6 pt-4 border-t border-gray-50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-1 text-[11px] font-mono text-gray-400">
                     <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                     <span>Cutoff: {new Date(asg.due_date).toLocaleDateString()}</span>
                   </div>
-                  <button
-                    onClick={() => setSelectedAsgId(asg.id)}
-                    className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-lg text-xs transition-colors"
-                  >
-                    {user.role === 'student' ? (hasSub ? 'View Locker' : 'Submit solution') : 'Manage Submissions'}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {can.manageAssignments(user.role) && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => openEditAssignment(asg)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" /> Edit
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deleteAssignmentMutation.isPending || asg.is_locked}
+                          onClick={() => handleDeleteOrLockAssignment(asg)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {assignmentSubmissionCount > 0 ? <ShieldCheck className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          {assignmentSubmissionCount > 0 ? 'Lock' : 'Delete'}
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => setSelectedAsgId(asg.id)}
+                      className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-lg text-xs transition-colors"
+                    >
+                      {user.role === 'student' ? (hasSub ? 'View Locker' : asg.is_locked ? 'View Closed' : 'Submit solution') : 'Manage Submissions'}
+                    </button>
+                  </div>
                 </div>
               </div>
             );

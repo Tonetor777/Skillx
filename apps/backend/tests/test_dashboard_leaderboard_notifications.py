@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.choices import UserRole, UserStatus
-from announcements.models import Announcement
+from announcements.models import Announcement, AnnouncementRead
 from cohorts.models import Cohort, CohortStatus, TeacherAssignment, TeacherAssignmentRole
 from learning.models import Assignment, Lesson, Module, ModuleStatus
 from programs.models import Program, ProgramStatus
@@ -97,6 +97,143 @@ def test_scheduled_announcement_is_hidden_until_due(domain):
 
     assert response.status_code == 200
     assert [item["title"] for item in response.data] == ["Now"]
+
+
+def test_announcement_unread_count_respects_student_scope_and_schedule(domain):
+    admin, _, student, cohort, _, _ = domain
+    other_program = Program.objects.create(title="Other", slug="other-notices", description="", status=ProgramStatus.ACTIVE)
+    other_cohort = Cohort.objects.create(
+        program=other_program,
+        name="Other Cohort",
+        start_date=timezone.localdate(),
+        end_date=timezone.localdate() + timedelta(weeks=4),
+        status=CohortStatus.ACTIVE,
+    )
+    system = Announcement.objects.create(title="System", message="All users.", created_by=admin)
+    cohort_notice = Announcement.objects.create(title="Cohort", message="Class only.", cohort=cohort, created_by=admin)
+    program_notice = Announcement.objects.create(title="Program", message="Program only.", program=cohort.program, created_by=admin)
+    Announcement.objects.create(title="Other", message="Hidden.", cohort=other_cohort, created_by=admin)
+    Announcement.objects.create(
+        title="Future",
+        message="Later.",
+        cohort=cohort,
+        created_by=admin,
+        scheduled_for=timezone.now() + timedelta(days=1),
+    )
+    AnnouncementRead.objects.create(announcement=system, user=student)
+
+    response = auth_client(student).get("/api/announcements/unread-count/")
+    list_response = auth_client(student).get("/api/announcements/")
+
+    assert response.status_code == 200
+    assert response.data["count"] == 2
+    assert {item["title"] for item in list_response.data} == {"System", "Cohort", "Program"}
+    assert {item["title"]: item["is_read"] for item in list_response.data} == {
+        "System": True,
+        "Cohort": False,
+        "Program": False,
+    }
+    assert cohort_notice.id != program_notice.id
+
+
+def test_announcement_unread_count_respects_teacher_scope(domain):
+    admin, teacher, _, cohort, _, _ = domain
+    other_program = Program.objects.create(title="Hidden Teacher", slug="hidden-teacher", description="", status=ProgramStatus.ACTIVE)
+    other_cohort = Cohort.objects.create(
+        program=other_program,
+        name="Hidden Teacher Cohort",
+        start_date=timezone.localdate(),
+        end_date=timezone.localdate() + timedelta(weeks=4),
+        status=CohortStatus.ACTIVE,
+    )
+    Announcement.objects.create(title="System", message="All users.", created_by=admin)
+    Announcement.objects.create(title="Assigned Cohort", message="Teacher class.", cohort=cohort, created_by=admin)
+    Announcement.objects.create(title="Assigned Program", message="Teacher program.", program=cohort.program, created_by=admin)
+    Announcement.objects.create(title="Hidden Cohort", message="Other class.", cohort=other_cohort, created_by=admin)
+
+    response = auth_client(teacher).get("/api/announcements/unread-count/")
+
+    assert response.status_code == 200
+    assert response.data["count"] == 3
+
+
+def test_admin_unread_count_includes_due_announcements(domain):
+    admin, _, _, cohort, _, _ = domain
+    Announcement.objects.create(title="System", message="All users.", created_by=admin)
+    Announcement.objects.create(title="Cohort", message="Class.", cohort=cohort, created_by=admin)
+    Announcement.objects.create(
+        title="Future",
+        message="Later.",
+        cohort=cohort,
+        created_by=admin,
+        scheduled_for=timezone.now() + timedelta(days=1),
+    )
+
+    response = auth_client(admin).get("/api/announcements/unread-count/")
+
+    assert response.status_code == 200
+    assert response.data["count"] == 2
+
+
+def test_mark_announcement_read_is_idempotent(domain):
+    admin, _, student, cohort, _, _ = domain
+    announcement = Announcement.objects.create(title="Read me", message="Notice.", cohort=cohort, created_by=admin)
+    client = auth_client(student)
+
+    first = client.post(f"/api/announcements/{announcement.id}/mark-read/")
+    second = client.post(f"/api/announcements/{announcement.id}/mark-read/")
+    count = client.get("/api/announcements/unread-count/")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert AnnouncementRead.objects.filter(announcement=announcement, user=student).count() == 1
+    assert count.data["count"] == 0
+
+
+def test_mark_all_read_marks_only_visible_announcements(domain):
+    admin, _, student, cohort, _, _ = domain
+    other_program = Program.objects.create(title="Other Mark", slug="other-mark", description="", status=ProgramStatus.ACTIVE)
+    other_cohort = Cohort.objects.create(
+        program=other_program,
+        name="Other Mark Cohort",
+        start_date=timezone.localdate(),
+        end_date=timezone.localdate() + timedelta(weeks=4),
+        status=CohortStatus.ACTIVE,
+    )
+    visible = Announcement.objects.create(title="Visible", message="Class.", cohort=cohort, created_by=admin)
+    hidden = Announcement.objects.create(title="Hidden", message="Other.", cohort=other_cohort, created_by=admin)
+    future = Announcement.objects.create(
+        title="Future",
+        message="Later.",
+        cohort=cohort,
+        created_by=admin,
+        scheduled_for=timezone.now() + timedelta(days=1),
+    )
+
+    response = auth_client(student).post("/api/announcements/mark-all-read/")
+
+    assert response.status_code == 200
+    assert AnnouncementRead.objects.filter(user=student, announcement=visible).exists()
+    assert not AnnouncementRead.objects.filter(user=student, announcement=hidden).exists()
+    assert not AnnouncementRead.objects.filter(user=student, announcement=future).exists()
+
+
+def test_cannot_mark_inaccessible_announcement_read(domain):
+    admin, _, student, _, _, _ = domain
+    other_program = Program.objects.create(title="Private", slug="private-notice", description="", status=ProgramStatus.ACTIVE)
+    other_cohort = Cohort.objects.create(
+        program=other_program,
+        name="Private Cohort",
+        start_date=timezone.localdate(),
+        end_date=timezone.localdate() + timedelta(weeks=4),
+        status=CohortStatus.ACTIVE,
+    )
+    hidden = Announcement.objects.create(title="Hidden", message="Other.", cohort=other_cohort, created_by=admin)
+
+    response = auth_client(student).post(f"/api/announcements/{hidden.id}/mark-read/")
+
+    assert response.status_code == 404
+    assert not AnnouncementRead.objects.filter(user=student, announcement=hidden).exists()
 
 
 def test_leaderboard_ranking_and_visibility_rules(domain):

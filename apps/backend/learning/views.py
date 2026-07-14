@@ -1,4 +1,5 @@
 from django.utils import timezone
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
@@ -8,6 +9,7 @@ from accounts.choices import UserRole
 from accounts.permissions import IsActiveUser, IsTeacherAdminOrSuperAdmin
 from learning.models import Assignment, Lesson, LessonImage, Module, ModuleStatus, Resource
 from learning.serializers import AssignmentSerializer, LessonImageSerializer, LessonSerializer, ModuleSerializer, ResourceSerializer
+from learning.services import delete_or_lock_assignment
 
 
 def scope_queryset_to_user(queryset, user, cohort_path="cohort_id"):
@@ -22,7 +24,7 @@ def scope_queryset_to_user(queryset, user, cohort_path="cohort_id"):
 class AssignmentViewSet(ModelViewSet):
     serializer_class = AssignmentSerializer
     permission_classes = [IsActiveUser]
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -45,9 +47,15 @@ class AssignmentViewSet(ModelViewSet):
         return queryset
 
     def get_permissions(self):
-        if self.action in {"create", "partial_update"}:
+        if self.action in {"create", "partial_update", "destroy"}:
             return [IsTeacherAdminOrSuperAdmin()]
         return super().get_permissions()
+
+    def destroy(self, request, *args, **kwargs):
+        assignment, was_locked = delete_or_lock_assignment(self.get_object())
+        if was_locked and assignment:
+            return Response(self.get_serializer(assignment).data, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ModuleViewSet(ModelViewSet):

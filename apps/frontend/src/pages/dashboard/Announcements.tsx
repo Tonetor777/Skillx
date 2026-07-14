@@ -2,7 +2,13 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAnnouncements, useCreateAnnouncement } from '../../features/announcements/api/announcements';
+import {
+  useAnnouncementUnreadCount,
+  useAnnouncements,
+  useCreateAnnouncement,
+  useMarkAllAnnouncementsRead,
+  useMarkAnnouncementRead,
+} from '../../features/announcements/api/announcements';
 import { useCohorts } from '../../features/cohorts/api/cohorts';
 import { usePrograms } from '../../features/programs/api/programs';
 import { useAuth } from '../../features/authentication/context/AuthContext';
@@ -35,9 +41,12 @@ type AnnouncementFormValues = z.infer<typeof announcementSchema>;
 export default function Announcements() {
   const { user } = useAuth();
   const { data: announcements, isLoading, isError, error, refetch } = useAnnouncements();
+  const { data: unreadCount } = useAnnouncementUnreadCount();
   const { data: cohorts } = useCohorts();
   const { data: programs } = usePrograms();
   const createAnnouncementMutation = useCreateAnnouncement();
+  const markAnnouncementRead = useMarkAnnouncementRead();
+  const markAllAnnouncementsRead = useMarkAllAnnouncementsRead();
 
   const [isCreating, setIsCreating] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -143,16 +152,28 @@ export default function Announcements() {
             Broadcast platform-wide updates, course syllabus adjustments, or cohort specific bulletins.
           </p>
         </div>
-        {can.createAnnouncements(user.role) && (
-          <button
-            onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition-colors shadow-xs"
-            id="create-announcement-modal-trigger"
-          >
-            <Plus className="w-4 h-4" />
-            Add Announcement
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {(unreadCount?.count ?? 0) > 0 && (
+            <button
+              onClick={() => markAllAnnouncementsRead.mutate()}
+              disabled={markAllAnnouncementsRead.isPending}
+              className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 bg-white text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Mark all read
+            </button>
+          )}
+          {can.createAnnouncements(user.role) && (
+            <button
+              onClick={() => setIsCreating(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition-colors shadow-xs"
+              id="create-announcement-modal-trigger"
+            >
+              <Plus className="w-4 h-4" />
+              Add Announcement
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Categories filter tabs */}
@@ -285,10 +306,17 @@ export default function Announcements() {
             return (
               <div 
                 key={ann.id} 
-                className="bg-white border border-gray-100 rounded-xl p-6 shadow-xs relative overflow-hidden"
+                className={`bg-white border rounded-xl p-6 shadow-xs relative overflow-hidden ${
+                  ann.is_read ? 'border-gray-100' : 'border-indigo-200 ring-1 ring-indigo-100'
+                }`}
               >
                 <div className="flex items-center justify-between mb-3 border-b border-gray-50 pb-3 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
+                    {!ann.is_read && (
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border bg-indigo-50 text-indigo-700 border-indigo-100">
+                        New
+                      </span>
+                    )}
                     <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${
                       isSystem 
                         ? 'bg-red-50 text-red-700 border-red-100' 
@@ -320,6 +348,16 @@ export default function Announcements() {
                   <span>
                     Posted by <span className="font-semibold text-gray-700">{ann.author_name}</span> ({ann.author_role.replace('_', ' ')})
                   </span>
+                  {!ann.is_read && (
+                    <button
+                      onClick={() => markAnnouncementRead.mutate(ann.id)}
+                      disabled={markAnnouncementRead.isPending}
+                      className="ml-auto inline-flex items-center gap-1 rounded-md border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[10px] font-bold uppercase text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      Mark read
+                    </button>
+                  )}
                 </div>
               </div>
             );

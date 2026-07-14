@@ -246,6 +246,8 @@ export interface Announcement {
   author_id: string;
   author_name: string;
   author_role: UserRole;
+  is_read: boolean;
+  scheduled_for?: string;
   created_at: string;
 }
 

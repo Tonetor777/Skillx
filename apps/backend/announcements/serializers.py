@@ -12,6 +12,7 @@ class AnnouncementSerializer(serializers.ModelSerializer):
     author_id = serializers.SerializerMethodField()
     author_name = serializers.SerializerMethodField()
     author_role = serializers.SerializerMethodField()
+    is_read = serializers.SerializerMethodField()
 
     class Meta:
         model = Announcement
@@ -25,10 +26,11 @@ class AnnouncementSerializer(serializers.ModelSerializer):
             "author_id",
             "author_name",
             "author_role",
+            "is_read",
             "scheduled_for",
             "created_at",
         ]
-        read_only_fields = ["id", "target_name", "author_id", "author_name", "author_role", "created_at"]
+        read_only_fields = ["id", "target_name", "author_id", "author_name", "author_role", "is_read", "created_at"]
 
     def get_id(self, obj) -> str:
         return str(obj.id)
@@ -49,6 +51,12 @@ class AnnouncementSerializer(serializers.ModelSerializer):
 
     def get_author_role(self, obj) -> str:
         return obj.created_by.role.lower()
+
+    def get_is_read(self, obj) -> bool:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.read_receipts.filter(user=request.user).exists()
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

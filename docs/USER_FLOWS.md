@@ -37,11 +37,14 @@
 ## Assignments and Grading
 
 1. Teacher, Admin, or Super Admin creates assignments for lessons, optionally tied to a resource.
-2. Students submit only to assignments in their own cohort.
-3. Late submissions are flagged automatically.
-4. Grading locks the submission for student edits and sends an email notification to the student.
-5. Teachers, Admins, and Super Admins can update score and feedback after initial grading.
-6. Leaderboards are derived from graded submissions and follow cohort visibility settings.
+2. Teacher, Admin, or Super Admin can edit assignment title, description, points, due date, and lesson scope.
+3. Teacher, Admin, or Super Admin can delete assignments with no submissions.
+4. Assignments with submissions are locked instead of deleted, preserving submission and grading history.
+5. Students submit only to unlocked assignments in their own cohort.
+6. Late submissions are flagged automatically.
+7. Grading locks the submission for student edits and sends an email notification to the student.
+8. Teachers, Admins, and Super Admins can update score and feedback after initial grading.
+9. Leaderboards are derived from graded submissions and follow cohort visibility settings.
 
 ## Attendance and Weighted Grades
 
@@ -50,6 +53,14 @@
 3. Present and excused count full attendance credit, late counts half, and absent counts zero.
 4. Assigned teachers, Admins, or Super Admins set cohort assignment and attendance grade weights that total 100%.
 5. Student dashboards show current assignment percent, attendance percent, and weighted total grade.
+
+## Announcement Notifications
+
+1. Teacher, Admin, or Super Admin posts a system, program, or cohort announcement.
+2. Each user sees unread counts only for announcements visible through existing scope rules.
+3. Scheduled announcements do not appear or count as unread until their scheduled time is due.
+4. Users can mark one announcement read or mark all visible announcements read.
+5. Read state is per user and does not affect other users.
 
 ## Dashboards
 

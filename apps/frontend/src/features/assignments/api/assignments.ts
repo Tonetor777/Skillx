@@ -26,6 +26,33 @@ export const useCreateAssignment = () => {
     mutationFn: (data) => apiClient.post('/assignments', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+    },
+  });
+};
+
+export const useUpdateAssignment = () => {
+  const queryClient = useQueryClient();
+  return useMutation<Assignment, Error, { id: string; data: Partial<Assignment> }>({
+    mutationFn: ({ id, data }) => apiClient.patch(`/assignments/${id}`, data),
+    onSuccess: (assignment) => {
+      queryClient.invalidateQueries({ queryKey: ['assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['assignments', assignment.id] });
+      queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+    },
+  });
+};
+
+export const useDeleteAssignment = () => {
+  const queryClient = useQueryClient();
+  return useMutation<Assignment | null, Error, string>({
+    mutationFn: (id) => apiClient.delete(`/assignments/${id}`),
+    onSuccess: (assignment, id) => {
+      queryClient.invalidateQueries({ queryKey: ['assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['assignments', assignment?.id ?? id] });
+      queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
     },
   });
 };

@@ -72,9 +72,10 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `GET /api/assignments/`: list assignments scoped to the current user. Supports `?cohort_id=`, `?lesson_id=`, and `?resource_id=`.
 - `POST /api/assignments/`: create an assignment for a lesson, optionally attached to a resource. Teacher/Admin/Super Admin only.
 - `GET /api/assignments/{id}/`: retrieve an assignment.
-- `PATCH /api/assignments/{id}/`: update an assignment. Teacher/Admin/Super Admin only.
+- `PATCH /api/assignments/{id}/`: update an assignment. Teacher/Admin/Super Admin only. Cohort and module scope are derived from the selected lesson.
+- `DELETE /api/assignments/{id}/`: delete an assignment when it has no submissions. If submissions exist, the assignment is locked and preserved instead. Teacher/Admin/Super Admin only.
 - `GET /api/submissions/`: list submissions scoped to the current user. Supports `?assignment_id=`.
-- `POST /api/submissions/`: create or update the current student's submission. Graded submissions remain locked for student edits.
+- `POST /api/submissions/`: create or update the current student's submission. Graded submissions and locked assignments reject student edits.
 - `GET /api/submissions/{id}/`: retrieve a submission.
 - `POST /api/submissions/{id}/grade/`: create or update a grade and feedback. Teacher/Admin/Super Admin only. The submission remains locked for student edits.
 - `GET /api/attendance-sessions/?cohort_id=...`: list attendance sessions scoped to the current user.
@@ -84,6 +85,9 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `GET /api/announcements/`: list announcements scoped to the current user. Supports `?target_type=` and `?target_id=`.
 - `POST /api/announcements/`: create an announcement. Teacher/Admin/Super Admin only.
 - `scheduled_for` may be provided on announcements; future announcements are hidden until due.
+- `GET /api/announcements/unread-count/`: retrieve current user's unread announcement count.
+- `POST /api/announcements/{id}/mark-read/`: mark one visible announcement as read for the current user.
+- `POST /api/announcements/mark-all-read/`: mark all currently visible announcements as read for the current user.
 - `GET /api/leaderboard/?cohort_id=...`: retrieve cohort ranking from graded submissions. Hidden cohorts are only visible to Admin/Super Admin.
 - `GET /api/dashboard/summary/`: retrieve role-specific dashboard summary data.
 - `GET /api/settings/`: retrieve platform settings.

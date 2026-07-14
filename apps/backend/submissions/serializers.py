@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from accounts.serializers import CurrentUserSerializer
+from accounts.choices import UserRole
 from learning.models import Assignment
 from submissions.models import Submission
 
@@ -89,13 +89,19 @@ class SubmissionSerializer(serializers.ModelSerializer):
         except Assignment.DoesNotExist as exc:
             raise serializers.ValidationError("Assignment does not exist.") from exc
         request = self.context["request"]
+        if request.user.role != UserRole.STUDENT:
+            raise serializers.ValidationError("Only students can submit assignments.")
         if request.user.cohort_id != assignment.cohort_id:
             raise serializers.ValidationError("Students can only submit to their own cohort assignments.")
+        if assignment.is_locked:
+            raise serializers.ValidationError("This assignment is locked and no longer accepts submissions.")
         return value
 
     def create(self, validated_data):
         request = self.context["request"]
         assignment = Assignment.objects.get(id=validated_data.pop("assignment_id"))
+        if assignment.is_locked:
+            raise serializers.ValidationError({"detail": "This assignment is locked and no longer accepts submissions."})
         existing = Submission.objects.filter(assignment=assignment, student=request.user).first()
         if existing and existing.is_locked:
             raise serializers.ValidationError({"detail": "This submission has been graded and is locked for student edits."})

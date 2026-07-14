@@ -23,6 +23,51 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
+type AssignmentOverviewStatus = {
+  badgeLabel: string | null;
+  badgeClassName: string;
+  ctaLabel: string;
+};
+
+const assignmentOverviewStatus = (
+  assignment: { due_date: string; is_locked: boolean },
+  submission?: { status: 'pending' | 'graded' }
+): AssignmentOverviewStatus => {
+  if (submission?.status === 'graded') {
+    return {
+      badgeLabel: 'Graded',
+      badgeClassName: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+      ctaLabel: 'View Grade',
+    };
+  }
+  if (submission) {
+    return {
+      badgeLabel: 'Submitted',
+      badgeClassName: 'bg-amber-50 text-amber-700 border-amber-100',
+      ctaLabel: assignment.is_locked ? 'View Submission' : 'Resubmit',
+    };
+  }
+  if (assignment.is_locked) {
+    return {
+      badgeLabel: 'Closed',
+      badgeClassName: 'bg-slate-50 text-slate-700 border-slate-200',
+      ctaLabel: 'Closed',
+    };
+  }
+  if (new Date() > new Date(assignment.due_date)) {
+    return {
+      badgeLabel: 'Overdue',
+      badgeClassName: 'bg-red-50 text-red-700 border-red-100',
+      ctaLabel: 'Submit',
+    };
+  }
+  return {
+    badgeLabel: null,
+    badgeClassName: '',
+    ctaLabel: 'Submit',
+  };
+};
+
 export default function Overview() {
   const { user } = useAuth();
   
@@ -227,13 +272,21 @@ export default function Overview() {
                 ) : (
                   <div className="space-y-3">
                     {assignments.map(asg => {
-                      const isOverdue = new Date() > new Date(asg.due_date);
+                      const submission = submissions?.find(sub => sub.assignment_id === asg.id && sub.student_id === user.id);
+                      const status = assignmentOverviewStatus(asg, submission);
                       return (
                         <div key={asg.id} className="border border-slate-100 rounded-lg p-4 flex justify-between items-center hover:border-indigo-200 transition-all bg-white shadow-xs">
                           <div>
-                            <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase">
-                              {asg.module_title ?? 'Module'} Task
-                            </span>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase">
+                                {asg.module_title ?? 'Module'} Task
+                              </span>
+                              {status.badgeLabel && (
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${status.badgeClassName}`}>
+                                  {status.badgeLabel}
+                                </span>
+                              )}
+                            </div>
                             <h5 className="font-bold text-sm text-slate-800 mt-2">{asg.title}</h5>
                             <span className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                               Max Points: {asg.max_points} • Due: {new Date(asg.due_date).toLocaleDateString()}
@@ -243,7 +296,7 @@ export default function Overview() {
                             to={`/dashboard/assignments`}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-md text-xs font-bold uppercase tracking-wider transition-colors"
                           >
-                            Submit
+                            {status.ctaLabel}
                             <ArrowRight className="w-3.5 h-3.5" />
                           </Link>
                         </div>
@@ -353,8 +406,16 @@ export default function Overview() {
                 {announcements.slice(0, 3).map((ann) => {
                   const isSystem = ann.target_type === 'system';
                   return (
-                    <div key={ann.id} className="border-l-2 border-indigo-500 pl-3.5 py-1">
+                    <div
+                      key={ann.id}
+                      className={`border-l-2 pl-3.5 py-1 ${ann.is_read ? 'border-slate-200' : 'border-indigo-500 bg-indigo-50/30'}`}
+                    >
                       <div className="flex items-center gap-1.5">
+                        {!ann.is_read && (
+                          <span className="text-[9px] font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded uppercase">
+                            New
+                          </span>
+                        )}
                         <span className="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded uppercase">
                           {isSystem ? 'Global' : 'Cohort Specific'}
                         </span>
