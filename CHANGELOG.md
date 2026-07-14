@@ -20,6 +20,7 @@ This project follows a modified version of Keep a Changelog.
 - Cohort assignment/attendance grade weights and weighted student total grade summaries.
 - Railway production deployment config with a root backend Dockerfile, migration predeploy command, Gunicorn start command, and `/api/health/` health check.
 - Dokploy all-in-one production compose stack with frontend, backend, migrations, Celery, PostgreSQL, Redis, MinIO, named volumes, and separate frontend/API domain support.
+- GitHub Actions CI/CD for validating the Dokploy stack and triggering Dokploy deployments from the `main` branch.
 - Production frontend Dockerfile and Nginx SPA config for serving the Vite build in Dokploy.
 - Dokploy deployment runbook covering environment variables, domains, health checks, backups, smoke tests, and rollback.
 - Production-ready Django settings for strong runtime secrets, HTTPS redirects, secure cookies, HSTS, proxy SSL headers, env-driven CORS/CSRF origins, and DRF request throttling.

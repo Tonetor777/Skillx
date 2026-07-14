@@ -210,6 +210,13 @@ Configure domains:
 - `app.example.com` routes to service `frontend` on port `80`.
 - `api.example.com` routes to service `backend` on port `8000`.
 
+GitHub Actions CI/CD is available in `.github/workflows/dokploy-ci-cd.yml`.
+
+- Pull requests to `main` run frontend checks, Docker builds, Dokploy Compose validation, backend tests, and Django checks.
+- Pushes to `main` and manual workflow runs trigger the Dokploy deploy webhook after validation passes.
+- Add `DOKPLOY_DEPLOY_WEBHOOK_URL` as a GitHub repository secret.
+- Add `VITE_API_URL` as a GitHub repository variable, for example `https://api.example.com/api`.
+
 Enable backups for the named volumes that hold durable data:
 
 - `postgres_data`

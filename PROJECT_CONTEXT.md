@@ -171,6 +171,7 @@ Database
 - Assignment management now supports staff edits plus delete-or-lock behavior: empty assignments can be deleted, while assignments with submissions are preserved and locked against further student submissions.
 - Production-readiness work is now underway: Django settings enforce strong production secrets, expose env-driven HTTPS/CORS/CSRF settings, add DRF throttling, and support a Resend email backend when configured.
 - Dokploy all-in-one production deployment is available through `docker-compose.dokploy.yml`, with frontend, backend, migrations, Celery, PostgreSQL, Redis, and MinIO services.
+- GitHub Actions now validates the Dokploy stack and triggers Dokploy deployments through a repository-secret webhook after `main` passes CI.
 - Railway deployment configuration now builds the backend from the repository root, runs migrations before deploy, starts Gunicorn, and uses `/api/health/` as the health check.
 - Vite route pages are lazy-loaded to improve production bundle splitting, and frontend API debug logging has been removed.
 - Lesson delivery now uses a TipTap-powered native lesson editor for teacher-authored structured content, uploaded inline images, and appended YouTube embeds, rendered inline for students while preserving existing plain-text lesson content.

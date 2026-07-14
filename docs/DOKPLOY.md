@@ -27,6 +27,25 @@ The local `docker-compose.yml` remains for development. Use `docker-compose.dokp
 
 Dokploy writes UI environment variables into a `.env` file beside the compose file. The production compose file uses `env_file: .env` so every app container receives the same runtime configuration.
 
+## GitHub Actions CI/CD
+
+The repository includes `.github/workflows/dokploy-ci-cd.yml` for Dokploy validation and deployment.
+
+- Pull requests targeting `main` run frontend checks, Docker image builds, Dokploy Compose validation, backend tests, Django checks, and Django deploy checks.
+- Pushes to `main` run the same checks, then call the Dokploy deploy webhook.
+- Manual runs through `workflow_dispatch` run the checks and then call the same webhook.
+
+Configure these GitHub settings before relying on automated deployment:
+
+```bash
+DOKPLOY_DEPLOY_WEBHOOK_URL=<dokploy-deploy-webhook-url>
+VITE_API_URL=https://api.example.com/api
+```
+
+Store `DOKPLOY_DEPLOY_WEBHOOK_URL` as a GitHub repository secret. Store `VITE_API_URL` as a GitHub repository variable so the CI frontend build matches the production API target. If the variable is missing, CI falls back to `https://api.example.com/api` for validation only.
+
+Keep runtime secrets such as `DJANGO_SECRET_KEY`, database credentials, MinIO credentials, and `RESEND_API_KEY` in Dokploy. GitHub Actions only validates the images and triggers Dokploy; Dokploy remains the production runtime source of truth.
+
 ## Required Environment
 
 Replace example domains and secrets before deploying.

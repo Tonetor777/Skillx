@@ -1,0 +1,157 @@
+name: Dokploy CI/CD
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dokploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FRONTEND_WORKDIR: apps/frontend
+  VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api.example.com/api' }}
+  DJANGO_SECRET_KEY: ci-secret-key-with-more-than-fifty-safe-characters-for-checks
+  DJANGO_DEBUG: "true"
+  DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0,backend,api.example.com
+  DJANGO_CSRF_TRUSTED_ORIGINS: https://app.example.com,https://api.example.com
+  DJANGO_CORS_ALLOWED_ORIGINS: https://app.example.com
+  DATABASE_URL: postgresql://skilix:skilix@postgres:5432/skilix
+  POSTGRES_DB: skilix
+  POSTGRES_USER: skilix
+  POSTGRES_PASSWORD: skilix
+  REDIS_URL: redis://redis:6379/0
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/1
+  MINIO_ROOT_USER: skilix-minio
+  MINIO_ROOT_PASSWORD: change-me
+  MINIO_BUCKET: skilix-media
+  AWS_ACCESS_KEY_ID: skilix-minio
+  AWS_SECRET_ACCESS_KEY: change-me
+  AWS_STORAGE_BUCKET_NAME: skilix-media
+  AWS_S3_ENDPOINT_URL: http://minio:9000
+  AWS_S3_REGION_NAME: us-east-1
+  AWS_S3_ADDRESSING_STYLE: path
+  AWS_QUERYSTRING_AUTH: "true"
+  AWS_QUERYSTRING_EXPIRE: "3600"
+  VITE_USE_MOCK_API: "false"
+  FRONTEND_URL: https://app.example.com
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ env.FRONTEND_WORKDIR }}
+
+      - name: Lint
+        run: npm run lint
+        working-directory: ${{ env.FRONTEND_WORKDIR }}
+
+      - name: Typecheck
+        run: npm run typecheck
+        working-directory: ${{ env.FRONTEND_WORKDIR }}
+
+      - name: Test
+        run: npm run test
+        working-directory: ${{ env.FRONTEND_WORKDIR }}
+
+      - name: Build
+        run: npm run build
+        working-directory: ${{ env.FRONTEND_WORKDIR }}
+
+  dokploy-stack:
+    name: Dokploy Stack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create CI compose env file
+        run: |
+          cat > .env <<EOF
+          COMPOSE_PROJECT_NAME=skilix-ci
+          DJANGO_SETTINGS_MODULE=skilix.settings
+          DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+          DJANGO_DEBUG=${DJANGO_DEBUG}
+          DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+          DJANGO_CSRF_TRUSTED_ORIGINS=${DJANGO_CSRF_TRUSTED_ORIGINS}
+          DJANGO_CORS_ALLOWED_ORIGINS=${DJANGO_CORS_ALLOWED_ORIGINS}
+          DATABASE_URL=${DATABASE_URL}
+          POSTGRES_DB=${POSTGRES_DB}
+          POSTGRES_USER=${POSTGRES_USER}
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          REDIS_URL=${REDIS_URL}
+          CELERY_BROKER_URL=${CELERY_BROKER_URL}
+          CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+          MINIO_ROOT_USER=${MINIO_ROOT_USER}
+          MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+          MINIO_BUCKET=${MINIO_BUCKET}
+          AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+          AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+          AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+          AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL}
+          AWS_S3_REGION_NAME=${AWS_S3_REGION_NAME}
+          AWS_S3_ADDRESSING_STYLE=${AWS_S3_ADDRESSING_STYLE}
+          AWS_QUERYSTRING_AUTH=${AWS_QUERYSTRING_AUTH}
+          AWS_QUERYSTRING_EXPIRE=${AWS_QUERYSTRING_EXPIRE}
+          VITE_API_URL=${VITE_API_URL}
+          VITE_USE_MOCK_API=${VITE_USE_MOCK_API}
+          FRONTEND_URL=${FRONTEND_URL}
+          EOF
+
+      - name: Validate Dokploy compose file
+        run: docker compose -f docker-compose.dokploy.yml config --quiet
+
+      - name: Build backend image
+        run: docker build -f Dockerfile.backend .
+
+      - name: Build frontend image
+        run: docker build -f apps/frontend/Dockerfile.prod --build-arg VITE_API_URL="${VITE_API_URL}" apps/frontend
+
+      - name: Run backend tests
+        run: docker compose -f docker-compose.dokploy.yml run --rm backend pytest
+
+      - name: Run Django system checks
+        run: docker compose -f docker-compose.dokploy.yml run --rm backend python manage.py check
+
+      - name: Run Django deploy checks
+        run: docker compose -f docker-compose.dokploy.yml run --rm -e DJANGO_DEBUG=false -e DJANGO_SECRET_KEY=production-secret-key-with-more-than-fifty-unique-safe-chars-123 -e DJANGO_SECURE_SSL_REDIRECT=true -e DJANGO_SECURE_HSTS_SECONDS=31536000 -e DJANGO_SECURE_HSTS_PRELOAD=true -e DJANGO_SESSION_COOKIE_SECURE=true -e DJANGO_CSRF_COOKIE_SECURE=true backend python manage.py check --deploy
+
+  deploy:
+    name: Deploy to Dokploy
+    runs-on: ubuntu-latest
+    needs:
+      - frontend
+      - dokploy-stack
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+
+    steps:
+      - name: Trigger Dokploy deployment
+        env:
+          DOKPLOY_DEPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_DEPLOY_WEBHOOK_URL }}
+        run: |
+          test -n "$DOKPLOY_DEPLOY_WEBHOOK_URL"
+          curl --fail --show-error --silent --request POST "$DOKPLOY_DEPLOY_WEBHOOK_URL"
