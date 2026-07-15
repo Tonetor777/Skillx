@@ -254,12 +254,19 @@ AWS_S3_REGION_NAME=us-east-1
 AWS_S3_ADDRESSING_STYLE=path
 AWS_QUERYSTRING_AUTH=true
 AWS_QUERYSTRING_EXPIRE=3600
-RESEND_API_KEY=<resend-api-key>
-DEFAULT_FROM_EMAIL=<verified-sender>
+DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=true
+EMAIL_HOST_USER=demtse.yibabe@gmail.com
+EMAIL_HOST_PASSWORD=<gmail-app-password>
+DEFAULT_FROM_EMAIL=demtse.yibabe@gmail.com
 FRONTEND_URL=https://app.example.com
 VITE_API_URL=https://api.example.com/api
 VITE_USE_MOCK_API=false
 ```
+
+Use a Gmail app password for `EMAIL_HOST_PASSWORD`; do not use or commit the regular Gmail account password. The Gmail account must have 2-Step Verification enabled before app passwords can be created.
 
 The production compose stack uses:
 

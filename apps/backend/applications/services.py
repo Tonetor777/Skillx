@@ -89,6 +89,27 @@ def create_invitation_for_application(application: Application, cohort: Cohort |
     return invitation
 
 
+@transaction.atomic
+def reinvite_application(application: Application) -> Invitation:
+    if application.status != ApplicationStatus.APPROVED:
+        raise ValidationError({"detail": "Only approved applications can be reinvited."})
+
+    latest_invitation = (
+        Invitation.objects.select_related("cohort", "cohort__program")
+        .filter(email=application.email)
+        .order_by("-expires_at")
+        .first()
+    )
+    if latest_invitation is None:
+        raise ValidationError({"detail": "This approved application does not have an invitation to refresh."})
+    if latest_invitation.status == InvitationStatus.ACCEPTED:
+        raise ValidationError({"detail": "Accepted invitations cannot be resent."})
+    if latest_invitation.cohort.program_id != application.program_id:
+        raise ValidationError({"detail": "The latest invitation does not match this applicant's program."})
+
+    return create_invitation_for_application(application, latest_invitation.cohort)
+
+
 def send_invitation_email(invitation: Invitation) -> None:
     accept_url = _frontend_url(f"/accept-invitation?token={invitation.token}")
     send_mail(

@@ -10,7 +10,7 @@ from PIL import Image
 from rest_framework.test import APIClient
 
 from accounts.choices import UserRole, UserStatus
-from applications.models import Application, ApplicationStatus, Invitation
+from applications.models import Application, ApplicationStatus, ExperienceLevel, Invitation
 from announcements.models import Announcement
 from cohorts.models import Cohort, CohortStatus, TeacherAssignment, TeacherAssignmentRole
 from learning.models import Assignment, Lesson, Module, ModuleStatus, Resource
@@ -194,9 +194,9 @@ def test_application_approval_accepts_admin_and_creates_selected_cohort_invitati
         name="Ada Lovelace",
         email="ada@example.com",
         phone="Not provided",
-        country="Not provided",
-        experience="Not provided",
-        motivation="I want to build production systems.",
+        age=29,
+        experience=ExperienceLevel.PROFESSIONAL,
+        expectations="I want to build production systems.",
         program=domain["program"],
     )
 

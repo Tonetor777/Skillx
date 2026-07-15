@@ -7,7 +7,7 @@ Initial entities:
 - `Cohort`: program-specific cohort.
 - `Cohort.assignment_weight` and `Cohort.attendance_weight`: grade component weights that must total 100.
 - `TeacherAssignment`: teacher-to-cohort relationship.
-- `Application`: public student signup application.
+- `Application`: public student signup application with contact details, age, experience level, selected program, and program expectations.
 - `Invitation`: secure expiring invitation for approved applicants, accepted to activate a student account.
 - `Module`: cohort learning unit.
 - `Lesson`: ordered submodule/lesson inside a module.

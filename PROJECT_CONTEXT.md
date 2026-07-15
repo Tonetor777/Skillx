@@ -90,7 +90,7 @@ Sprint 2 – Production Readiness
 Primary Goals
 
 - Harden Django production security settings
-- Configure Resend-backed production email delivery
+- Configure Gmail SMTP-backed production email delivery
 - Prepare Railway backend deployment
 - Prepare Vercel frontend deployment
 - Clean OpenAPI schema generation
@@ -149,7 +149,8 @@ Do not begin lower-priority modules unless dependencies are complete.
 
 ## Email
 
-- Resend
+- Gmail SMTP with an app password
+- Resend backend remains available as an alternate integration
 
 ## Deployment
 
@@ -168,10 +169,11 @@ Database
 ## Recent Foundation Fixes
 
 - Admissions approval now requires Admin/Super Admin reviewers to choose an eligible cohort in the applicant's selected program before an invitation is sent.
+- Approved admissions applications can be reinvited from the dashboard, issuing a fresh invitation link against the original approval cohort when the previous link expired.
 - Admin/Super Admin users can hard delete empty programs and cohorts, while non-empty records remain protected and should be archived instead.
 - Announcement notifications now track per-user unread state, expose unread-count and mark-read APIs, and show unread badges in the dashboard.
 - Assignment management now supports staff edits plus delete-or-lock behavior: empty assignments can be deleted, while assignments with submissions are preserved and locked against further student submissions.
-- Production-readiness work is now underway: Django settings enforce strong production secrets, expose env-driven HTTPS/CORS/CSRF settings, add DRF throttling, and support a Resend email backend when configured.
+- Production-readiness work is now underway: Django settings enforce strong production secrets, expose env-driven HTTPS/CORS/CSRF settings, add DRF throttling, and support Gmail SMTP email delivery with Resend still available as an alternate backend.
 - Dokploy all-in-one production deployment is available through `docker-compose.dokploy.yml`, with frontend, backend, migrations, Celery, PostgreSQL, Redis, and MinIO services.
 - GitHub Actions now validates the Dokploy stack and triggers Dokploy deployments through a repository-secret webhook after `main` passes CI.
 - Local Docker backend services now receive explicit debug and secret-key compose defaults so development startup is not affected by production-like host shell variables.
@@ -182,11 +184,14 @@ Database
 - Attendance is now cohort-date based, contributes to weighted student total grades, and can be recorded by assigned teachers/Admin/Super Admins.
 - Media uploads now support private MinIO/S3-compatible storage when S3 environment variables are configured, with signed URL responses for profile photos, program thumbnails, and lesson images.
 - Student signup no longer collects resume or payment proof uploads and now uses `/signup` with `/apply` redirected for compatibility.
+- Student signup now collects first name, last name, email, phone number, age, choice-based experience level, and program expectations while no longer collecting country.
 - Student program APIs are scoped so students only see the program attached to their enrolled cohort.
 - Vite frontend now has a Nexus-inspired monochrome academy UI layer with grid backgrounds, sharp bordered surfaces, reusable presentation components, and Amharic major titles.
 - Local Docker development allows Django requests addressed to `0.0.0.0:8000` through `DJANGO_ALLOWED_HOSTS`.
 - Development-only Swagger/OpenAPI documentation is available at `/api/docs/` and `/api/schema/`.
 - Docker Compose now runs Django migrations before starting backend services so installed app tables, including Simple JWT token blacklist tables, exist before API requests are served.
+- Local Docker backend, migration, Celery, and beat services now receive Gmail SMTP environment variables from `.env` so invitation approval sends through the configured email backend instead of the console backend.
+- Django email settings now select Gmail SMTP when `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD` are configured, while retaining Resend as a fallback integration.
 
 ---
 

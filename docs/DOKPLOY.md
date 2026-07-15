@@ -44,7 +44,7 @@ VITE_API_URL=https://api.example.com/api
 
 Store `DOKPLOY_DEPLOY_WEBHOOK_URL` as a GitHub repository secret. Store `VITE_API_URL` as a GitHub repository variable so the CI frontend build matches the production API target. If the variable is missing, CI falls back to `https://api.example.com/api` for validation only.
 
-Keep runtime secrets such as `DJANGO_SECRET_KEY`, database credentials, MinIO credentials, and `RESEND_API_KEY` in Dokploy. GitHub Actions only validates the images and triggers Dokploy; Dokploy remains the production runtime source of truth.
+Keep runtime secrets such as `DJANGO_SECRET_KEY`, database credentials, MinIO credentials, and `EMAIL_HOST_PASSWORD` in Dokploy. GitHub Actions only validates the images and triggers Dokploy; Dokploy remains the production runtime source of truth.
 
 ## Required Environment
 
@@ -83,12 +83,19 @@ AWS_S3_ADDRESSING_STYLE=path
 AWS_QUERYSTRING_AUTH=true
 AWS_QUERYSTRING_EXPIRE=3600
 
-RESEND_API_KEY=<resend-api-key>
-DEFAULT_FROM_EMAIL=<verified-sender>
+DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=true
+EMAIL_HOST_USER=demtse.yibabe@gmail.com
+EMAIL_HOST_PASSWORD=<gmail-app-password>
+DEFAULT_FROM_EMAIL=demtse.yibabe@gmail.com
 FRONTEND_URL=https://app.example.com
 VITE_API_URL=https://api.example.com/api
 VITE_USE_MOCK_API=false
 ```
+
+Use a Gmail app password for `EMAIL_HOST_PASSWORD`; never use or commit the normal Gmail password.
 
 ## First Deploy Checks
 
@@ -98,7 +105,7 @@ After deployment:
 2. Open `https://app.example.com`.
 3. Sign in with a seeded or created admin account.
 4. Submit and approve an application.
-5. Confirm an invitation email is sent through Resend.
+5. Confirm an invitation email is sent through Gmail SMTP.
 6. Upload a profile/program image and confirm signed media URLs work.
 7. Grade a submission and confirm the grade email is sent.
 8. Confirm Celery worker and beat containers stay running.

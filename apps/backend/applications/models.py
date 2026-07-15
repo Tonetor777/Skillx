@@ -16,13 +16,20 @@ class InvitationStatus(models.TextChoices):
     REVOKED = "REVOKED", "Revoked"
 
 
+class ExperienceLevel(models.TextChoices):
+    BEGINNER = "BEGINNER", "Beginner"
+    INTERMEDIATE = "INTERMEDIATE", "Intermediate"
+    ADVANCED = "ADVANCED", "Advanced"
+    PROFESSIONAL = "PROFESSIONAL", "Professional"
+
+
 class Application(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField()
     phone = models.CharField(max_length=64)
-    country = models.CharField(max_length=128)
-    experience = models.CharField(max_length=128)
-    motivation = models.TextField()
+    age = models.PositiveSmallIntegerField()
+    experience = models.CharField(max_length=32, choices=ExperienceLevel.choices)
+    expectations = models.TextField()
     program = models.ForeignKey("programs.Program", on_delete=models.PROTECT, related_name="applications")
     status = models.CharField(max_length=32, choices=ApplicationStatus.choices, default=ApplicationStatus.PENDING)
     submitted_at = models.DateTimeField(auto_now_add=True)

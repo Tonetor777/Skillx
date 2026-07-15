@@ -2,11 +2,12 @@
 
 ## Applicant to Student
 
-1. Applicant submits `/signup` with program, motivation, and contact details.
+1. Applicant submits `/signup` with name, email, phone, age, experience level, program selection, and program expectations.
 2. Admin or Super Admin reviews the signup application in the dashboard.
 3. Reviewer selects an eligible cohort in the applicant's program and approval creates an expiring invitation email for that cohort.
 4. Applicant accepts the invitation, sets a password, and becomes an active student in exactly one cohort.
-5. Rejected applications retain reviewer and review timestamp metadata.
+5. If the invitation expires before acceptance, Admin or Super Admin can reinvite the approved application from the applications dashboard.
+6. Rejected applications retain reviewer and review timestamp metadata.
 
 ## Authentication
 

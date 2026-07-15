@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from accounts.serializers import CurrentUserSerializer
-from applications.models import Application, Invitation
+from applications.models import Application, ExperienceLevel, Invitation
 from applications.services import accept_invitation
 
 
@@ -9,6 +9,8 @@ class ApplicationSerializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
     first_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
     last_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    age = serializers.IntegerField(min_value=13, max_value=120)
+    experience = serializers.ChoiceField(choices=ExperienceLevel.choices)
     program_id = serializers.CharField(write_only=True)
     program_name = serializers.CharField(source="program.title", read_only=True)
     status = serializers.SerializerMethodField()
@@ -25,10 +27,10 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "email",
             "program_id",
             "program_name",
-            "motivation",
             "phone",
-            "country",
+            "age",
             "experience",
+            "expectations",
             "status",
             "created_at",
             "reviewed_by_id",
@@ -65,9 +67,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
         attrs["name"] = f"{first_name} {last_name}".strip()
         if not attrs["name"]:
             raise serializers.ValidationError({"first_name": "Applicant name is required."})
-        attrs.setdefault("phone", "Not provided")
-        attrs.setdefault("country", "Not provided")
-        attrs.setdefault("experience", "Not provided")
         return attrs
 
 

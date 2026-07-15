@@ -63,9 +63,10 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `PATCH /api/resources/{id}/`: update a resource. Teacher/Admin/Super Admin only.
 - `DELETE /api/resources/{id}/`: delete a resource. Teacher/Admin/Super Admin only.
 - `GET /api/applications/`: list admissions applications. Admin/Super Admin only.
-- `POST /api/applications/`: create a public signup application with contact details, program selection, and motivation.
+- `POST /api/applications/`: create a public signup application with first name, last name, email, phone, age, choice-based experience level, program selection, and program expectations.
 - `GET /api/applications/{id}/`: retrieve an application. Admin/Super Admin only.
 - `POST /api/applications/{id}/approve/`: approve an application with required `cohort_id` and send an expiring cohort invitation. Admin/Super Admin only.
+- `POST /api/applications/{id}/reinvite/`: send a fresh invitation link for an approved application using its original invitation cohort. Admin/Super Admin only.
 - `POST /api/applications/{id}/reject/`: reject an application. Admin/Super Admin only.
 - `GET /api/invitations/`: list invitations. Admin/Super Admin only.
 - `POST /api/invitations/{token}/accept/`: accept a pending invitation and create or activate the student account.

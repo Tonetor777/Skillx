@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.choices import UserRole, UserStatus
-from applications.models import Application, ApplicationStatus, Invitation, InvitationStatus
+from applications.models import Application, ApplicationStatus, ExperienceLevel, Invitation, InvitationStatus
 from cohorts.models import Cohort, CohortStatus
 from programs.models import Program, ProgramStatus
 
@@ -47,7 +47,7 @@ def domain():
     return program, cohort
 
 
-def test_public_application_submission_accepts_contact_and_motivation_details():
+def test_public_application_submission_accepts_signup_profile_and_expectations_details():
     program, _ = domain()
     client = APIClient()
 
@@ -58,9 +58,9 @@ def test_public_application_submission_accepts_contact_and_motivation_details():
             "last_name": "Hopper",
             "email": "grace@example.com",
             "phone": "+251000000",
-            "country": "ET",
-            "experience": "Intermediate",
-            "motivation": "I want to join this cohort and build reliable software.",
+            "age": 28,
+            "experience": ExperienceLevel.INTERMEDIATE,
+            "expectations": "I expect mentor support, structured projects, and a clear path into reliable software delivery.",
             "program_id": str(program.id),
         },
         format="json",
@@ -68,8 +68,35 @@ def test_public_application_submission_accepts_contact_and_motivation_details():
 
     assert response.status_code == 201
     assert response.data["status"] == "pending"
+    assert response.data["age"] == 28
+    assert response.data["experience"] == ExperienceLevel.INTERMEDIATE
+    assert "country" not in response.data
+    assert "motivation" not in response.data
     assert "resume_url" not in response.data
     assert "payment_proof_url" not in response.data
+
+
+def test_public_application_submission_requires_valid_experience_choice():
+    program, _ = domain()
+    client = APIClient()
+
+    response = client.post(
+        "/api/applications/",
+        {
+            "first_name": "Grace",
+            "last_name": "Hopper",
+            "email": "invalid-experience@example.com",
+            "phone": "+251000000",
+            "age": 28,
+            "experience": "LEARNING_A_BIT",
+            "expectations": "I expect mentor support and structured projects throughout the program.",
+            "program_id": str(program.id),
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "experience" in response.data
 
 
 def test_invitation_accept_creates_student_and_prevents_reuse():
@@ -79,9 +106,9 @@ def test_invitation_accept_creates_student_and_prevents_reuse():
         name="Ada Lovelace",
         email="ada-invite@example.com",
         phone="Not provided",
-        country="Not provided",
-        experience="Not provided",
-        motivation="I want to build production systems.",
+        age=30,
+        experience=ExperienceLevel.BEGINNER,
+        expectations="I want to build production systems.",
         program=program,
     )
     approve_response = auth_client(super_admin).post(
@@ -138,9 +165,9 @@ def test_admin_and_super_admin_can_review_signup_applications():
         name="Katherine Johnson",
         email="katherine@example.com",
         phone="Not provided",
-        country="Not provided",
-        experience="Not provided",
-        motivation="I want to learn software delivery.",
+        age=32,
+        experience=ExperienceLevel.ADVANCED,
+        expectations="I want to learn software delivery.",
         program=program,
     )
 
@@ -160,6 +187,72 @@ def test_admin_and_super_admin_can_review_signup_applications():
     assert admin_approve_response.status_code == 200
     assert application.status == ApplicationStatus.APPROVED
     assert Invitation.objects.filter(email=application.email, status=InvitationStatus.PENDING).exists()
+
+
+def test_admin_can_reinvite_approved_application_with_expired_link():
+    program, cohort = domain()
+    admin = create_user("admin-reinvite@example.com", UserRole.ADMIN)
+    application = Application.objects.create(
+        name="Dorothy Vaughan",
+        email="dorothy@example.com",
+        phone="Not provided",
+        age=35,
+        experience=ExperienceLevel.INTERMEDIATE,
+        expectations="I want a fresh path into software delivery.",
+        program=program,
+        status=ApplicationStatus.APPROVED,
+        reviewed_by=admin,
+        reviewed_at=timezone.now(),
+    )
+    expired_invitation = Invitation.objects.create(
+        email=application.email,
+        cohort=cohort,
+        token="expired-application-token",
+        expires_at=timezone.now() - timedelta(hours=1),
+    )
+
+    response = auth_client(admin).post(f"/api/applications/{application.id}/reinvite/")
+
+    expired_invitation.refresh_from_db()
+    fresh_invitation = Invitation.objects.exclude(id=expired_invitation.id).get(email=application.email)
+    assert response.status_code == 200
+    assert response.data["status"] == "approved"
+    assert expired_invitation.status == InvitationStatus.REVOKED
+    assert fresh_invitation.status == InvitationStatus.PENDING
+    assert fresh_invitation.cohort == cohort
+    assert fresh_invitation.expires_at > timezone.now()
+    assert len(mail.outbox) == 1
+
+
+def test_reinvite_refuses_accepted_invitation():
+    program, cohort = domain()
+    admin = create_user("admin-reinvite-accepted@example.com", UserRole.ADMIN)
+    application = Application.objects.create(
+        name="Mary Jackson",
+        email="mary@example.com",
+        phone="Not provided",
+        age=34,
+        experience=ExperienceLevel.ADVANCED,
+        expectations="I want to grow into engineering leadership.",
+        program=program,
+        status=ApplicationStatus.APPROVED,
+        reviewed_by=admin,
+        reviewed_at=timezone.now(),
+    )
+    Invitation.objects.create(
+        email=application.email,
+        cohort=cohort,
+        token="accepted-application-token",
+        expires_at=timezone.now() + timedelta(hours=12),
+        status=InvitationStatus.ACCEPTED,
+        accepted_at=timezone.now(),
+    )
+
+    response = auth_client(admin).post(f"/api/applications/{application.id}/reinvite/")
+
+    assert response.status_code == 400
+    assert Invitation.objects.filter(email=application.email).count() == 1
+    assert len(mail.outbox) == 0
 
 
 def test_application_approval_requires_valid_open_cohort_for_selected_program():
@@ -187,9 +280,9 @@ def test_application_approval_requires_valid_open_cohort_for_selected_program():
             name="Invalid Cohort",
             email=email,
             phone="Not provided",
-            country="Not provided",
-            experience="Not provided",
-            motivation="I want to learn software delivery.",
+            age=25,
+            experience=ExperienceLevel.BEGINNER,
+            expectations="I want to learn software delivery.",
             program=program,
         )
 

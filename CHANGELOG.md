@@ -10,6 +10,8 @@ This project follows a modified version of Keep a Changelog.
 
 ## Added
 
+- Reinvite action for approved admissions applications so Admin/Super Admin users can send a fresh invitation link after the previous link expires.
+- Gmail SMTP email delivery configuration using a Gmail app password, with Docker Compose environment wiring for backend, migration, Celery, and beat services.
 - Cohort selection during admissions approval so Admin/Super Admin reviewers choose the exact cohort before sending an invitation.
 - Empty-record hard delete actions for programs and cohorts, with safeguards that block deletion when dependent records exist.
 - Per-user in-app announcement notifications with unread counts, dashboard badges, and mark-read actions.
@@ -51,6 +53,8 @@ This project follows a modified version of Keep a Changelog.
 
 ## Changed
 
+- Django email settings now prefer SMTP when SMTP credentials are configured, while keeping Resend available as an alternate backend.
+- Student signup applications now collect age, choice-based experience level, and program expectations, and no longer collect country.
 - Admissions review is available to Admin and Super Admin users, and approval now requires an eligible cohort in the applicant's selected program.
 - Student overview assignment cards now show status-aware actions such as Submit, Resubmit, View Grade, View Submission, or Closed.
 - Redesigned curriculum management into a reference-style two-pane layout with a left module/lesson navigator and right lesson reading canvas for Modules and embedded Program curriculum views.
@@ -73,6 +77,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Fixed
 
+- Docker Compose backend services now receive email provider environment variables from `.env`, allowing invitation emails to use the configured email backend in local Docker.
 - Local Docker backend, migration, and Celery services now receive explicit `DJANGO_DEBUG` and `DJANGO_SECRET_KEY` compose values so host shell settings cannot accidentally trigger production secret validation during development.
 - OpenAPI schema generation now has safer view/queryset handling and clearer serializer method field typing.
 - Removed frontend API-client debug console output from production-facing request paths.

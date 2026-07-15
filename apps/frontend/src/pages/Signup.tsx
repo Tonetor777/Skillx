@@ -7,24 +7,32 @@ import { AlertCircle, ArrowUpRight, Loader2, Send } from 'lucide-react';
 import { usePublicPrograms } from '../features/programs/api/programs';
 import { useCreateApplication } from '../features/applications/api/applications';
 
+const experienceOptions = [
+  { value: 'BEGINNER', label: 'Beginner' },
+  { value: 'INTERMEDIATE', label: 'Intermediate' },
+  { value: 'ADVANCED', label: 'Advanced' },
+  { value: 'PROFESSIONAL', label: 'Professional' },
+] as const;
+
 const schema = z.object({
   first_name: z.string().min(1, 'First name is required'),
   last_name: z.string().min(1, 'Last name is required'),
   email: z.string().email('Enter a valid email'),
   phone: z.string().min(1, 'Phone is required'),
-  country: z.string().min(1, 'Country is required'),
-  experience: z.string().min(1, 'Experience is required'),
+  age: z.coerce.number({ message: 'Age is required' }).int('Age must be a whole number').min(13, 'Age must be at least 13').max(120, 'Age must be 120 or less'),
+  experience: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'PROFESSIONAL'], { message: 'Choose an experience level' }),
   program_id: z.string().min(1, 'Select a program'),
-  motivation: z.string().min(20, 'Motivation must be at least 20 characters'),
+  expectations: z.string().min(20, 'Program expectations must be at least 20 characters'),
 });
 
-type FormValues = z.infer<typeof schema>;
+type FormInputValues = z.input<typeof schema>;
+type FormValues = z.output<typeof schema>;
 
 export default function Signup() {
   const { data: programs = [], isLoading: programsLoading, isError: programsError } = usePublicPrograms();
   const createApplication = useCreateApplication();
   const [submitted, setSubmitted] = useState(false);
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormInputValues, unknown, FormValues>({
     resolver: zodResolver(schema),
   });
 
@@ -74,10 +82,15 @@ export default function Signup() {
 
           <input className="skx-field" placeholder="First name" disabled={submitted} {...register('first_name')} />
           <input className="skx-field" placeholder="Last name" disabled={submitted} {...register('last_name')} />
-          <input className="skx-field" placeholder="Email" disabled={submitted} {...register('email')} />
-          <input className="skx-field" placeholder="Phone" disabled={submitted} {...register('phone')} />
-          <input className="skx-field" placeholder="Country" disabled={submitted} {...register('country')} />
-          <input className="skx-field" placeholder="Experience level" disabled={submitted} {...register('experience')} />
+          <input className="skx-field" type="email" placeholder="Email" disabled={submitted} {...register('email')} />
+          <input className="skx-field" type="tel" placeholder="Phone number" disabled={submitted} {...register('phone')} />
+          <input className="skx-field" type="number" min={13} max={120} placeholder="Age" disabled={submitted} {...register('age')} />
+          <select className="skx-field" disabled={submitted} {...register('experience')}>
+            <option value="">Experience level</option>
+            {experienceOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
 
           <select className="skx-field md:col-span-2" disabled={isProgramSelectDisabled} {...register('program_id')}>
             <option value="">
@@ -88,9 +101,9 @@ export default function Signup() {
 
           <textarea
             className="skx-field md:col-span-2 min-h-32"
-            placeholder="Why do you want to join?"
+            placeholder="What do you expect from the program?"
             disabled={submitted}
-            {...register('motivation')}
+            {...register('expectations')}
           />
 
           {Object.values(errors)[0] && (

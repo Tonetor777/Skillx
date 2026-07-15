@@ -50,3 +50,14 @@ export const useRejectApplication = () => {
     },
   });
 };
+
+export const useReinviteApplication = () => {
+  const queryClient = useQueryClient();
+  return useMutation<Application, Error, string>({
+    mutationFn: (id) => apiClient.post(`/applications/${id}/reinvite`, {}),
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['applications', id] });
+    },
+  });
+};

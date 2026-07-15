@@ -124,6 +124,18 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
         }
       }
 
+      if (endpoint.includes('/reinvite')) {
+        const index = apps.findIndex(a => a.id === appId);
+        if (index > -1) {
+          if (apps[index].status !== 'approved') {
+            throw new ApiError(400, 'Only approved applications can be reinvited.', {
+              detail: 'Only approved applications can be reinvited.',
+            });
+          }
+          return apps[index];
+        }
+      }
+
       if (found) return found;
       throw new ApiError(404, 'Application not found');
     }
@@ -136,9 +148,12 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
         first_name: body.first_name,
         last_name: body.last_name,
         email: body.email,
+        phone: body.phone,
+        age: Number(body.age),
+        experience: body.experience,
         program_id: body.program_id,
         program_name: prog.name,
-        motivation: body.motivation,
+        expectations: body.expectations,
         status: 'pending',
         created_at: new Date().toISOString()
       };

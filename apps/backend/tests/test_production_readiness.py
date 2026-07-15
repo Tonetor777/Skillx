@@ -51,6 +51,31 @@ def test_production_settings_default_to_https_protections(monkeypatch):
     importlib.reload(settings_module)
 
 
+def test_gmail_smtp_environment_configures_email_backend(monkeypatch):
+    monkeypatch.delenv("DJANGO_EMAIL_BACKEND", raising=False)
+    monkeypatch.delenv("RESEND_API_KEY", raising=False)
+    monkeypatch.setenv("EMAIL_HOST", "smtp.gmail.com")
+    monkeypatch.setenv("EMAIL_PORT", "587")
+    monkeypatch.setenv("EMAIL_USE_TLS", "true")
+    monkeypatch.setenv("EMAIL_HOST_USER", "demtse.yibabe@gmail.com")
+    monkeypatch.setenv("EMAIL_HOST_PASSWORD", "app-password-placeholder")
+    monkeypatch.setenv("DEFAULT_FROM_EMAIL", "demtse.yibabe@gmail.com")
+
+    import skilix.settings as settings_module
+
+    reloaded = importlib.reload(settings_module)
+
+    assert reloaded.EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
+    assert reloaded.EMAIL_HOST == "smtp.gmail.com"
+    assert reloaded.EMAIL_PORT == 587
+    assert reloaded.EMAIL_USE_TLS is True
+    assert reloaded.EMAIL_HOST_USER == "demtse.yibabe@gmail.com"
+    assert reloaded.DEFAULT_FROM_EMAIL == "demtse.yibabe@gmail.com"
+
+    monkeypatch.delenv("EMAIL_HOST_PASSWORD", raising=False)
+    importlib.reload(settings_module)
+
+
 @override_settings(
     RESEND_API_KEY="test-resend-key",
     DEFAULT_FROM_EMAIL="no-reply@example.com",

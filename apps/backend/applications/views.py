@@ -8,7 +8,7 @@ from accounts.permissions import IsActiveUser, IsAdminOrSuperAdmin
 from accounts.serializers import CurrentUserSerializer
 from applications.models import Application, Invitation
 from applications.serializers import ApplicationSerializer, InvitationAcceptSerializer, InvitationSerializer
-from applications.services import approve_application, reject_application, resend_invitation, revoke_invitation
+from applications.services import approve_application, reject_application, reinvite_application, resend_invitation, revoke_invitation
 
 
 class ApplicationViewSet(ModelViewSet):
@@ -21,7 +21,7 @@ class ApplicationViewSet(ModelViewSet):
         return Application.objects.select_related("program", "reviewed_by").all()
 
     def get_permissions(self):
-        if self.action in {"list", "retrieve", "approve", "reject"}:
+        if self.action in {"list", "retrieve", "approve", "reject", "reinvite"}:
             return [IsAdminOrSuperAdmin()]
         if self.action == "create":
             return [AllowAny()]
@@ -36,6 +36,11 @@ class ApplicationViewSet(ModelViewSet):
     def reject(self, request, pk=None):
         application = reject_application(self.get_object(), request.user)
         return Response(self.get_serializer(application).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAdminOrSuperAdmin])
+    def reinvite(self, request, pk=None):
+        reinvite_application(self.get_object())
+        return Response(self.get_serializer(self.get_object()).data)
 
 
 class InvitationViewSet(ModelViewSet):

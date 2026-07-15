@@ -43,12 +43,16 @@ Build the first production-ready version of Skilix.
 | Feature | Status | Notes |
 |----------|--------|-------|
 | Signup to Program | ✅ | Public `/signup` frontend submission flow creates pending student signup applications. |
+| Signup Field Update | ✅ Completed | Public signup now collects first name, last name, email, phone number, age, choice-based experience level, and program expectations while removing country. |
 | Upload Resume | ✅ Removed | Removed from the redesigned MVP application flow. |
 | Upload Payment Proof | ✅ Removed | Removed from the redesigned MVP application flow. |
 | Review Applications | ✅ | Admin/Super Admin application review with cohort selection is implemented. |
 | Approve Application | ✅ | Approval requires explicit cohort selection and sends an invitation email for password setup. |
 | Reject Application | ✅ | Admin/Super Admin rejection API records review metadata. |
 | Invitation Email | ✅ | Expiring invitation email, accept, resend, and revoke flow is implemented. |
+| Reinvite Approved Application | ✅ Completed | Admin/Super Admin dashboard can resend a fresh invite for approved applicants whose previous invitation expired. |
+| Local Invitation Email Configuration | ✅ Completed | Docker Compose backend services pass email provider environment variables from `.env`. |
+| Gmail SMTP Email Delivery | ✅ Completed | Django email settings and Docker environment support Gmail SMTP with an app password. |
 
 ---
 
@@ -211,7 +215,8 @@ Build the first production-ready version of Skilix.
 | Feature | Status | Notes |
 |----------|--------|-------|
 | Production security settings | ✅ Completed | Django settings enforce strong runtime secrets for production and expose env-driven HTTPS, CORS, CSRF, HSTS, cookie, proxy, and throttle settings. |
-| Resend email delivery | ✅ Completed | Resend-compatible Django email backend is implemented while console email remains the local default. |
+| Resend email delivery | ✅ Completed | Resend-compatible Django email backend is available as an alternate integration. |
+| Gmail SMTP email delivery | ✅ Completed | Gmail SMTP settings with app-password support are implemented as the active email delivery path. |
 | Railway backend deployment | ✅ Completed | Root Railway config and backend Dockerfile are available with migration, Gunicorn, and health check commands. |
 | Vercel frontend deployment | ✅ Completed | Vercel SPA rewrite remains configured; production `VITE_API_URL` is documented. |
 | Dokploy all-in-one deployment | ✅ Completed | Production compose stack, frontend Nginx image, and Dokploy runbook are available for separate frontend/API domains. |

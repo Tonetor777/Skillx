@@ -226,9 +226,12 @@ export interface Application {
   first_name: string;
   last_name: string;
   email: string;
+  phone: string;
+  age: number;
+  experience: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'PROFESSIONAL';
   program_id: string;
   program_name: string;
-  motivation: string;
+  expectations: string;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   reviewed_by_id?: string;

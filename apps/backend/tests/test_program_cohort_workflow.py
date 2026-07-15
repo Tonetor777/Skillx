@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.choices import UserRole, UserStatus
-from applications.models import Application
+from applications.models import Application, ExperienceLevel
 from cohorts.models import Cohort, CohortStatus, TeacherAssignment, TeacherAssignmentRole
 from programs.models import Program, ProgramStatus
 
@@ -105,9 +105,9 @@ def test_non_empty_program_delete_is_blocked_with_clear_error():
         name="Applicant",
         email="applicant@example.com",
         phone="Not provided",
-        country="Not provided",
-        experience="Not provided",
-        motivation="I want to join.",
+        age=24,
+        experience=ExperienceLevel.BEGINNER,
+        expectations="I want to join.",
         program=program,
     )
 

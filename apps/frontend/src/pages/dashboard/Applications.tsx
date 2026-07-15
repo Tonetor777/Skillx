@@ -6,7 +6,8 @@ import {
   useApplications, 
   useCreateApplication, 
   useApproveApplication, 
-  useRejectApplication 
+  useRejectApplication,
+  useReinviteApplication
 } from '../../features/applications/api/applications';
 import { usePrograms } from '../../features/programs/api/programs';
 import { useCohorts } from '../../features/cohorts/api/cohorts';
@@ -24,19 +25,33 @@ import {
   PlusCircle, 
   Compass,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+
+const experienceOptions = [
+  { value: 'BEGINNER', label: 'Beginner' },
+  { value: 'INTERMEDIATE', label: 'Intermediate' },
+  { value: 'ADVANCED', label: 'Advanced' },
+  { value: 'PROFESSIONAL', label: 'Professional' },
+] as const;
+
+const experienceLabelByValue = Object.fromEntries(experienceOptions.map((option) => [option.value, option.label]));
 
 const applicationSchema = z.object({
   first_name: z.string().min(2, { message: 'First name must be at least 2 characters long' }),
   last_name: z.string().min(2, { message: 'Last name must be at least 2 characters long' }),
   email: z.string().email({ message: 'Must be a valid email address' }),
+  phone: z.string().min(1, { message: 'Phone number is required' }),
+  age: z.coerce.number({ message: 'Age is required' }).int({ message: 'Age must be a whole number' }).min(13, { message: 'Age must be at least 13' }).max(120, { message: 'Age must be 120 or less' }),
+  experience: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'PROFESSIONAL'], { message: 'Choose an experience level' }),
   program_id: z.string().min(1, { message: 'Must select a program' }),
-  motivation: z.string().min(20, { message: 'Motivation details must be at least 20 characters' }),
+  expectations: z.string().min(20, { message: 'Program expectations must be at least 20 characters' }),
 });
 
-type ApplicationFormValues = z.infer<typeof applicationSchema>;
+type ApplicationFormInputValues = z.input<typeof applicationSchema>;
+type ApplicationFormValues = z.output<typeof applicationSchema>;
 
 export default function Applications() {
   const { user } = useAuth();
@@ -58,6 +73,7 @@ export default function Applications() {
   const createApplicationMutation = useCreateApplication();
   const approveMutation = useApproveApplication();
   const rejectMutation = useRejectApplication();
+  const reinviteMutation = useReinviteApplication();
 
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [approvalCohortId, setApprovalCohortId] = useState('');
@@ -69,14 +85,17 @@ export default function Applications() {
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<ApplicationFormValues>({
+  } = useForm<ApplicationFormInputValues, unknown, ApplicationFormValues>({
     resolver: zodResolver(applicationSchema),
     defaultValues: {
       first_name: '',
       last_name: '',
       email: '',
+      phone: '',
+      age: 18,
+      experience: 'BEGINNER',
       program_id: '',
-      motivation: '',
+      expectations: '',
     },
   });
 
@@ -114,6 +133,15 @@ export default function Applications() {
       triggerToast('Application rejected. Registry state updated.', 'info');
     } catch {
       return;
+    }
+  };
+
+  const handleReinvite = async (id: string) => {
+    try {
+      await reinviteMutation.mutateAsync(id);
+      triggerToast('Fresh invitation link sent to the approved applicant.', 'success');
+    } catch (reinviteError) {
+      triggerToast(reinviteError instanceof Error ? reinviteError.message : 'Reinvite failed.', 'error');
     }
   };
 
@@ -178,7 +206,7 @@ export default function Applications() {
           <h1 className="mt-3 text-4xl md:text-5xl skx-amharic-title">የመግቢያ ማመልከቻዎች</h1>
           <p className="mt-2 font-display text-lg font-bold text-[#141414]">Student Signup Requests</p>
           <p className="text-[#5f5f5a] text-sm mt-2">
-            Review applicant profiles, motivation letters, and send approved students an email invitation.
+            Review applicant profiles, program expectations, and send approved students an email invitation.
           </p>
         </div>
         <button
@@ -229,12 +257,22 @@ export default function Applications() {
                   {new Date(selectedApp.created_at).toLocaleString()}
                 </span>
               </div>
+              <div className="p-3.5 bg-gray-50 rounded-lg">
+                <span className="text-[10px] font-bold text-gray-400 uppercase">Phone Number:</span>
+                <span className="text-sm font-semibold text-gray-800 block mt-1">{selectedApp.phone}</span>
+              </div>
+              <div className="p-3.5 bg-gray-50 rounded-lg">
+                <span className="text-[10px] font-bold text-gray-400 uppercase">Age & Experience:</span>
+                <span className="text-sm font-semibold text-gray-800 block mt-1">
+                  {selectedApp.age} years old - {experienceLabelByValue[selectedApp.experience]}
+                </span>
+              </div>
             </div>
 
             <div>
-              <span className="text-xs font-bold text-gray-400 uppercase block mb-2">Statement of Motivation</span>
+              <span className="text-xs font-bold text-gray-400 uppercase block mb-2">Program Expectations</span>
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-48 overflow-y-auto">
-                <p className="text-sm text-gray-700 leading-relaxed font-sans">{selectedApp.motivation}</p>
+                <p className="text-sm text-gray-700 leading-relaxed font-sans">{selectedApp.expectations}</p>
               </div>
             </div>
 
@@ -275,24 +313,38 @@ export default function Applications() {
                 </div>
               </div>
             ) : (
-              <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl">
-                <div>
-                  <span className="text-xs text-gray-400 block font-semibold">Admissions Verdict:</span>
-                  <span className={`text-sm font-bold mt-1 inline-block capitalize ${
-                    selectedApp.status === 'approved' ? 'text-emerald-700' : 'text-red-700'
-                  }`}>
-                    {selectedApp.status}
-                  </span>
-                </div>
-                {selectedApp.reviewed_by_name && (
-                  <div className="text-right">
-                    <span className="text-xs text-gray-400 block">Evaluated By:</span>
-                    <span className="text-xs font-semibold text-gray-700 mt-1 block">
-                      {selectedApp.reviewed_by_name} on {new Date(selectedApp.reviewed_at || '').toLocaleDateString()}
+              <>
+                <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl">
+                  <div>
+                    <span className="text-xs text-gray-400 block font-semibold">Admissions Verdict:</span>
+                    <span className={`text-sm font-bold mt-1 inline-block capitalize ${
+                      selectedApp.status === 'approved' ? 'text-emerald-700' : 'text-red-700'
+                    }`}>
+                      {selectedApp.status}
                     </span>
                   </div>
+                  {selectedApp.reviewed_by_name && (
+                    <div className="text-right">
+                      <span className="text-xs text-gray-400 block">Evaluated By:</span>
+                      <span className="text-xs font-semibold text-gray-700 mt-1 block">
+                        {selectedApp.reviewed_by_name} on {new Date(selectedApp.reviewed_at || '').toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {selectedApp.status === 'approved' && (
+                  <div className="flex justify-end pt-4">
+                    <button
+                      onClick={() => handleReinvite(selectedApp.id)}
+                      disabled={reinviteMutation.isPending}
+                      className="flex items-center gap-1.5 px-4 py-2 border border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
+                    >
+                      {reinviteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                      Reinvite Applicant
+                    </button>
+                  </div>
                 )}
-              </div>
+              </>
             )}
           </motion.div>
         </div>
@@ -342,6 +394,41 @@ export default function Applications() {
                 {errors.email && <span className="text-xs text-red-600 mt-1 block">{errors.email.message}</span>}
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-semibold text-gray-700">Phone Number</label>
+                  <input
+                    type="tel"
+                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                    {...register('phone')}
+                  />
+                  {errors.phone && <span className="text-xs text-red-600 mt-1 block">{errors.phone.message}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700">Age</label>
+                  <input
+                    type="number"
+                    min={13}
+                    max={120}
+                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                    {...register('age')}
+                  />
+                  {errors.age && <span className="text-xs text-red-600 mt-1 block">{errors.age.message}</span>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700">Experience</label>
+                  <select
+                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                    {...register('experience')}
+                  >
+                    {experienceOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  {errors.experience && <span className="text-xs text-red-600 mt-1 block">{errors.experience.message}</span>}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-700">Program Desired</label>
                 <select
@@ -357,14 +444,14 @@ export default function Applications() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700">Why are you signing up for this cohort?</label>
+                <label className="block text-xs font-semibold text-gray-700">What do they expect from the program?</label>
                 <textarea
                   rows={4}
                   className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                  placeholder="Introduce yourself, your coding background, and professional goals (min 20 characters)."
-                  {...register('motivation')}
+                  placeholder="Describe the support, outcomes, and learning structure they expect (min 20 characters)."
+                  {...register('expectations')}
                 />
-                {errors.motivation && <span className="text-xs text-red-600 mt-1 block">{errors.motivation.message}</span>}
+                {errors.expectations && <span className="text-xs text-red-600 mt-1 block">{errors.expectations.message}</span>}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-5">

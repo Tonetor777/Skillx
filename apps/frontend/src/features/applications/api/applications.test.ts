@@ -13,3 +13,8 @@ test('application approval refreshes admissions and cohort data', () => {
   assert.ok(source.includes("queryClient.invalidateQueries({ queryKey: ['applications'] })"));
   assert.ok(source.includes("queryClient.invalidateQueries({ queryKey: ['cohorts'] })"));
 });
+
+test('approved applications can request a fresh invitation link', () => {
+  assert.ok(source.includes('useReinviteApplication'));
+  assert.ok(source.includes("apiClient.post(`/applications/${id}/reinvite`, {})"));
+});
