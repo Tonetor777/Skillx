@@ -233,7 +233,7 @@ export default function Programs() {
           </div>
         )}
 
-        <section className="space-y-4">
+        <section className="min-h-[calc(100vh-8rem)] space-y-4">
           <div>
             <p className="skx-page-label">Live Cohort Curriculum</p>
             <h2 className="mt-2 text-xl font-bold text-slate-800 font-sans tracking-tight">

@@ -4,10 +4,14 @@ import {
   BookOpen,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   Edit3,
   ExternalLink,
   FileText,
   Loader2,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Trash2,
   X,
@@ -110,6 +114,9 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
   const [lessonForm, setLessonForm] = useState<LessonForm>(emptyLessonForm);
   const [resourceForm, setResourceForm] = useState<ResourceForm>(emptyResourceForm);
   const [message, setMessage] = useState('');
+  const [navigatorCollapsed, setNavigatorCollapsed] = useState(false);
+  const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(new Set());
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
 
   const { data: cohorts = [] } = useCohorts();
   const cohortOptions = useMemo(() => {
@@ -158,6 +165,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
     const lessons = selectedModule?.lessons ?? [];
     return lessons.find((lesson) => lesson.id === selectedLessonId) ?? lessons[0];
   }, [selectedLessonId, selectedModule]);
+  const selectedWeekNumber = selectedModule?.module_number;
 
   useEffect(() => {
     if (flatModules.length === 0) {
@@ -182,6 +190,24 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
     }
   }, [flatModules, selectedLessonId, selectedModuleId]);
 
+  useEffect(() => {
+    if (!selectedModule) return;
+    setExpandedWeeks((current) => {
+      if (current.has(selectedModule.module_number)) return current;
+      const next = new Set(current);
+      next.add(selectedModule.module_number);
+      return next;
+    });
+    if (selectedModule.id) {
+      setExpandedModules((current) => {
+        if (current.has(selectedModule.id!)) return current;
+        const next = new Set(current);
+        next.add(selectedModule.id!);
+        return next;
+      });
+    }
+  }, [selectedModule]);
+
   if (!user) return null;
 
   const showMessage = (text: string) => {
@@ -199,8 +225,54 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
     setResourceForm(emptyResourceForm);
   };
 
+  const expandModuleBranch = (module: Module) => {
+    setExpandedWeeks((current) => {
+      const next = new Set(current);
+      next.add(module.module_number);
+      return next;
+    });
+    if (module.id) {
+      setExpandedModules((current) => {
+        const next = new Set(current);
+        next.add(module.id!);
+        return next;
+      });
+    }
+  };
+
+  const toggleWeek = (week: number) => {
+    setExpandedWeeks((current) => {
+      const next = new Set(current);
+      if (next.has(week)) {
+        next.delete(week);
+      } else {
+        next.add(week);
+      }
+      return next;
+    });
+  };
+
+  const toggleModule = (module: Module) => {
+    if (!module.id) return;
+    setExpandedModules((current) => {
+      const next = new Set(current);
+      if (next.has(module.id!)) {
+        next.delete(module.id!);
+      } else {
+        next.add(module.id!);
+      }
+      return next;
+    });
+  };
+
   const openModuleForm = (week: number, module?: Module) => {
     setSelectedModuleId(module?.id ?? null);
+    setExpandedWeeks((current) => {
+      const next = new Set(current);
+      next.add(week);
+      return next;
+    });
+    if (module) expandModuleBranch(module);
     setActiveForm({ type: 'module', week, module });
     setModuleForm({
       id: module?.id,
@@ -216,6 +288,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
   const openLessonForm = (module: Module, lesson?: Lesson) => {
     setSelectedModuleId(module.id ?? null);
     setSelectedLessonId(lesson?.id ?? null);
+    expandModuleBranch(module);
     setActiveForm({ type: 'lesson', module, lesson });
     setLessonForm({
       id: lesson?.id,
@@ -233,6 +306,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
     const parentModule = modules.find((module) => module.lessons.some((item) => item.id === lesson.id));
     if (parentModule) {
       setSelectedModuleId(parentModule.id ?? null);
+      expandModuleBranch(parentModule);
     }
     setSelectedLessonId(lesson.id ?? null);
     setActiveForm({ type: 'resource', lesson, resource });
@@ -248,12 +322,14 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
   const selectModule = (module: Module) => {
     setSelectedModuleId(module.id ?? null);
     setSelectedLessonId(module.lessons[0]?.id ?? null);
+    expandModuleBranch(module);
     setActiveForm(null);
   };
 
   const selectLesson = (module: Module, lesson: Lesson) => {
     setSelectedModuleId(module.id ?? null);
     setSelectedLessonId(lesson.id ?? null);
+    expandModuleBranch(module);
     setActiveForm(null);
   };
 
@@ -409,7 +485,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
   }
 
   return (
-    <div className="space-y-8">
+    <div className={embedded ? 'space-y-5' : 'space-y-8'}>
       {message && (
         <div className="fixed top-20 right-6 z-50 flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg">
           <Check className="h-4 w-4" />
@@ -428,193 +504,266 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
         </div>
       )}
 
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:sticky xl:top-4 xl:max-h-[calc(100vh-7rem)]">
-          <div className="space-y-4 border-b border-slate-100 p-4">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Curriculum Navigator</p>
-              <h2 className="mt-1 text-lg font-bold text-slate-950">Module list</h2>
-            </div>
-
-            {isStaff && (
-              <label className="block">
-                <span className="text-xs font-bold uppercase text-slate-500">Cohort</span>
-                <select
-                  value={effectiveCohortId}
-                  onChange={(event) => {
-                    setSelectedCohortId(event.target.value);
-                    setSelectedModuleId(null);
-                    setSelectedLessonId(null);
-                    closeForm();
-                  }}
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                >
-                  {!programId && <option value="">All assigned cohorts</option>}
-                  {programId && cohortOptions.length === 0 && <option value="">No cohorts available</option>}
-                  {cohortOptions.map((cohort) => (
-                    <option key={cohort.id} value={cohort.id}>{cohort.name} · {cohort.program_name}</option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            <label className="block">
-              <span className="text-xs font-bold uppercase text-slate-500">Module</span>
-              <select
-                value={selectedModule?.id ?? ''}
-                onChange={(event) => {
-                  const nextModule = flatModules.find((module) => module.id === event.target.value);
-                  if (nextModule) selectModule(nextModule);
-                }}
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-              >
-                {flatModules.length === 0 && <option value="">No modules available</option>}
-                {flatModules.map((module) => (
-                  <option key={module.id ?? module.title} value={module.id}>
-                    Week {module.module_number}: {module.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {isStaff && (
+      <section
+        className={`grid grid-cols-1 gap-5 xl:min-h-[calc(100vh-8rem)] xl:items-start ${
+          navigatorCollapsed ? 'xl:grid-cols-[88px_minmax(0,1fr)]' : 'xl:grid-cols-[360px_minmax(0,1fr)]'
+        }`}
+      >
+        <aside className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:sticky xl:top-20 xl:flex xl:max-h-[calc(100vh-7rem)] xl:flex-col">
+          <div className="border-b border-slate-100 p-4">
+            <div className="flex items-start justify-between gap-3">
+              {!navigatorCollapsed && (
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Curriculum Navigator</p>
+                  <h2 className="mt-1 truncate text-lg font-bold text-slate-950">Module list</h2>
+                </div>
+              )}
               <button
                 type="button"
-                onClick={() => openModuleForm(nextWeekNumber)}
-                disabled={!effectiveCohortId && cohortOptions.length === 0}
-                className="skx-primary-btn w-full justify-center disabled:opacity-50"
+                onClick={() => setNavigatorCollapsed((value) => !value)}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50"
+                aria-label={navigatorCollapsed ? 'Expand curriculum navigator' : 'Collapse curriculum navigator'}
+                title={navigatorCollapsed ? 'Expand navigator' : 'Collapse navigator'}
               >
-                <Plus className="h-4 w-4" />
-                Add Week
+                {navigatorCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
               </button>
-            )}
-          </div>
+            </div>
 
-          <div className="max-h-[520px] overflow-y-auto p-3 xl:max-h-[calc(100vh-24rem)]">
-            {weekGroups.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-                <BookOpen className="mx-auto mb-3 h-9 w-9 text-slate-400" />
-                <h3 className="text-sm font-bold text-slate-800">No curriculum content</h3>
-                <p className="mt-1 text-xs text-slate-500">
-                  {isStaff ? 'Create the first week module to begin.' : 'Published lessons will appear here.'}
-                </p>
+            {navigatorCollapsed ? (
+              <div className="mt-4 hidden space-y-3 text-center xl:block">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-3">
+                  <span className="block text-[10px] font-bold uppercase text-slate-500">Week</span>
+                  <span className="mt-1 block text-lg font-bold text-slate-950">{selectedWeekNumber ?? '-'}</span>
+                </div>
                 {isStaff && (
                   <button
                     type="button"
-                    onClick={() => openModuleForm(1)}
+                    onClick={() => openModuleForm(nextWeekNumber)}
                     disabled={!effectiveCohortId && cohortOptions.length === 0}
-                    className="skx-primary-btn mx-auto mt-4 justify-center disabled:opacity-50"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-900 bg-slate-900 text-white disabled:opacity-50"
+                    aria-label="Add week"
+                    title="Add week"
                   >
-                    <Plus className="h-4 w-4" /> Add First Week
+                    <Plus className="h-4 w-4" />
                   </button>
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
-                {weekGroups.map((group) => (
-                  <section key={group.week} className="space-y-2">
-                    <div className="flex items-center justify-between gap-2 px-1">
-                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Week {group.week}</h3>
-                      {isStaff && (
-                        <button
-                          type="button"
-                          onClick={() => openModuleForm(group.week)}
-                          className="rounded-md border border-slate-200 p-1.5 text-slate-500 hover:text-slate-900"
-                          aria-label={`Add module to week ${group.week}`}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
+              <div className="mt-4 space-y-4">
+                {isStaff && (
+                  <label className="block">
+                    <span className="text-xs font-bold uppercase text-slate-500">Cohort</span>
+                    <select
+                      value={effectiveCohortId}
+                      onChange={(event) => {
+                        setSelectedCohortId(event.target.value);
+                        setSelectedModuleId(null);
+                        setSelectedLessonId(null);
+                        setExpandedWeeks(new Set());
+                        setExpandedModules(new Set());
+                        closeForm();
+                      }}
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                    >
+                      {!programId && <option value="">All assigned cohorts</option>}
+                      {programId && cohortOptions.length === 0 && <option value="">No cohorts available</option>}
+                      {cohortOptions.map((cohort) => (
+                        <option key={cohort.id} value={cohort.id}>{cohort.name} · {cohort.program_name}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
 
-                    {group.modules.map((module) => {
-                      const isModuleSelected = selectedModule?.id === module.id;
-                      return (
-                        <article
-                          key={module.id ?? module.title}
-                          className={`rounded-lg border transition ${isModuleSelected ? 'border-indigo-200 bg-indigo-50/40' : 'border-slate-100 bg-white'}`}
-                        >
-                          <div className="flex items-start gap-2 p-2">
-                            <button
-                              type="button"
-                              onClick={() => selectModule(module)}
-                              className="min-w-0 flex-1 rounded-md px-2 py-2 text-left hover:bg-white"
-                            >
-                              <span className="block truncate text-sm font-bold text-slate-900">{module.title}</span>
-                              <span className="mt-1 inline-flex rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">{module.status}</span>
-                            </button>
-                            {isStaff && module.id && (
-                              <div className="flex shrink-0 items-center gap-1 pt-1">
-                                {module.status !== 'published' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => publishModule.mutate(module.id!)}
-                                    className="rounded-md border border-emerald-200 p-1.5 text-emerald-700 hover:bg-emerald-50"
-                                    aria-label="Publish module"
-                                  >
-                                    <Check className="h-3.5 w-3.5" />
-                                  </button>
-                                )}
-                                <button type="button" onClick={() => openModuleForm(group.week, module)} className="rounded-md border border-slate-200 p-1.5 text-slate-500 hover:text-slate-900" aria-label="Edit module"><Edit3 className="h-3.5 w-3.5" /></button>
-                                <button type="button" onClick={() => deleteModule.mutate(module.id!)} className="rounded-md border border-rose-100 p-1.5 text-rose-500 hover:text-rose-700" aria-label="Delete module"><Trash2 className="h-3.5 w-3.5" /></button>
-                              </div>
-                            )}
-                          </div>
+                <label className="block">
+                  <span className="text-xs font-bold uppercase text-slate-500">Module</span>
+                  <select
+                    value={selectedModule?.id ?? ''}
+                    onChange={(event) => {
+                      const nextModule = flatModules.find((module) => module.id === event.target.value);
+                      if (nextModule) selectModule(nextModule);
+                    }}
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                  >
+                    {flatModules.length === 0 && <option value="">No modules available</option>}
+                    {flatModules.map((module) => (
+                      <option key={module.id ?? module.title} value={module.id}>
+                        Week {module.module_number}: {module.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                          <div className="border-t border-slate-100">
-                            {module.lessons.length === 0 ? (
-                              <div className="flex items-center justify-between gap-2 px-4 py-3 text-xs text-slate-500">
-                                <span>No lessons yet.</span>
-                                {isStaff && (
-                                  <button type="button" onClick={() => openLessonForm(module)} className="font-bold text-indigo-700">Add Lesson</button>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="divide-y divide-slate-100">
-                                {module.lessons.map((lesson) => {
-                                  const isLessonSelected = selectedLesson?.id === lesson.id;
-                                  return (
-                                    <div key={lesson.id ?? lesson.order} className={`flex items-center gap-2 px-3 py-2 ${isLessonSelected ? 'bg-white' : ''}`}>
-                                      <button
-                                        type="button"
-                                        onClick={() => selectLesson(module, lesson)}
-                                        className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-slate-50"
-                                      >
-                                        <FileText className="h-4 w-4 shrink-0 text-slate-500" />
-                                        <span className="truncate text-sm font-medium text-slate-700">{lesson.title}</span>
-                                      </button>
-                                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-label="Available lesson" />
-                                      {isStaff && lesson.id && (
-                                        <div className="flex shrink-0 items-center gap-1">
-                                          <button type="button" onClick={() => openLessonForm(module, lesson)} className="rounded-md border border-slate-200 p-1.5 text-slate-500 hover:text-slate-900" aria-label="Edit lesson"><Edit3 className="h-3.5 w-3.5" /></button>
-                                          <button type="button" onClick={() => deleteLesson.mutate(lesson.id!)} className="rounded-md border border-rose-100 p-1.5 text-rose-500 hover:text-rose-700" aria-label="Delete lesson"><Trash2 className="h-3.5 w-3.5" /></button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-
-                          {isStaff && module.lessons.length > 0 && (
-                            <div className="border-t border-slate-100 px-3 py-2">
-                              <button type="button" onClick={() => openLessonForm(module)} className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700">
-                                <Plus className="h-3.5 w-3.5" /> Add Lesson
-                              </button>
-                            </div>
-                          )}
-                        </article>
-                      );
-                    })}
-                  </section>
-                ))}
+                {isStaff && (
+                  <button
+                    type="button"
+                    onClick={() => openModuleForm(nextWeekNumber)}
+                    disabled={!effectiveCohortId && cohortOptions.length === 0}
+                    className="skx-primary-btn w-full justify-center disabled:opacity-50"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Week
+                  </button>
+                )}
               </div>
             )}
           </div>
+
+          {!navigatorCollapsed && (
+            <div className="overflow-y-auto p-3 xl:flex-1">
+              {weekGroups.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+                  <BookOpen className="mx-auto mb-3 h-9 w-9 text-slate-400" />
+                  <h3 className="text-sm font-bold text-slate-800">No curriculum content</h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {isStaff ? 'Create the first week module to begin.' : 'Published lessons will appear here.'}
+                  </p>
+                  {isStaff && (
+                    <button
+                      type="button"
+                      onClick={() => openModuleForm(1)}
+                      disabled={!effectiveCohortId && cohortOptions.length === 0}
+                      className="skx-primary-btn mx-auto mt-4 justify-center disabled:opacity-50"
+                    >
+                      <Plus className="h-4 w-4" /> Add First Week
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {weekGroups.map((group) => {
+                    const isSelectedWeek = selectedWeekNumber === group.week;
+                    const isWeekExpanded = expandedWeeks.has(group.week) || isSelectedWeek;
+                    return (
+                      <section key={group.week} className="rounded-lg border border-slate-100 bg-slate-50/50">
+                        <div className="flex items-center justify-between gap-2 px-2 py-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleWeek(group.week)}
+                            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-white"
+                            aria-expanded={isWeekExpanded}
+                          >
+                            {isWeekExpanded ? <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" /> : <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />}
+                            <span className="truncate text-[11px] font-bold uppercase tracking-wider text-slate-600">Week {group.week}</span>
+                            <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-slate-500">{group.modules.length}</span>
+                          </button>
+                          {isStaff && (
+                            <button
+                              type="button"
+                              onClick={() => openModuleForm(group.week)}
+                              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 hover:text-slate-900"
+                              aria-label={`Add module to week ${group.week}`}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+
+                        {isWeekExpanded && (
+                          <div className="space-y-2 border-t border-slate-100 p-2">
+                            {group.modules.map((module) => {
+                              const isModuleSelected = selectedModule?.id === module.id;
+                              const isModuleExpanded = !!module.id && (expandedModules.has(module.id) || isModuleSelected);
+                              return (
+                                <article
+                                  key={module.id ?? module.title}
+                                  className={`rounded-lg border transition ${isModuleSelected ? 'border-indigo-200 bg-indigo-50/50' : 'border-slate-100 bg-white'}`}
+                                >
+                                  <div className="flex items-start gap-2 p-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleModule(module)}
+                                      className="mt-2 rounded-md p-1 text-slate-500 hover:bg-white hover:text-slate-900"
+                                      aria-label={isModuleExpanded ? 'Collapse module' : 'Expand module'}
+                                      aria-expanded={isModuleExpanded}
+                                    >
+                                      {isModuleExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => selectModule(module)}
+                                      className="min-w-0 flex-1 rounded-md px-2 py-2 text-left hover:bg-white"
+                                    >
+                                      <span className="block truncate text-sm font-bold text-slate-900">{module.title}</span>
+                                      <span className="mt-1 inline-flex rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">{module.status}</span>
+                                    </button>
+                                    {isStaff && module.id && (
+                                      <div className="flex shrink-0 items-center gap-1 pt-1">
+                                        {module.status !== 'published' && (
+                                          <button
+                                            type="button"
+                                            onClick={() => publishModule.mutate(module.id!)}
+                                            className="rounded-md border border-emerald-200 p-1.5 text-emerald-700 hover:bg-emerald-50"
+                                            aria-label="Publish module"
+                                          >
+                                            <Check className="h-3.5 w-3.5" />
+                                          </button>
+                                        )}
+                                        <button type="button" onClick={() => openModuleForm(group.week, module)} className="rounded-md border border-slate-200 p-1.5 text-slate-500 hover:text-slate-900" aria-label="Edit module"><Edit3 className="h-3.5 w-3.5" /></button>
+                                        <button type="button" onClick={() => deleteModule.mutate(module.id!)} className="rounded-md border border-rose-100 p-1.5 text-rose-500 hover:text-rose-700" aria-label="Delete module"><Trash2 className="h-3.5 w-3.5" /></button>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {isModuleExpanded && (
+                                    <div className="border-t border-slate-100">
+                                      {module.lessons.length === 0 ? (
+                                        <div className="flex items-center justify-between gap-2 px-4 py-3 text-xs text-slate-500">
+                                          <span>No lessons yet.</span>
+                                          {isStaff && (
+                                            <button type="button" onClick={() => openLessonForm(module)} className="font-bold text-indigo-700">Add Lesson</button>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <div className="divide-y divide-slate-100">
+                                          {module.lessons.map((lesson) => {
+                                            const isLessonSelected = selectedLesson?.id === lesson.id;
+                                            return (
+                                              <div key={lesson.id ?? lesson.order} className={`flex items-center gap-2 px-3 py-2 ${isLessonSelected ? 'bg-white' : ''}`}>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => selectLesson(module, lesson)}
+                                                  className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-slate-50"
+                                                >
+                                                  <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                                                  <span className="truncate text-sm font-medium text-slate-700">{lesson.title}</span>
+                                                </button>
+                                                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-label="Available lesson" />
+                                                {isStaff && lesson.id && (
+                                                  <div className="flex shrink-0 items-center gap-1">
+                                                    <button type="button" onClick={() => openLessonForm(module, lesson)} className="rounded-md border border-slate-200 p-1.5 text-slate-500 hover:text-slate-900" aria-label="Edit lesson"><Edit3 className="h-3.5 w-3.5" /></button>
+                                                    <button type="button" onClick={() => deleteLesson.mutate(lesson.id!)} className="rounded-md border border-rose-100 p-1.5 text-rose-500 hover:text-rose-700" aria-label="Delete lesson"><Trash2 className="h-3.5 w-3.5" /></button>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+
+                                      {isStaff && module.lessons.length > 0 && (
+                                        <div className="border-t border-slate-100 px-3 py-2">
+                                          <button type="button" onClick={() => openLessonForm(module)} className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700">
+                                            <Plus className="h-3.5 w-3.5" /> Add Lesson
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </article>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </section>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </aside>
 
-        <main className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm">
+        <main className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto">
           {activeForm?.type === 'module' && (
             <section className="border-b border-slate-100 p-5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Week {activeForm.week}</span>
@@ -691,7 +840,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
                     <>
                       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
                         {lessonContentHasRenderableContent(selectedLesson.content) ? (
-                          <LessonContentRenderer content={selectedLesson.content} images={selectedLesson.images ?? []} />
+                          <LessonContentRenderer content={selectedLesson.content} images={selectedLesson.images ?? []} hideYouTubeLinks={user.role === 'student'} />
                         ) : (
                           <div className="rounded-lg border border-dashed border-slate-200 p-10 text-center">
                             <FileText className="mx-auto mb-3 h-10 w-10 text-slate-400" />

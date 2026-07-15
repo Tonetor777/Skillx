@@ -70,6 +70,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Fixed
 
+- Local Docker backend, migration, and Celery services now receive explicit `DJANGO_DEBUG` and `DJANGO_SECRET_KEY` compose values so host shell settings cannot accidentally trigger production secret validation during development.
 - OpenAPI schema generation now has safer view/queryset handling and clearer serializer method field typing.
 - Removed frontend API-client debug console output from production-facing request paths.
 - Add Week now opens a visible new-week module form before the week has saved modules.

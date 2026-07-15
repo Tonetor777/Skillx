@@ -96,6 +96,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const visibleMenuItems = menuItems.filter(item => item.roles.includes(user.role));
   const unreadAnnouncements = announcementUnreadCount?.count ?? 0;
+  const isWideWorkspace = location.pathname.startsWith('/dashboard/modules') || location.pathname.startsWith('/dashboard/programs');
 
   const handleLogout = async () => {
     await logout();
@@ -298,7 +299,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         {/* Dynamic page container */}
-        <main className="flex-1 p-5 md:p-8 overflow-y-auto max-w-7xl w-full mx-auto" id="page-content-wrapper">
+        <main
+          className={`flex-1 overflow-y-auto p-5 md:p-8 ${isWideWorkspace ? 'w-full' : 'mx-auto w-full max-w-7xl'}`}
+          id="page-content-wrapper"
+        >
           {children}
         </main>
       </div>
