@@ -29,11 +29,11 @@ export const useCreateApplication = () => {
 
 export const useApproveApplication = () => {
   const queryClient = useQueryClient();
-  return useMutation<Application, Error, string>({
-    mutationFn: (id) => apiClient.post(`/applications/${id}/approve`, {}),
-    onSuccess: (data, id) => {
+  return useMutation<Application, Error, { id: string; cohort_id: string }>({
+    mutationFn: ({ id, cohort_id }) => apiClient.post(`/applications/${id}/approve`, { cohort_id }),
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['applications'] });
-      queryClient.invalidateQueries({ queryKey: ['applications', id] });
+      queryClient.invalidateQueries({ queryKey: ['applications', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['cohorts'] });
     },

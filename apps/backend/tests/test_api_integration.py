@@ -189,7 +189,7 @@ def test_program_thumbnail_upload_and_permissions(domain):
     assert forbidden_response.status_code == 403
 
 
-def test_application_approval_is_super_admin_only_and_creates_invitation(domain):
+def test_application_approval_accepts_admin_and_creates_selected_cohort_invitation(domain):
     application = Application.objects.create(
         name="Ada Lovelace",
         email="ada@example.com",
@@ -201,17 +201,19 @@ def test_application_approval_is_super_admin_only_and_creates_invitation(domain)
     )
 
     teacher_response = auth_client(domain["teacher"]).post(f"/api/applications/{application.id}/approve/")
-    admin_response = auth_client(domain["admin"]).post(f"/api/applications/{application.id}/approve/")
-    super_admin_response = auth_client(domain["super_admin"]).post(f"/api/applications/{application.id}/approve/")
+    admin_response = auth_client(domain["admin"]).post(
+        f"/api/applications/{application.id}/approve/",
+        {"cohort_id": str(domain["cohort"].id)},
+        format="json",
+    )
 
     application.refresh_from_db()
     assert teacher_response.status_code == 403
-    assert admin_response.status_code == 403
-    assert super_admin_response.status_code == 200
+    assert admin_response.status_code == 200
     assert application.status == ApplicationStatus.APPROVED
     assert Invitation.objects.get(email="ada@example.com").cohort == domain["cohort"]
     assert len(mail.outbox) == 1
-    assert super_admin_response.data["reviewed_by_name"]
+    assert admin_response.data["reviewed_by_name"]
 
 
 def test_student_only_sees_own_cohort_assignments(domain):

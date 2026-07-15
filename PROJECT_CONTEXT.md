@@ -58,7 +58,7 @@ AI Engineering
 ├── March 2027
 └── July 2027
 
-Students sign up for Programs and are enrolled into Cohorts after Super Admin approval and invitation acceptance.
+Students sign up for Programs and are enrolled into Cohorts after Admin or Super Admin approval and invitation acceptance.
 
 ---
 
@@ -167,6 +167,8 @@ Database
 
 ## Recent Foundation Fixes
 
+- Admissions approval now requires Admin/Super Admin reviewers to choose an eligible cohort in the applicant's selected program before an invitation is sent.
+- Admin/Super Admin users can hard delete empty programs and cohorts, while non-empty records remain protected and should be archived instead.
 - Announcement notifications now track per-user unread state, expose unread-count and mark-read APIs, and show unread badges in the dashboard.
 - Assignment management now supports staff edits plus delete-or-lock behavior: empty assignments can be deleted, while assignments with submissions are preserved and locked against further student submissions.
 - Production-readiness work is now underway: Django settings enforce strong production secrets, expose env-driven HTTPS/CORS/CSRF settings, add DRF throttling, and support a Resend email backend when configured.
@@ -298,11 +300,11 @@ Authentication
 
 Programs
 
-✅ Dashboard list/create/update/archive/detail API integrated
+✅ Dashboard list/create/update/archive/detail API integrated, with empty-record hard delete for Admin/Super Admin users
 
 Cohorts
 
-✅ Dashboard list/create/update API integrated with current-week and status management
+✅ Dashboard list/create/update API integrated with current-week/status management and empty-record hard delete for Admin/Super Admin users
 
 Teacher Assignments
 
@@ -314,7 +316,7 @@ Module Content
 
 Applications
 
-✅ Public signup submission, upload validation, Super Admin-only review, approve/reject, and invitation API integrated
+✅ Public signup submission, upload validation, Admin/Super Admin review, cohort-selected approve/reject, and invitation API integrated
 
 Assignments
 
@@ -534,7 +536,7 @@ Never skip documentation updates.
 The MVP is considered successful when:
 
 - Students can sign up for programs.
-- Super Admins can approve signup applications.
+- Admins and Super Admins can approve signup applications.
 - Invitations create accounts securely.
 - Teachers can manage module and lesson content.
 - Students can submit assignments.

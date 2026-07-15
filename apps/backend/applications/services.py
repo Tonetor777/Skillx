@@ -20,19 +20,20 @@ def _split_name(name: str) -> tuple[str, str]:
 
 
 @transaction.atomic
-def approve_application(application: Application, reviewer):
+def approve_application(application: Application, reviewer, cohort_id: str | None = None):
     if application.status != ApplicationStatus.PENDING:
         raise ValidationError({"detail": "Only pending applications can be approved."})
+    if not cohort_id:
+        raise ValidationError({"cohort_id": "A cohort is required before approving this application."})
 
-    cohort = (
-        Cohort.objects.filter(program=application.program, status=CohortStatus.ACTIVE)
-        .order_by("start_date")
-        .first()
-    )
-    if cohort is None:
-        cohort = Cohort.objects.filter(program=application.program).order_by("start_date").first()
-    if cohort is None:
-        raise ValidationError({"detail": "A cohort is required before approving this application."})
+    try:
+        cohort = Cohort.objects.get(id=cohort_id)
+    except Cohort.DoesNotExist as exc:
+        raise ValidationError({"cohort_id": "Cohort does not exist."}) from exc
+    if cohort.program_id != application.program_id:
+        raise ValidationError({"cohort_id": "Selected cohort must belong to the applicant's program."})
+    if cohort.status in {CohortStatus.COMPLETED, CohortStatus.ARCHIVED}:
+        raise ValidationError({"cohort_id": "Selected cohort must be upcoming or active."})
 
     application.status = ApplicationStatus.APPROVED
     application.reviewed_by = reviewer

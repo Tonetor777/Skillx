@@ -34,10 +34,12 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `GET /api/programs/{id}/`: retrieve a program.
 - `PATCH /api/programs/{id}/`: update a program. Teacher/Admin/Super Admin only. Supports multipart uploads for optional `thumbnail`; returns `thumbnail_url`.
 - `PATCH /api/programs/{id}/archive/`: archive a program without deleting data. Teacher/Admin/Super Admin only.
+- `DELETE /api/programs/{id}/`: hard delete an empty program. Blocked when cohorts, applications, or announcements exist. Admin/Super Admin only.
 - `GET /api/cohorts/`: list cohorts scoped to the current user.
 - `POST /api/cohorts/`: create a cohort. Teacher/Admin/Super Admin only.
 - `GET /api/cohorts/{id}/`: retrieve a cohort.
 - `PATCH /api/cohorts/{id}/`: update a cohort, including validated `current_week`, `status`, and `leaderboard_visible`. Teacher/Admin/Super Admin only.
+- `DELETE /api/cohorts/{id}/`: hard delete an empty cohort. Blocked when students, invitations, teacher assignments, curriculum, assignments, attendance, or announcements exist. Admin/Super Admin only.
 - `GET /api/cohorts/{id}/grade-settings/`: retrieve cohort assignment and attendance grade weights. Assigned Teacher/Admin/Super Admin only.
 - `PATCH /api/cohorts/{id}/grade-settings/`: update cohort grade weights. Weights must be non-negative and total 100. Assigned Teacher/Admin/Super Admin only.
 - `GET /api/teacher-assignments/`: list teacher assignments. Admin/Super Admin only.
@@ -60,11 +62,11 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `POST /api/resources/`: create an ordered URL resource. Teacher/Admin/Super Admin only.
 - `PATCH /api/resources/{id}/`: update a resource. Teacher/Admin/Super Admin only.
 - `DELETE /api/resources/{id}/`: delete a resource. Teacher/Admin/Super Admin only.
-- `GET /api/applications/`: list admissions applications. Super Admin only.
+- `GET /api/applications/`: list admissions applications. Admin/Super Admin only.
 - `POST /api/applications/`: create a public signup application with contact details, program selection, and motivation.
-- `GET /api/applications/{id}/`: retrieve an application. Super Admin only.
-- `POST /api/applications/{id}/approve/`: approve an application and send an expiring cohort invitation. Super Admin only.
-- `POST /api/applications/{id}/reject/`: reject an application. Super Admin only.
+- `GET /api/applications/{id}/`: retrieve an application. Admin/Super Admin only.
+- `POST /api/applications/{id}/approve/`: approve an application with required `cohort_id` and send an expiring cohort invitation. Admin/Super Admin only.
+- `POST /api/applications/{id}/reject/`: reject an application. Admin/Super Admin only.
 - `GET /api/invitations/`: list invitations. Admin/Super Admin only.
 - `POST /api/invitations/{token}/accept/`: accept a pending invitation and create or activate the student account.
 - `POST /api/invitations/{id}/resend/`: resend a pending invitation. Admin/Super Admin only.

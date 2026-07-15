@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { usePrograms, useCreateProgram, useUpdateProgram, useArchiveProgram } from '../../features/programs/api/programs';
+import { usePrograms, useCreateProgram, useUpdateProgram, useArchiveProgram, useDeleteProgram } from '../../features/programs/api/programs';
 import { useAuth } from '../../features/authentication/context/AuthContext';
 import { can } from '../../shared/permissions/can';
 import { CurriculumManager } from './Weeks';
@@ -14,7 +14,8 @@ import {
   ArrowLeft, 
   AlertCircle,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  Trash2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -32,12 +33,15 @@ export default function Programs() {
   const createProgramMutation = useCreateProgram();
   const updateProgramMutation = useUpdateProgram();
   const archiveProgramMutation = useArchiveProgram();
+  const deleteProgramMutation = useDeleteProgram();
   
   const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('Program created successfully!');
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailError, setThumbnailError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const {
     register,
@@ -84,6 +88,7 @@ export default function Programs() {
 
       setIsCreating(false);
       reset();
+      setSuccessMessage('Program created successfully!');
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
     } catch {
@@ -101,6 +106,21 @@ export default function Programs() {
     setSelectedProgramId(null);
   };
 
+  const handleDeleteProgram = async (program: Program) => {
+    setDeleteError('');
+    const confirmed = window.confirm(`Delete ${program.name}? This only works when the program has no cohorts, applications, or announcements.`);
+    if (!confirmed) return;
+    try {
+      await deleteProgramMutation.mutateAsync(program.id);
+      setSelectedProgramId(null);
+      setSuccessMessage('Program deleted successfully.');
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
+    } catch (deleteProgramError) {
+      setDeleteError(deleteProgramError instanceof Error ? deleteProgramError.message : 'Program could not be deleted.');
+    }
+  };
+
   const handleThumbnailUpdate = async (program: Program) => {
     if (!thumbnailFile) {
       setThumbnailError('Choose a thumbnail image first.');
@@ -114,6 +134,7 @@ export default function Programs() {
     payload.append('thumbnail', thumbnailFile);
     await updateProgramMutation.mutateAsync({ id: program.id, data: payload });
     setThumbnailFile(null);
+    setSuccessMessage('Program thumbnail updated successfully.');
     setShowSuccessToast(true);
     setTimeout(() => setShowSuccessToast(false), 3000);
   };
@@ -157,17 +178,35 @@ export default function Programs() {
             <ArrowLeft className="w-4 h-4" />
             Back to Programs
           </button>
-          {can.managePrograms(user.role) && selectedProgram.status !== 'archived' && (
-            <button
-              type="button"
-              onClick={() => handleArchiveProgram(selectedProgram.id)}
-              disabled={archiveProgramMutation.isPending}
-              className="px-3 py-1.5 rounded-lg border border-rose-200 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
-            >
-              Archive Program
-            </button>
+          {can.managePrograms(user.role) && (
+            <div className="flex flex-wrap justify-end gap-2">
+              {selectedProgram.status !== 'archived' && (
+                <button
+                  type="button"
+                  onClick={() => handleArchiveProgram(selectedProgram.id)}
+                  disabled={archiveProgramMutation.isPending || deleteProgramMutation.isPending}
+                  className="px-3 py-1.5 rounded-lg border border-rose-200 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                >
+                  Archive Program
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleDeleteProgram(selectedProgram)}
+                disabled={archiveProgramMutation.isPending || deleteProgramMutation.isPending}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Program
+              </button>
+            </div>
           )}
         </div>
+        {deleteError && (
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+            {deleteError}
+          </div>
+        )}
 
         {/* Program Header Jumbotron */}
         <div className="bg-white rounded-xl border border-gray-100 p-6 md:p-8 space-y-4">
@@ -258,7 +297,7 @@ export default function Programs() {
       {showSuccessToast && (
         <div className="fixed top-20 right-6 z-50 bg-emerald-600 text-white rounded-lg p-4 shadow-xl flex items-center gap-3.5 border border-emerald-500">
           <CheckCircle2 className="w-5 h-5 text-white" />
-          <span className="text-sm font-semibold">Program created successfully!</span>
+          <span className="text-sm font-semibold">{successMessage}</span>
         </div>
       )}
 

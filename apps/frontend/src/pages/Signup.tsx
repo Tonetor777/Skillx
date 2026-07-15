@@ -45,7 +45,7 @@ export default function Signup() {
               <p className="skx-page-label">Student Signup</p>
               <h1 className="mt-2 font-display text-4xl font-bold text-[#141414]">Sign up to Skilix</h1>
               <p className="mt-2 text-sm text-[#5f5f5a]">
-                Choose a program and submit your details for Super Admin approval.
+                Choose a program and submit your details for admissions approval.
               </p>
             </div>
           </div>

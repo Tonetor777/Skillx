@@ -10,6 +10,8 @@ This project follows a modified version of Keep a Changelog.
 
 ## Added
 
+- Cohort selection during admissions approval so Admin/Super Admin reviewers choose the exact cohort before sending an invitation.
+- Empty-record hard delete actions for programs and cohorts, with safeguards that block deletion when dependent records exist.
 - Per-user in-app announcement notifications with unread counts, dashboard badges, and mark-read actions.
 - Assignment edit controls and delete-or-lock management: staff can delete empty assignments, while submitted assignments are preserved and locked against further student submissions.
 - Public `/signup` route for student signup requests, with `/apply` redirected for compatibility.
@@ -49,10 +51,11 @@ This project follows a modified version of Keep a Changelog.
 
 ## Changed
 
+- Admissions review is available to Admin and Super Admin users, and approval now requires an eligible cohort in the applicant's selected program.
 - Student overview assignment cards now show status-aware actions such as Submit, Resubmit, View Grade, View Submission, or Closed.
 - Redesigned curriculum management into a reference-style two-pane layout with a left module/lesson navigator and right lesson reading canvas for Modules and embedded Program curriculum views.
 - Graded submissions now stay locked for student edits while allowing authorized staff to update score and feedback.
-- Student signup review and approval is now Super Admin-only, and approval sends an invitation email for password setup instead of creating a login-ready account immediately.
+- Student signup approval sends an invitation email for password setup instead of creating a login-ready account immediately.
 - Student program API access is now scoped to the program attached to the student's enrolled cohort.
 - Lesson content now stores uploaded image asset ids instead of expiring media URLs.
 - Expanded the root README with current local Docker guidance, MinIO service details, automatic migration behavior, root scripts, and Dokploy/Railway/Vercel deployment guidance.

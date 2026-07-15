@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from accounts.permissions import IsActiveUser, IsAdminOrSuperAdmin, IsSuperAdmin
+from accounts.permissions import IsActiveUser, IsAdminOrSuperAdmin
 from accounts.serializers import CurrentUserSerializer
 from applications.models import Application, Invitation
 from applications.serializers import ApplicationSerializer, InvitationAcceptSerializer, InvitationSerializer
@@ -22,17 +22,17 @@ class ApplicationViewSet(ModelViewSet):
 
     def get_permissions(self):
         if self.action in {"list", "retrieve", "approve", "reject"}:
-            return [IsSuperAdmin()]
+            return [IsAdminOrSuperAdmin()]
         if self.action == "create":
             return [AllowAny()]
         return super().get_permissions()
 
-    @action(detail=True, methods=["post"], permission_classes=[IsSuperAdmin])
+    @action(detail=True, methods=["post"], permission_classes=[IsAdminOrSuperAdmin])
     def approve(self, request, pk=None):
-        application = approve_application(self.get_object(), request.user)
+        application = approve_application(self.get_object(), request.user, request.data.get("cohort_id"))
         return Response(self.get_serializer(application).data)
 
-    @action(detail=True, methods=["post"], permission_classes=[IsSuperAdmin])
+    @action(detail=True, methods=["post"], permission_classes=[IsAdminOrSuperAdmin])
     def reject(self, request, pk=None):
         application = reject_application(self.get_object(), request.user)
         return Response(self.get_serializer(application).data)

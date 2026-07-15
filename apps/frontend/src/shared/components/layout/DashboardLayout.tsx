@@ -54,7 +54,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       name: 'Applications',
       path: '/dashboard/applications',
       icon: FileText,
-      roles: ['super_admin'],
+      roles: ['super_admin', 'admin'],
     },
     {
       name: 'Assignments',

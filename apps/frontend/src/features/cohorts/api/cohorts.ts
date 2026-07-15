@@ -37,3 +37,14 @@ export const useUpdateCohort = () => {
     },
   });
 };
+
+export const useDeleteCohort = () => {
+  const queryClient = useQueryClient();
+  return useMutation<null, Error, string>({
+    mutationFn: (id) => apiClient.delete(`/cohorts/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cohorts'] });
+      queryClient.invalidateQueries({ queryKey: ['programs'] });
+    },
+  });
+};

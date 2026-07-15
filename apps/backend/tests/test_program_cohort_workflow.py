@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.choices import UserRole, UserStatus
+from applications.models import Application
 from cohorts.models import Cohort, CohortStatus, TeacherAssignment, TeacherAssignmentRole
 from programs.models import Program, ProgramStatus
 
@@ -76,6 +77,48 @@ def test_program_archive_soft_hides_from_default_list_but_detail_remains_availab
     assert student.cohort_id == cohort.id
 
 
+def test_empty_program_can_be_deleted_by_admins_only():
+    admin = create_user("admin-delete-program@example.com", UserRole.ADMIN)
+    super_admin = create_user("super-delete-program@example.com", UserRole.SUPER_ADMIN)
+    teacher = create_user("teacher-delete-program@example.com", UserRole.TEACHER)
+    teacher_program = create_program("Teacher Delete Program")
+    admin_program = create_program("Admin Delete Program")
+    super_program = create_program("Super Delete Program")
+
+    teacher_response = auth_client(teacher).delete(f"/api/programs/{teacher_program.id}/")
+    admin_response = auth_client(admin).delete(f"/api/programs/{admin_program.id}/")
+    super_response = auth_client(super_admin).delete(f"/api/programs/{super_program.id}/")
+
+    assert teacher_response.status_code == 403
+    assert admin_response.status_code == 204
+    assert super_response.status_code == 204
+    assert Program.objects.filter(id=teacher_program.id).exists()
+    assert not Program.objects.filter(id=admin_program.id).exists()
+    assert not Program.objects.filter(id=super_program.id).exists()
+
+
+def test_non_empty_program_delete_is_blocked_with_clear_error():
+    admin = create_user("admin-blocked-program@example.com", UserRole.ADMIN)
+    program = create_program("Blocked Program")
+    create_cohort(program, "Blocked Cohort")
+    Application.objects.create(
+        name="Applicant",
+        email="applicant@example.com",
+        phone="Not provided",
+        country="Not provided",
+        experience="Not provided",
+        motivation="I want to join.",
+        program=program,
+    )
+
+    response = auth_client(admin).delete(f"/api/programs/{program.id}/")
+
+    assert response.status_code == 400
+    assert "cohorts" in response.data["detail"]
+    assert "applications" in response.data["detail"]
+    assert Program.objects.filter(id=program.id).exists()
+
+
 def test_cohort_status_and_current_week_are_validated():
     admin = create_user("admin-cohort@example.com", UserRole.ADMIN)
     program = create_program("Cohort Program")
@@ -99,6 +142,43 @@ def test_cohort_status_and_current_week_are_validated():
     assert cohort.status == CohortStatus.COMPLETED
     assert cohort.current_week == 12
     assert invalid_response.status_code == 400
+
+
+def test_empty_cohort_can_be_deleted_by_admins_only():
+    admin = create_user("admin-delete-cohort@example.com", UserRole.ADMIN)
+    super_admin = create_user("super-delete-cohort@example.com", UserRole.SUPER_ADMIN)
+    teacher = create_user("teacher-delete-cohort@example.com", UserRole.TEACHER)
+    program = create_program("Delete Cohort Program")
+    teacher_cohort = create_cohort(program, "Teacher Delete Cohort")
+    admin_cohort = create_cohort(program, "Admin Delete Cohort")
+    super_cohort = create_cohort(program, "Super Delete Cohort")
+
+    teacher_response = auth_client(teacher).delete(f"/api/cohorts/{teacher_cohort.id}/")
+    admin_response = auth_client(admin).delete(f"/api/cohorts/{admin_cohort.id}/")
+    super_response = auth_client(super_admin).delete(f"/api/cohorts/{super_cohort.id}/")
+
+    assert teacher_response.status_code == 403
+    assert admin_response.status_code == 204
+    assert super_response.status_code == 204
+    assert Cohort.objects.filter(id=teacher_cohort.id).exists()
+    assert not Cohort.objects.filter(id=admin_cohort.id).exists()
+    assert not Cohort.objects.filter(id=super_cohort.id).exists()
+
+
+def test_non_empty_cohort_delete_is_blocked_with_clear_error():
+    admin = create_user("admin-blocked-cohort@example.com", UserRole.ADMIN)
+    teacher = create_user("teacher-blocked-cohort@example.com", UserRole.TEACHER)
+    program = create_program("Blocked Cohort Program")
+    cohort = create_cohort(program, "Blocked Student Cohort")
+    create_user("student-blocked-cohort@example.com", UserRole.STUDENT, cohort=cohort)
+    TeacherAssignment.objects.create(teacher=teacher, cohort=cohort, role=TeacherAssignmentRole.LEAD)
+
+    response = auth_client(admin).delete(f"/api/cohorts/{cohort.id}/")
+
+    assert response.status_code == 400
+    assert "students" in response.data["detail"]
+    assert "teacher assignments" in response.data["detail"]
+    assert Cohort.objects.filter(id=cohort.id).exists()
 
 
 def test_teacher_and_student_cohort_scoping_is_preserved():

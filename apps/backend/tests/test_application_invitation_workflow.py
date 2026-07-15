@@ -84,7 +84,11 @@ def test_invitation_accept_creates_student_and_prevents_reuse():
         motivation="I want to build production systems.",
         program=program,
     )
-    approve_response = auth_client(super_admin).post(f"/api/applications/{application.id}/approve/")
+    approve_response = auth_client(super_admin).post(
+        f"/api/applications/{application.id}/approve/",
+        {"cohort_id": str(cohort.id)},
+        format="json",
+    )
     invitation = Invitation.objects.get(email=application.email)
     users_before_acceptance = get_user_model().objects.filter(email=application.email).count()
     login_before_acceptance = APIClient().post(
@@ -125,10 +129,11 @@ def test_invitation_accept_creates_student_and_prevents_reuse():
     assert invitation.status == InvitationStatus.ACCEPTED
 
 
-def test_only_super_admin_can_review_signup_applications():
-    program, _ = domain()
+def test_admin_and_super_admin_can_review_signup_applications():
+    program, cohort = domain()
     admin = create_user("admin-review@example.com", UserRole.ADMIN)
     super_admin = create_user("super-admin-review@example.com", UserRole.SUPER_ADMIN)
+    teacher = create_user("teacher-review@example.com", UserRole.TEACHER)
     application = Application.objects.create(
         name="Katherine Johnson",
         email="katherine@example.com",
@@ -140,17 +145,76 @@ def test_only_super_admin_can_review_signup_applications():
     )
 
     admin_list_response = auth_client(admin).get("/api/applications/")
-    admin_approve_response = auth_client(admin).post(f"/api/applications/{application.id}/approve/")
+    teacher_list_response = auth_client(teacher).get("/api/applications/")
+    admin_approve_response = auth_client(admin).post(
+        f"/api/applications/{application.id}/approve/",
+        {"cohort_id": str(cohort.id)},
+        format="json",
+    )
     super_admin_list_response = auth_client(super_admin).get("/api/applications/")
-    super_admin_approve_response = auth_client(super_admin).post(f"/api/applications/{application.id}/approve/")
 
     application.refresh_from_db()
-    assert admin_list_response.status_code == 403
-    assert admin_approve_response.status_code == 403
+    assert admin_list_response.status_code == 200
+    assert teacher_list_response.status_code == 403
     assert super_admin_list_response.status_code == 200
-    assert super_admin_approve_response.status_code == 200
+    assert admin_approve_response.status_code == 200
     assert application.status == ApplicationStatus.APPROVED
     assert Invitation.objects.filter(email=application.email, status=InvitationStatus.PENDING).exists()
+
+
+def test_application_approval_requires_valid_open_cohort_for_selected_program():
+    program, cohort = domain()
+    other_program = Program.objects.create(title="Other Admissions", slug="other-admissions", description="", status=ProgramStatus.ACTIVE)
+    other_cohort = Cohort.objects.create(
+        program=other_program,
+        name="Other Cohort",
+        start_date=timezone.localdate(),
+        end_date=timezone.localdate() + timedelta(weeks=12),
+        status=CohortStatus.ACTIVE,
+    )
+    closed_cohort = Cohort.objects.create(
+        program=program,
+        name="Closed Cohort",
+        start_date=timezone.localdate(),
+        end_date=timezone.localdate() + timedelta(weeks=12),
+        status=CohortStatus.COMPLETED,
+    )
+    admin = create_user("admin-invalid-cohort@example.com", UserRole.ADMIN)
+    client = auth_client(admin)
+
+    def create_application(email):
+        return Application.objects.create(
+            name="Invalid Cohort",
+            email=email,
+            phone="Not provided",
+            country="Not provided",
+            experience="Not provided",
+            motivation="I want to learn software delivery.",
+            program=program,
+        )
+
+    missing_response = client.post(f"/api/applications/{create_application('missing@example.com').id}/approve/", {}, format="json")
+    wrong_program_response = client.post(
+        f"/api/applications/{create_application('wrong@example.com').id}/approve/",
+        {"cohort_id": str(other_cohort.id)},
+        format="json",
+    )
+    closed_response = client.post(
+        f"/api/applications/{create_application('closed@example.com').id}/approve/",
+        {"cohort_id": str(closed_cohort.id)},
+        format="json",
+    )
+    valid_response = client.post(
+        f"/api/applications/{create_application('valid@example.com').id}/approve/",
+        {"cohort_id": str(cohort.id)},
+        format="json",
+    )
+
+    assert missing_response.status_code == 400
+    assert wrong_program_response.status_code == 400
+    assert closed_response.status_code == 400
+    assert valid_response.status_code == 200
+    assert Invitation.objects.get(email="valid@example.com").cohort == cohort
 
 
 def test_expired_invitation_cannot_be_accepted_and_can_be_resent_or_revoked():

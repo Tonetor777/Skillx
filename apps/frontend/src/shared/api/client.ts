@@ -161,6 +161,14 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
       const progId = idMatch[1];
       const progIndex = prgs.findIndex(p => p.id === progId);
       if (progIndex > -1) {
+        if (endpoint.includes('/archive')) {
+          prgs[progIndex] = {
+            ...prgs[progIndex],
+            status: 'archived'
+          };
+          MockDatabase.set('programs', prgs);
+          return prgs[progIndex];
+        }
         if (method === 'PUT' || method === 'PATCH') {
           prgs[progIndex] = {
             ...prgs[progIndex],
@@ -168,6 +176,19 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
           };
           MockDatabase.set('programs', prgs);
           return prgs[progIndex];
+        }
+        if (method === 'DELETE') {
+          const cohorts = MockDatabase.get<Cohort>('cohorts');
+          const apps = MockDatabase.get<Application>('applications');
+          const hasCohorts = cohorts.some(cohort => cohort.program_id === progId);
+          const hasApplications = apps.some(app => app.program_id === progId);
+          if (hasCohorts || hasApplications) {
+            throw new ApiError(400, 'Program cannot be deleted while it has cohorts or applications.', {
+              detail: 'Program cannot be deleted while it has cohorts or applications.',
+            });
+          }
+          MockDatabase.set('programs', prgs.filter(program => program.id !== progId));
+          return null;
         }
         return prgs[progIndex];
       }
@@ -208,7 +229,30 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
         };
       }
       const found = cohs.find(c => c.id === idMatch[1]);
-      if (found) return found;
+      if (found) {
+        if (method === 'PATCH') {
+          const index = cohs.findIndex(c => c.id === idMatch[1]);
+          cohs[index] = { ...found, ...body };
+          MockDatabase.set('cohorts', cohs);
+          return cohs[index];
+        }
+        if (method === 'DELETE') {
+          const modules = MockDatabase.get<Module>('modules');
+          const assignments = MockDatabase.get<Assignment>('assignments');
+          const sessions = MockDatabase.get<AttendanceSession>('attendance_sessions');
+          const hasCurriculum = modules.some(module => module.cohort_id === found.id);
+          const hasAssignments = assignments.some(assignment => assignment.cohort_id === found.id);
+          const hasAttendance = sessions.some(session => session.cohort_id === found.id);
+          if (found.students_count > 0 || found.teachers.length > 0 || hasCurriculum || hasAssignments || hasAttendance) {
+            throw new ApiError(400, 'Cohort cannot be deleted while it has students, teacher assignments, curriculum, assignments, or attendance.', {
+              detail: 'Cohort cannot be deleted while it has students, teacher assignments, curriculum, assignments, or attendance.',
+            });
+          }
+          MockDatabase.set('cohorts', cohs.filter(cohort => cohort.id !== found.id));
+          return null;
+        }
+        return found;
+      }
       throw new ApiError(404, 'Cohort not found');
     }
     if (method === 'POST') {

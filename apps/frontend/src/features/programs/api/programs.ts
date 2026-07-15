@@ -55,3 +55,13 @@ export const useArchiveProgram = () => {
     },
   });
 };
+
+export const useDeleteProgram = () => {
+  const queryClient = useQueryClient();
+  return useMutation<null, Error, string>({
+    mutationFn: (id) => apiClient.delete(`/programs/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['programs'] });
+    },
+  });
+};

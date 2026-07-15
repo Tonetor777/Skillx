@@ -9,6 +9,7 @@ import {
   useRejectApplication 
 } from '../../features/applications/api/applications';
 import { usePrograms } from '../../features/programs/api/programs';
+import { useCohorts } from '../../features/cohorts/api/cohorts';
 import { useAuth } from '../../features/authentication/context/AuthContext';
 import { can } from '../../shared/permissions/can';
 import { 
@@ -46,20 +47,22 @@ export default function Applications() {
       <div className="bg-red-50 border border-red-200 text-red-800 p-6 rounded-xl max-w-lg mx-auto text-center my-12">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
         <h3 className="text-lg font-bold">Access Restrict Guard</h3>
-        <p className="text-sm mt-1">Only Super Admins can view or review student signup requests.</p>
+        <p className="text-sm mt-1">Only Admins and Super Admins can view or review student signup requests.</p>
       </div>
     );
   }
 
   const { data: applications, isLoading, isError, error, refetch } = useApplications();
   const { data: programs } = usePrograms();
+  const { data: cohorts = [] } = useCohorts();
   const createApplicationMutation = useCreateApplication();
   const approveMutation = useApproveApplication();
   const rejectMutation = useRejectApplication();
 
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [approvalCohortId, setApprovalCohortId] = useState('');
   const [isSimulatingPublicForm, setIsSimulatingPublicForm] = useState(false);
-  const [showToast, setShowToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+  const [showToast, setShowToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
   const {
     register,
@@ -89,12 +92,17 @@ export default function Applications() {
   };
 
   const handleApprove = async (id: string) => {
-    try {
-      await approveMutation.mutateAsync(id);
-      setSelectedAppId(null);
-      triggerToast('Signup approved. An invitation email has been sent for password setup.', 'success');
-    } catch {
+    if (!approvalCohortId) {
+      triggerToast('Select a cohort before approving this applicant.', 'error');
       return;
+    }
+    try {
+      await approveMutation.mutateAsync({ id, cohort_id: approvalCohortId });
+      setSelectedAppId(null);
+      setApprovalCohortId('');
+      triggerToast('Signup approved. An invitation email has been sent for password setup.', 'success');
+    } catch (approvalError) {
+      triggerToast(approvalError instanceof Error ? approvalError.message : 'Application approval failed.', 'error');
     }
   };
 
@@ -102,13 +110,14 @@ export default function Applications() {
     try {
       await rejectMutation.mutateAsync(id);
       setSelectedAppId(null);
+      setApprovalCohortId('');
       triggerToast('Application rejected. Registry state updated.', 'info');
     } catch {
       return;
     }
   };
 
-  const triggerToast = (message: string, type: 'success' | 'info') => {
+  const triggerToast = (message: string, type: 'success' | 'info' | 'error') => {
     setShowToast({ message, type });
     setTimeout(() => setShowToast(null), 3500);
   };
@@ -141,6 +150,9 @@ export default function Applications() {
   }
 
   const selectedApp = applications?.find(a => a.id === selectedAppId);
+  const eligibleCohorts = selectedApp
+    ? cohorts.filter((cohort) => cohort.program_id === selectedApp.program_id && (cohort.status === 'active' || cohort.status === 'upcoming'))
+    : [];
   const isEmpty = !applications || applications.length === 0;
 
   return (
@@ -148,7 +160,11 @@ export default function Applications() {
       {/* Dynamic Notifications Toast */}
       {showToast && (
         <div className={`fixed top-20 right-6 z-50 rounded-lg p-4 shadow-xl flex items-center gap-3.5 border text-white ${
-          showToast.type === 'success' ? 'bg-emerald-600 border-emerald-500' : 'bg-gray-800 border-gray-700'
+          showToast.type === 'success'
+            ? 'bg-emerald-600 border-emerald-500'
+            : showToast.type === 'error'
+              ? 'bg-rose-600 border-rose-500'
+              : 'bg-gray-800 border-gray-700'
         }`}>
           <CheckCircle2 className="w-5 h-5 shrink-0" />
           <span className="text-sm font-semibold">{showToast.message}</span>
@@ -192,7 +208,10 @@ export default function Applications() {
                 <p className="text-xs text-gray-500 mt-1">{selectedApp.email}</p>
               </div>
               <button 
-                onClick={() => setSelectedAppId(null)}
+                onClick={() => {
+                  setSelectedAppId(null);
+                  setApprovalCohortId('');
+                }}
                 className="text-gray-400 hover:text-gray-600 font-bold p-1 rounded-md hover:bg-gray-50"
               >
                 <X className="w-5 h-5" />
@@ -220,7 +239,25 @@ export default function Applications() {
             </div>
 
             {selectedApp.status === 'pending' ? (
-              <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">
+              <div className="space-y-4 pt-4 border-t border-gray-100">
+                <label className="block">
+                  <span className="text-xs font-bold text-gray-400 uppercase block mb-2">Admission Cohort</span>
+                  <select
+                    value={approvalCohortId}
+                    onChange={(event) => setApprovalCohortId(event.currentTarget.value)}
+                    className="block w-full rounded-lg border-gray-300 text-sm shadow-xs focus:border-indigo-500 focus:ring-indigo-500"
+                  >
+                    <option value="">
+                      {eligibleCohorts.length === 0 ? 'No eligible cohorts for this program' : 'Select a cohort'}
+                    </option>
+                    {eligibleCohorts.map((cohort) => (
+                      <option key={cohort.id} value={cohort.id}>
+                        {cohort.name} - {cohort.status} - starts {cohort.start_date}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => handleReject(selectedApp.id)}
                   disabled={approveMutation.isPending || rejectMutation.isPending}
@@ -230,11 +267,12 @@ export default function Applications() {
                 </button>
                 <button
                   onClick={() => handleApprove(selectedApp.id)}
-                  disabled={approveMutation.isPending || rejectMutation.isPending}
+                  disabled={approveMutation.isPending || rejectMutation.isPending || !approvalCohortId}
                   className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg text-sm transition-colors shadow-xs"
                 >
                   <Check className="w-4 h-4" /> Approve & Send Invite
                 </button>
+                </div>
               </div>
             ) : (
               <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl">
@@ -396,7 +434,10 @@ export default function Applications() {
                       </td>
                       <td className="p-4 text-right pr-6">
                         <button
-                          onClick={() => setSelectedAppId(app.id)}
+                          onClick={() => {
+                            setSelectedAppId(app.id);
+                            setApprovalCohortId('');
+                          }}
                           className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:border-indigo-200 text-indigo-600 rounded-md text-xs font-bold uppercase tracking-wider ml-auto transition-all"
                         >
                           <Eye className="w-3.5 h-3.5" />

@@ -7,12 +7,13 @@ from accounts.choices import UserRole
 from accounts.permissions import IsActiveUser, IsAdminOrSuperAdmin, IsTeacherAdminOrSuperAdmin
 from cohorts.models import Cohort, TeacherAssignment
 from cohorts.serializers import CohortGradeSettingsSerializer, CohortSerializer, TeacherAssignmentSerializer
+from cohorts.services import delete_empty_cohort
 
 
 class CohortViewSet(ModelViewSet):
     serializer_class = CohortSerializer
     permission_classes = [IsActiveUser]
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -26,9 +27,15 @@ class CohortViewSet(ModelViewSet):
         return queryset
 
     def get_permissions(self):
+        if self.action == "destroy":
+            return [IsAdminOrSuperAdmin()]
         if self.action in {"create", "partial_update", "grade_settings"}:
             return [IsTeacherAdminOrSuperAdmin()]
         return super().get_permissions()
+
+    def destroy(self, request, *args, **kwargs):
+        delete_empty_cohort(self.get_object())
+        return Response(status=204)
 
     def _can_manage_grade_settings(self, cohort):
         user = self.request.user

@@ -45,9 +45,9 @@ Build the first production-ready version of Skilix.
 | Signup to Program | ✅ | Public `/signup` frontend submission flow creates pending student signup applications. |
 | Upload Resume | ✅ Removed | Removed from the redesigned MVP application flow. |
 | Upload Payment Proof | ✅ Removed | Removed from the redesigned MVP application flow. |
-| Review Applications | ✅ | Super Admin-only API with frontend DTOs and tests. |
-| Approve Application | ✅ | Super Admin approval sends an invitation email for password setup. |
-| Reject Application | ✅ | Super Admin rejection API records review metadata. |
+| Review Applications | ✅ | Admin/Super Admin application review with cohort selection is implemented. |
+| Approve Application | ✅ | Approval requires explicit cohort selection and sends an invitation email for password setup. |
+| Reject Application | ✅ | Admin/Super Admin rejection API records review metadata. |
 | Invitation Email | ✅ | Expiring invitation email, accept, resend, and revoke flow is implemented. |
 
 ---
@@ -56,7 +56,7 @@ Build the first production-ready version of Skilix.
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| Program CRUD | ✅ | Backend API and Vite dashboard integration are implemented for list/create/update. |
+| Program CRUD | ✅ | Backend API and Vite dashboard integration support list/create/update and empty-record hard delete. |
 | Archive Program | ✅ | Soft archive endpoint preserves data and hides archived programs from default lists. |
 | Program Details | ✅ | Detail API returns cohort summary data, embeds live cohort curriculum management, and scopes students to their enrolled program. |
 
@@ -66,7 +66,7 @@ Build the first production-ready version of Skilix.
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| Cohort CRUD | ✅ | Backend API and Vite dashboard integration are implemented for list/create/update. |
+| Cohort CRUD | ✅ | Backend API and Vite dashboard integration support list/create/update and empty-record hard delete. |
 | Current Week | ✅ | Validated API/UI management is implemented. |
 | Status Management | ✅ | Validated API/UI status management is implemented. |
 

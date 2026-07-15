@@ -3,8 +3,8 @@
 ## Applicant to Student
 
 1. Applicant submits `/signup` with program, motivation, and contact details.
-2. Super Admin reviews the signup application in the dashboard.
-3. Approval creates an expiring invitation email for the selected cohort.
+2. Admin or Super Admin reviews the signup application in the dashboard.
+3. Reviewer selects an eligible cohort in the applicant's program and approval creates an expiring invitation email for that cohort.
 4. Applicant accepts the invitation, sets a password, and becomes an active student in exactly one cohort.
 5. Rejected applications retain reviewer and review timestamp metadata.
 
@@ -20,9 +20,11 @@
 
 1. Admin or Super Admin creates programs and cohorts.
 2. Programs can be archived without deleting related cohorts or learning records.
-3. Students only see the program attached to their enrolled cohort.
-4. Cohorts expose validated status and current-week management.
-5. Admin or Super Admin assigns teachers as lead, assistant, or mentor.
+3. Admin or Super Admin can hard delete programs only while they have no cohorts, applications, or announcements.
+4. Students only see the program attached to their enrolled cohort.
+5. Cohorts expose validated status and current-week management.
+6. Admin or Super Admin can hard delete cohorts only while they have no students, invitations, teacher assignments, curriculum, assignments, attendance, or announcements.
+7. Admin or Super Admin assigns teachers as lead, assistant, or mentor.
 
 ## Learning Delivery
 

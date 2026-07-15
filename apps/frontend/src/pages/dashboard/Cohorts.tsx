@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useCohorts, useCreateCohort, useUpdateCohort } from '../../features/cohorts/api/cohorts';
+import { useCohorts, useCreateCohort, useUpdateCohort, useDeleteCohort } from '../../features/cohorts/api/cohorts';
 import { useCreateTeacherAssignment, useDeleteTeacherAssignment, useTeacherAssignments } from '../../features/cohorts/api/teacher-assignments';
 import { usePrograms } from '../../features/programs/api/programs';
 import { useAuth } from '../../features/authentication/context/AuthContext';
@@ -19,7 +19,8 @@ import {
   UserCheck,
   Check,
   Activity,
-  User
+  User,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Cohort } from '../../shared/types';
@@ -41,6 +42,7 @@ export default function Cohorts() {
   const { data: programs } = usePrograms();
   const createCohortMutation = useCreateCohort();
   const updateCohortMutation = useUpdateCohort();
+  const deleteCohortMutation = useDeleteCohort();
   const { data: teacherAssignments = [] } = useTeacherAssignments(canManageCohorts);
   const createTeacherAssignment = useCreateTeacherAssignment();
   const deleteTeacherAssignment = useDeleteTeacherAssignment();
@@ -48,6 +50,8 @@ export default function Cohorts() {
   const [selectedCohortId, setSelectedCohortId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('Cohort initialized successfully!');
+  const [deleteError, setDeleteError] = useState('');
   const [teacherId, setTeacherId] = useState('');
   const [teacherRole, setTeacherRole] = useState<'LEAD' | 'ASSISTANT' | 'MENTOR'>('LEAD');
 
@@ -79,6 +83,7 @@ export default function Cohorts() {
 
       setIsCreating(false);
       reset();
+      setSuccessMessage('Cohort initialized successfully!');
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
     } catch {
@@ -93,6 +98,21 @@ export default function Cohorts() {
   const handleUpdateSelectedCohort = async (data: Partial<Cohort>) => {
     if (!selectedCohort) return;
     await updateCohortMutation.mutateAsync({ id: selectedCohort.id, data });
+  };
+
+  const handleDeleteCohort = async (cohort: Cohort) => {
+    setDeleteError('');
+    const confirmed = window.confirm(`Delete ${cohort.name}? This only works when the cohort has no students, invitations, teachers, curriculum, assignments, attendance, or announcements.`);
+    if (!confirmed) return;
+    try {
+      await deleteCohortMutation.mutateAsync(cohort.id);
+      setSelectedCohortId(null);
+      setSuccessMessage('Cohort deleted successfully.');
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
+    } catch (deleteCohortError) {
+      setDeleteError(deleteCohortError instanceof Error ? deleteCohortError.message : 'Cohort could not be deleted.');
+    }
   };
 
   const selectedTeacherAssignments = selectedCohort
@@ -130,13 +150,31 @@ export default function Cohorts() {
   if (selectedCohort) {
     return (
       <div className="space-y-6" id="cohort-detail-view">
-        <button 
-          onClick={() => setSelectedCohortId(null)}
-          className="flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-500 bg-white border border-gray-200 px-3 py-1.5 rounded-lg transition-colors shadow-xs"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Cohorts
-        </button>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button
+            onClick={() => setSelectedCohortId(null)}
+            className="flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-500 bg-white border border-gray-200 px-3 py-1.5 rounded-lg transition-colors shadow-xs"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Cohorts
+          </button>
+          {can.manageCohorts(user.role) && (
+            <button
+              type="button"
+              onClick={() => handleDeleteCohort(selectedCohort)}
+              disabled={deleteCohortMutation.isPending}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Cohort
+            </button>
+          )}
+        </div>
+        {deleteError && (
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+            {deleteError}
+          </div>
+        )}
 
         {/* Cohort Header */}
         <div className="bg-white rounded-xl border border-gray-100 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -288,7 +326,7 @@ export default function Cohorts() {
       {showSuccessToast && (
         <div className="fixed top-20 right-6 z-50 bg-emerald-600 text-white rounded-lg p-4 shadow-xl flex items-center gap-3.5 border border-emerald-500">
           <CheckCircle2 className="w-5 h-5 text-white" />
-          <span className="text-sm font-semibold">Cohort initialized successfully!</span>
+          <span className="text-sm font-semibold">{successMessage}</span>
         </div>
       )}
 
