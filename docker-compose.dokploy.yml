@@ -10,6 +10,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      skilix_internal:
+        aliases:
+          - postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -22,6 +26,10 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
+    networks:
+      skilix_internal:
+        aliases:
+          - redis
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -39,6 +47,10 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-me}
     volumes:
       - minio_data:/data
+    networks:
+      skilix_internal:
+        aliases:
+          - minio
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
@@ -59,6 +71,8 @@ services:
       "mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}
       && mc mb --ignore-existing local/$${MINIO_BUCKET}
       && mc anonymous set none local/$${MINIO_BUCKET}"
+    networks:
+      - skilix_internal
     depends_on:
       minio:
         condition: service_healthy
@@ -71,6 +85,8 @@ services:
     env_file:
       - .env
     command: python manage.py migrate --noinput
+    networks:
+      - skilix_internal
     depends_on:
       postgres:
         condition: service_healthy
@@ -89,6 +105,8 @@ services:
     command: gunicorn skilix.wsgi:application --bind 0.0.0.0:8000
     expose:
       - "8000"
+    networks:
+      - skilix_internal
     depends_on:
       backend-migrate:
         condition: service_completed_successfully
@@ -111,6 +129,8 @@ services:
     env_file:
       - .env
     command: celery -A skilix worker --loglevel=info
+    networks:
+      - skilix_internal
     depends_on:
       backend-migrate:
         condition: service_completed_successfully
@@ -125,6 +145,8 @@ services:
     env_file:
       - .env
     command: celery -A skilix beat --loglevel=info --schedule=/tmp/celerybeat-schedule
+    networks:
+      - skilix_internal
     depends_on:
       backend-migrate:
         condition: service_completed_successfully
@@ -142,9 +164,15 @@ services:
       - .env
     expose:
       - "80"
+    networks:
+      - skilix_internal
     depends_on:
       backend:
         condition: service_healthy
+
+networks:
+  skilix_internal:
+    driver: bridge
 
 volumes:
   postgres_data:

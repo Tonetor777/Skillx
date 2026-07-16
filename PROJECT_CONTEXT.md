@@ -193,6 +193,7 @@ Database
 - Local Docker backend, migration, Celery, and beat services now receive Gmail SMTP environment variables from `.env` so invitation approval sends through the configured email backend instead of the console backend.
 - Django email settings now select Gmail SMTP when `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD` are configured, while retaining Resend as a fallback integration.
 - The production-facing login page no longer exposes fast-track seeded testing account buttons.
+- Dokploy services now attach to an explicit internal bridge network with stable `postgres`, `redis`, and `minio` aliases to avoid generated-network DNS resolution failures.
 
 ---
 
