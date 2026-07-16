@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../features/authentication/context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, KeyRound, Mail, ShieldAlert, ShieldCheck, User } from 'lucide-react';
+import { ArrowUpRight, KeyRound, Mail, ShieldAlert } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const loginSchema = z.object({
@@ -23,7 +23,6 @@ export default function Login() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -45,21 +44,6 @@ export default function Login() {
       setSubmitting(false);
     }
   };
-
-  // Pre-fill helpers for simple testing
-  const handleFastLogin = (email: string) => {
-    setValue('email', email);
-    setValue('password', 'password');
-    // Trigger submit instantly
-    handleSubmit(onSubmit)();
-  };
-
-  const testAccounts = [
-    { email: 'superadmin@skilix.com', label: 'Sarah Connor', role: 'Super Admin', color: 'border-red-200 hover:bg-red-50 text-red-700' },
-    { email: 'admin@skilix.com', label: 'John Doe', role: 'Admin', color: 'border-blue-200 hover:bg-blue-50 text-blue-700' },
-    { email: 'teacher@skilix.com', label: 'David Malan', role: 'Teacher', color: 'border-amber-200 hover:bg-amber-50 text-amber-700' },
-    { email: 'student@skilix.com', label: 'Alex Mercer', role: 'Student', color: 'border-emerald-200 hover:bg-emerald-50 text-emerald-700' },
-  ];
 
   return (
     <div className="min-h-screen skx-grid-bg flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8" id="login-root">
@@ -171,32 +155,6 @@ export default function Login() {
               Submit a signup request
             </Link>
           </p>
-
-          {/* Quick Sandbox Tester Accounts Panel */}
-          <div className="mt-8 border-t border-[#d8d8d4] pt-6">
-            <h3 className="skx-page-label text-center">
-              Fast-Track Testing Accounts (Simulation Mode)
-            </h3>
-            <p className="text-[11px] text-[#737373] text-center mb-4 mt-2">
-              Select any role to test custom permission controls & rule gates
-            </p>
-            <div className="grid grid-cols-2 gap-2.5">
-              {testAccounts.map((account) => (
-                <button
-                  type="button"
-                  key={account.email}
-                  onClick={() => handleFastLogin(account.email)}
-                  className={`p-2.5 border text-left transition-colors flex flex-col justify-between h-20 bg-white ${account.color}`}
-                >
-                  <span className="text-[11px] font-semibold uppercase opacity-75">{account.role}</span>
-                  <div>
-                    <span className="block text-xs font-bold text-gray-900">{account.label}</span>
-                    <span className="block text-[10px] text-gray-500 truncate">{account.email}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
         </motion.div>
       </div>
     </div>

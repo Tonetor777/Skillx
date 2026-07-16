@@ -192,6 +192,7 @@ Database
 - Docker Compose now runs Django migrations before starting backend services so installed app tables, including Simple JWT token blacklist tables, exist before API requests are served.
 - Local Docker backend, migration, Celery, and beat services now receive Gmail SMTP environment variables from `.env` so invitation approval sends through the configured email backend instead of the console backend.
 - Django email settings now select Gmail SMTP when `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD` are configured, while retaining Resend as a fallback integration.
+- The production-facing login page no longer exposes fast-track seeded testing account buttons.
 
 ---
 

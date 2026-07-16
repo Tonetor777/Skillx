@@ -87,7 +87,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Removed
 
--
+- Fast-track testing account buttons from the production-facing login page.
 
 ---
 
