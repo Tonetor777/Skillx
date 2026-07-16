@@ -51,6 +51,16 @@ def test_production_settings_default_to_https_protections(monkeypatch):
     importlib.reload(settings_module)
 
 
+def test_backend_serves_collected_static_files_with_whitenoise():
+    from django.conf import settings
+
+    assert "whitenoise.middleware.WhiteNoiseMiddleware" in settings.MIDDLEWARE
+    assert (
+        settings.STORAGES["staticfiles"]["BACKEND"]
+        == "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    )
+
+
 def test_gmail_smtp_environment_configures_email_backend(monkeypatch):
     monkeypatch.delenv("DJANGO_EMAIL_BACKEND", raising=False)
     monkeypatch.delenv("RESEND_API_KEY", raising=False)

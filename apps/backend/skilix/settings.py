@@ -66,6 +66,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -135,6 +136,15 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "")
 AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL", "")
 AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-1")
@@ -145,13 +155,8 @@ AWS_S3_FILE_OVERWRITE = False
 AWS_DEFAULT_ACL = None
 
 if AWS_STORAGE_BUCKET_NAME and AWS_S3_ENDPOINT_URL:
-    STORAGES = {
-        "default": {
-            "BACKEND": "storages.backends.s3.S3Storage",
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
     }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

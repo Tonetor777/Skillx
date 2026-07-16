@@ -77,6 +77,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Fixed
 
+- Django admin styling in production by serving collected static files through WhiteNoise from the backend container.
 - Dokploy compose services now share an explicit internal bridge network with stable `postgres`, `redis`, and `minio` aliases for container DNS resolution.
 - Docker Compose backend services now receive email provider environment variables from `.env`, allowing invitation emails to use the configured email backend in local Docker.
 - Local Docker backend, migration, and Celery services now receive explicit `DJANGO_DEBUG` and `DJANGO_SECRET_KEY` compose values so host shell settings cannot accidentally trigger production secret validation during development.
