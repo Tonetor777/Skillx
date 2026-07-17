@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { beforeEach, test } from 'node:test';
 
-import { apiClient, ApiError, clearStoredTokens } from './client';
+import { apiClient, ApiError, clearStoredTokens, scopeProgramsForAuthUser } from './client';
+import type { Cohort, Program, User } from '../types';
 
 class MemoryStorage {
   private store = new Map<string, string>();
@@ -70,3 +71,84 @@ test('apiClient does not write debug logs in production-facing request paths', (
   assert.equal(source.includes('console.log'), false);
   assert.equal(source.includes('console.error'), false);
 });
+
+test('mock program scoping returns only the enrolled program for students', () => {
+  const programs = createProgramFixtures();
+  const student = createUserFixture({ role: 'student', cohort_id: 'coh_frontend' });
+  const scopedPrograms = scopeProgramsForAuthUser(programs, student, createCohortFixtures());
+
+  assert.deepEqual(scopedPrograms.map(program => program.id), ['prg_frontend']);
+});
+
+test('mock program scoping preserves full visibility for staff users', () => {
+  const programs = createProgramFixtures();
+  const admin = createUserFixture({ role: 'admin' });
+  const scopedPrograms = scopeProgramsForAuthUser(programs, admin, createCohortFixtures());
+
+  assert.deepEqual(scopedPrograms.map(program => program.id), ['prg_frontend', 'prg_ai']);
+});
+
+test('mock program detail guards reject programs outside the student cohort', () => {
+  const source = readFileSync(new URL('./client.ts', import.meta.url), 'utf8');
+
+  assert.ok(source.includes("authUser?.role === 'student'"));
+  assert.ok(source.includes('!scopedPrograms.some(program => program.id === progId)'));
+  assert.ok(source.includes("throw new ApiError(404, 'Program not found')"));
+});
+
+function createUserFixture(overrides: Partial<User> = {}): User {
+  return {
+    id: 'usr_fixture',
+    email: 'fixture@skilix.com',
+    first_name: 'Fixture',
+    last_name: 'User',
+    role: 'student',
+    created_at: '2026-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+function createProgramFixtures(): Program[] {
+  return [
+    {
+      id: 'prg_frontend',
+      name: 'Frontend',
+      description: 'Frontend program',
+      weeks: [],
+      cohorts_count: 1,
+      status: 'active',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+    {
+      id: 'prg_ai',
+      name: 'AI',
+      description: 'AI program',
+      weeks: [],
+      cohorts_count: 1,
+      status: 'active',
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ];
+}
+
+function createCohortFixtures(): Cohort[] {
+  return [
+    {
+      id: 'coh_frontend',
+      name: 'Frontend Cohort',
+      program_id: 'prg_frontend',
+      program_name: 'Frontend',
+      start_date: '2026-01-01',
+      end_date: '2026-03-01',
+      is_active: true,
+      students_count: 1,
+      teachers: [],
+      status: 'active',
+      current_week: 1,
+      duration_weeks: 12,
+      leaderboard_visible: true,
+      assignment_weight: 90,
+      attendance_weight: 10,
+    },
+  ];
+}

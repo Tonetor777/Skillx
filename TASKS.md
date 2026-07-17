@@ -60,7 +60,7 @@ Build the first production-ready version of Skilix.
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| Program CRUD | ✅ | Backend API and Vite dashboard integration support list/create/update and empty-record hard delete. |
+| Program CRUD | ✅ | Backend API and Vite dashboard integration support list/create/update, empty-record hard delete, and student-scoped dashboard visibility. |
 | Archive Program | ✅ | Soft archive endpoint preserves data and hides archived programs from default lists. |
 | Program Details | ✅ | Detail API returns cohort summary data, embeds live cohort curriculum management, and scopes students to their enrolled program. |
 

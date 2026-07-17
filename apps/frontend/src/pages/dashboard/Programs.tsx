@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { usePrograms, useCreateProgram, useUpdateProgram, useArchiveProgram, useDeleteProgram } from '../../features/programs/api/programs';
+import { useCohorts } from '../../features/cohorts/api/cohorts';
 import { useAuth } from '../../features/authentication/context/AuthContext';
 import { can } from '../../shared/permissions/can';
 import { CurriculumManager } from './Weeks';
@@ -29,7 +30,8 @@ type ProgramFormValues = z.infer<typeof programSchema>;
 
 export default function Programs() {
   const { user } = useAuth();
-  const { data: programs, isLoading, isError, error, refetch } = usePrograms();
+  const { data: programs, isLoading: programsLoading, isError, error, refetch } = usePrograms();
+  const { data: cohorts, isLoading: cohortsLoading } = useCohorts();
   const createProgramMutation = useCreateProgram();
   const updateProgramMutation = useUpdateProgram();
   const archiveProgramMutation = useArchiveProgram();
@@ -98,8 +100,14 @@ export default function Programs() {
 
   if (!user) return null;
 
+  const enrolledCohort = user.role === 'student' ? cohorts?.find(cohort => cohort.id === user.cohort_id) : undefined;
+  const visiblePrograms = user.role === 'student'
+    ? programs?.filter(program => program.id === enrolledCohort?.program_id)
+    : programs;
+  const isLoading = programsLoading || (user.role === 'student' && cohortsLoading);
+
   // Active program detail logic
-  const selectedProgram = programs?.find(p => p.id === selectedProgramId);
+  const selectedProgram = visiblePrograms?.find(p => p.id === selectedProgramId);
 
   const handleArchiveProgram = async (programId: string) => {
     await archiveProgramMutation.mutateAsync(programId);
@@ -289,7 +297,7 @@ export default function Programs() {
   }
 
   // 3. Empty State (if array is empty, which is rare due to seed, but checked for rule completeness)
-  const isEmpty = !programs || programs.length === 0;
+  const isEmpty = !visiblePrograms || visiblePrograms.length === 0;
 
   return (
     <div className="space-y-8" id="programs-list-view">
@@ -410,7 +418,7 @@ export default function Programs() {
       ) : (
         /* Programs Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="programs-data-grid">
-          {programs.map((program) => (
+          {visiblePrograms.map((program) => (
             <div 
               key={program.id} 
               className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-50/30 transition-all flex flex-col justify-between"

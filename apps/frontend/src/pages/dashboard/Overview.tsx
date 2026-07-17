@@ -87,6 +87,7 @@ export default function Overview() {
   const totalProgramsCount = programs?.length || 0;
   const pendingAppsCount = applications?.filter(a => a.status === 'pending').length || 0;
   const pendingGradesCount = submissions?.filter(s => s.status === 'pending').length || 0;
+  const activeCohort = user.role === 'student' ? cohorts?.find(cohort => cohort.id === user.cohort_id) : undefined;
 
   // Stagger configurations
   const containerVariants = {
@@ -112,9 +113,11 @@ export default function Overview() {
             እንኳን በደህና መጡ, {user.first_name}
           </h1>
           <p className="mt-2 font-display text-lg font-bold text-[#141414]">Welcome back, {user.first_name}!</p>
-          <p className="text-[#5f5f5a] text-sm mt-2 font-sans">
-            Here is what is happening across your cohort-based workspace today.
-          </p>
+          {user.role !== 'student' && (
+            <p className="text-[#5f5f5a] text-sm mt-2 font-sans">
+              Here is what is happening across your cohort-based workspace today.
+            </p>
+          )}
         </div>
         <div className="flex gap-3">
           {can.createAnnouncements(user.role) && (
@@ -216,22 +219,27 @@ export default function Overview() {
               <div className="flex justify-between items-center border-b border-slate-100 pb-4">
                 <div>
                   <h3 className="font-bold text-lg text-slate-800">My Cohort</h3>
-                  <p className="text-xs text-slate-500">You are enrolled in exactly one active bootcamp class.</p>
                 </div>
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
-                  Enrolled & Active
-                </span>
+                {activeCohort && (
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    {activeCohort.status}
+                  </span>
+                )}
               </div>
 
               {/* Enrolled cohort info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Current Program:</span>
-                  <span className="text-sm font-semibold text-slate-800 mt-1 block">Frontend Web Engineering</span>
+                  <span className="text-sm font-semibold text-slate-800 mt-1 block">
+                    {cohortsLoading ? 'Loading...' : activeCohort?.program_name ?? 'Not assigned'}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Class Cohort:</span>
-                  <span className="text-sm font-semibold text-slate-800 mt-1 block">Frontend Cohort Alpha</span>
+                  <span className="text-sm font-semibold text-slate-800 mt-1 block">
+                    {cohortsLoading ? 'Loading...' : activeCohort?.name ?? 'Not assigned'}
+                  </span>
                 </div>
               </div>
 
@@ -364,22 +372,24 @@ export default function Overview() {
           )}
 
           {/* Quick Guidance / Roadmap card */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-            <h3 className="font-bold text-lg text-slate-800 mb-2">Program Quick Guide</h3>
-            <p className="text-sm text-slate-500 leading-relaxed mb-4">
-              Welcome to the Skilix Workspace. This applet supports program coordination, cohort isolation, syllabus resource distribution, application approval, homework submission lockers, grading checks, and announcements channels.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="border border-slate-100 rounded-lg p-3.5 bg-slate-50/50">
-                <span className="font-semibold text-sm text-slate-800 block">Module-based Lessons</span>
-                <span className="text-xs text-slate-500 mt-1 block">Cohorts organize learning into modules, lessons, resources, and assignments.</span>
-              </div>
-              <div className="border border-slate-100 rounded-lg p-3.5 bg-slate-50/50">
-                <span className="font-semibold text-sm text-slate-800 block">Assignment Locks</span>
-                <span className="text-xs text-slate-500 mt-1 block">Graded submissions lock for student edits, while teachers can update score and feedback.</span>
+          {user.role !== 'student' && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+              <h3 className="font-bold text-lg text-slate-800 mb-2">Program Quick Guide</h3>
+              <p className="text-sm text-slate-500 leading-relaxed mb-4">
+                Welcome to the Skilix Workspace. This applet supports program coordination, cohort isolation, syllabus resource distribution, application approval, homework submission lockers, grading checks, and announcements channels.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="border border-slate-100 rounded-lg p-3.5 bg-slate-50/50">
+                  <span className="font-semibold text-sm text-slate-800 block">Module-based Lessons</span>
+                  <span className="text-xs text-slate-500 mt-1 block">Cohorts organize learning into modules, lessons, resources, and assignments.</span>
+                </div>
+                <div className="border border-slate-100 rounded-lg p-3.5 bg-slate-50/50">
+                  <span className="font-semibold text-sm text-slate-800 block">Assignment Locks</span>
+                  <span className="text-xs text-slate-500 mt-1 block">Graded submissions lock for student edits, while teachers can update score and feedback.</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Right column (1 col wide on desktop): Announcements Feed */}

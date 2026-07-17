@@ -77,6 +77,8 @@ This project follows a modified version of Keep a Changelog.
 
 ## Fixed
 
+- Student Programs dashboard menu/page visibility now shows only the program attached to the student's enrolled cohort, including in mock API mode.
+- Student overview now displays the enrolled cohort and program from the current student's cohort data instead of placeholder class information.
 - Django admin styling in production by serving collected static files through WhiteNoise from the backend container.
 - Dokploy compose services now share an explicit internal bridge network with stable `postgres`, `redis`, and `minio` aliases for container DNS resolution.
 - Docker Compose backend services now receive email provider environment variables from `.env`, allowing invitation emails to use the configured email backend in local Docker.

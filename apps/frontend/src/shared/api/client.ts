@@ -59,6 +59,20 @@ export class ApiError extends Error {
 // Token refresh flag to avoid loops
 let isRefreshing = false;
 
+export function scopeProgramsForAuthUser(programs: Program[], user: User | null, cohorts: Cohort[]): Program[] {
+  if (user?.role !== 'student') {
+    return programs;
+  }
+  if (!user.cohort_id) {
+    return [];
+  }
+  const enrolledCohort = cohorts.find(cohort => cohort.id === user.cohort_id);
+  if (!enrolledCohort) {
+    return [];
+  }
+  return programs.filter(program => program.id === enrolledCohort.program_id);
+}
+
 // Dynamic simulation handler to provide flawless local experience when DRF server is not online
 function handleMockRequest(method: string, endpoint: string, body?: any): any {
   // Login Endpoint
@@ -171,11 +185,17 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
     if (endpoint.includes('/programs/public')) {
       return prgs.filter(program => program.status !== 'archived');
     }
+    const cohorts = MockDatabase.get<Cohort>('cohorts');
+    const authUser = getStoredTokens().user;
+    const scopedPrograms = scopeProgramsForAuthUser(prgs, authUser, cohorts);
     const idMatch = endpoint.match(/\/programs\/([^\/]+)/);
     if (idMatch) {
       const progId = idMatch[1];
       const progIndex = prgs.findIndex(p => p.id === progId);
       if (progIndex > -1) {
+        if (method === 'GET' && authUser?.role === 'student' && !scopedPrograms.some(program => program.id === progId)) {
+          throw new ApiError(404, 'Program not found');
+        }
         if (endpoint.includes('/archive')) {
           prgs[progIndex] = {
             ...prgs[progIndex],
@@ -223,7 +243,7 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
       MockDatabase.set('programs', prgs);
       return newProg;
     }
-    return prgs;
+    return scopedPrograms;
   }
 
   // Cohort Endpoints

@@ -17,6 +17,14 @@ test('student overview matches submissions to assignment cards', () => {
   assert.ok(source.includes('{status.ctaLabel}'));
 });
 
+test('student overview derives cohort details from the enrolled cohort', () => {
+  assert.ok(source.includes("cohorts?.find(cohort => cohort.id === user.cohort_id)"));
+  assert.ok(source.includes('activeCohort?.program_name'));
+  assert.ok(source.includes('activeCohort?.name'));
+  assert.ok(!source.includes('Frontend Web Engineering'));
+  assert.ok(!source.includes('Frontend Cohort Alpha'));
+});
+
 test('overview announcement feed highlights unread notices', () => {
   assert.ok(source.includes('!ann.is_read'));
   assert.ok(source.includes('New'));
