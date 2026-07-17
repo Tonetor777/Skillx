@@ -286,9 +286,11 @@ export default function Programs() {
             <h2 className="mt-2 text-xl font-bold text-slate-800 font-sans tracking-tight">
               Week → Module → Lesson → Resources
             </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Select a cohort under this program and manage the structured curriculum students see.
-            </p>
+            {can.managePrograms(user.role) && (
+              <p className="mt-1 text-sm text-slate-500">
+                Select a cohort under this program and manage the curriculum.
+              </p>
+            )}
           </div>
           <CurriculumManager programId={selectedProgram.id} embedded />
         </section>
@@ -315,9 +317,11 @@ export default function Programs() {
           <p className="skx-page-label">Academic Programs</p>
           <h1 className="mt-3 text-4xl md:text-5xl skx-amharic-title">የትምህርት ፕሮግራሞች</h1>
           <p className="mt-2 font-display text-lg font-bold text-[#141414]">Academic Programs</p>
-          <p className="text-[#5f5f5a] text-sm mt-2">
-            Browse currucula details, learning outcomes, and course modules.
-          </p>
+          {user.role !== 'student' && (
+            <p className="text-[#5f5f5a] text-sm mt-2">
+              Browse curricula, learning outcomes, and modules.
+            </p>
+          )}
         </div>
         {can.managePrograms(user.role) && (
           <button
@@ -405,7 +409,9 @@ export default function Programs() {
         <div className="border border-dashed border-slate-200 rounded-xl p-12 text-center bg-slate-50/50" id="programs-empty-state">
           <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-3" />
           <h3 className="text-base font-bold text-slate-800">No Programs found</h3>
-          <p className="text-sm text-slate-500 mt-1">Get started by building your first academic program container.</p>
+          {can.managePrograms(user.role) && (
+            <p className="text-sm text-slate-500 mt-1">Create your first academic program.</p>
+          )}
           {can.managePrograms(user.role) && (
             <button
               onClick={() => setIsCreating(true)}

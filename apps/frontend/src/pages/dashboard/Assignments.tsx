@@ -720,9 +720,11 @@ export default function Assignments() {
           <p className="skx-page-label">Tasks & Assignments</p>
           <h1 className="mt-3 text-4xl md:text-5xl skx-amharic-title">ተግባራት እና ምዘናዎች</h1>
           <p className="mt-2 font-display text-lg font-bold text-[#141414]">Tasks & Assignments</p>
-          <p className="text-[#5f5f5a] text-sm mt-2">
-            Browse course checkpoints, track submissions, evaluate student scores, and review syllabus feedback.
-          </p>
+          {user.role !== 'student' && (
+            <p className="text-[#5f5f5a] text-sm mt-2">
+              Manage submissions, grading, and feedback.
+            </p>
+          )}
         </div>
         {can.manageAssignments(user.role) && (
           <button
@@ -742,7 +744,9 @@ export default function Assignments() {
         <div className="border border-dashed border-gray-200 rounded-xl p-12 text-center bg-gray-50/50" id="assignments-empty-state">
           <ClipboardList className="w-12 h-12 text-gray-400 mx-auto mb-3" />
           <h3 className="text-base font-bold text-gray-900">No Assignments published</h3>
-          <p className="text-sm text-gray-500 mt-1">Publish a course assignment to a cohort class to begin collecting submissions.</p>
+          {can.manageAssignments(user.role) && (
+            <p className="text-sm text-gray-500 mt-1">Publish an assignment to begin collecting submissions.</p>
+          )}
           {can.manageAssignments(user.role) && (
             <button
               onClick={openCreateAssignment}

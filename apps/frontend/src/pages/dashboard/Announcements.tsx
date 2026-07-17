@@ -148,9 +148,11 @@ export default function Announcements() {
           <p className="skx-page-label">Announcements</p>
           <h1 className="mt-3 text-4xl md:text-5xl skx-amharic-title">ማስታወቂያዎች</h1>
           <p className="mt-2 font-display text-lg font-bold text-[#141414]">Announcements</p>
-          <p className="text-[#5f5f5a] text-sm mt-2">
-            Broadcast platform-wide updates, course syllabus adjustments, or cohort specific bulletins.
-          </p>
+          {can.createAnnouncements(user.role) && (
+            <p className="text-[#5f5f5a] text-sm mt-2">
+              Broadcast updates to selected audiences.
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {(unreadCount?.count ?? 0) > 0 && (

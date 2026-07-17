@@ -197,6 +197,7 @@ Database
 - Django admin static assets are served by WhiteNoise in production so the admin UI renders with collected CSS/JS behind Gunicorn.
 - Student overview now shows the enrolled cohort/program from live cohort data and removes broad internal guidance copy from the student dashboard.
 - Student Programs dashboard visibility now defensively scopes students to the program attached to their enrolled cohort, including local mock API responses.
+- Student-facing dashboard pages now hide broad operational helper copy while preserving staff/admin guidance and required state messages.
 
 ---
 

@@ -276,7 +276,7 @@ export default function Overview() {
                 {assignmentsLoading ? (
                   <div className="text-sm text-gray-500 py-3">Loading assignments...</div>
                 ) : !assignments || assignments.length === 0 ? (
-                  <div className="text-sm text-gray-500 py-3 italic">No upcoming course checkpoints. Check back later!</div>
+                  <div className="text-sm text-gray-500 py-3 italic">No assignments.</div>
                 ) : (
                   <div className="space-y-3">
                     {assignments.map(asg => {
@@ -409,7 +409,7 @@ export default function Overview() {
               <div className="text-sm text-gray-500 text-center py-6">Loading announcements...</div>
             ) : !announcements || announcements.length === 0 ? (
               <div className="text-xs text-gray-400 italic py-6 text-center">
-                No recent announcements or notifications are posted.
+                No notices.
               </div>
             ) : (
               <div className="space-y-4">

@@ -53,6 +53,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Changed
 
+- Student-facing dashboard pages now use shorter copy and hide broad operational helper text.
 - Django email settings now prefer SMTP when SMTP credentials are configured, while keeping Resend available as an alternate backend.
 - Student signup applications now collect age, choice-based experience level, and program expectations, and no longer collect country.
 - Admissions review is available to Admin and Super Admin users, and approval now requires an eligible cohort in the applicant's selected program.

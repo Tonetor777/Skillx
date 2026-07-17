@@ -499,7 +499,9 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
             <p className="skx-page-label">Curriculum</p>
             <h1 className="mt-3 text-4xl md:text-5xl skx-amharic-title">ሥርዓተ ትምህርት</h1>
             <p className="mt-2 font-display text-lg font-bold text-[#141414]">Weeks, Modules, Lessons, and Resources</p>
-            <p className="text-[#5f5f5a] text-sm mt-2">Browse or manage the structured cohort curriculum.</p>
+            {isStaff && (
+              <p className="text-[#5f5f5a] text-sm mt-2">Manage cohort curriculum.</p>
+            )}
           </div>
         </div>
       )}
@@ -789,9 +791,11 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
               <section className="flex min-h-[520px] flex-col items-center justify-center p-8 text-center">
                 <BookOpen className="mb-3 h-12 w-12 text-slate-400" />
                 <h2 className="text-lg font-bold text-slate-900">No curriculum content available</h2>
-                <p className="mt-2 max-w-md text-sm text-slate-500">
-                  {isStaff ? 'Choose a cohort and create the first module to start building lessons.' : 'Published lessons for your cohort will appear here.'}
-                </p>
+                {isStaff && (
+                  <p className="mt-2 max-w-md text-sm text-slate-500">
+                    Choose a cohort and create the first module.
+                  </p>
+                )}
               </section>
             ) : (
               <article className="min-h-[620px]">

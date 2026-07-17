@@ -79,9 +79,11 @@ export default function MyProfile() {
         <p className="skx-page-label">My Profile</p>
         <h1 className="mt-3 text-4xl md:text-5xl skx-amharic-title">የእኔ መገለጫ</h1>
         <p className="mt-2 font-display text-lg font-bold text-[#141414]">My Profile</p>
-        <p className="text-[#5f5f5a] text-sm mt-2">
-          Review your credentials, enrollments status, and personal preferences.
-        </p>
+        {user.role !== 'student' && (
+          <p className="text-[#5f5f5a] text-sm mt-2">
+            Review account details and preferences.
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -193,7 +195,7 @@ export default function MyProfile() {
           {user.role === 'student' && activeCohort && (
             <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
               <h3 className="font-bold text-base text-gray-900 border-b border-gray-100 pb-2.5">
-                Cohort Registration Checklist
+                Cohort Details
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3.5 bg-gray-50 rounded-lg">
