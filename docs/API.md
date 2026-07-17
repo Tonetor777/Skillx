@@ -24,6 +24,8 @@ Use JWT bearer authentication in Swagger UI with the value `Bearer <access_token
 - `GET /api/accounts/me/`: current authenticated user.
 - `PATCH /api/accounts/me/`: update current user's profile fields. Supports JSON for text fields and multipart uploads for optional `photo`; returns `avatar_url`.
 
+JWT lifetimes are configured with environment variables. Defaults are `JWT_ACCESS_TOKEN_MINUTES=15`, `JWT_REFRESH_TOKEN_DAYS=7`, `JWT_ROTATE_REFRESH_TOKENS=false`, and `JWT_BLACKLIST_AFTER_ROTATION=true`.
+
 ## Dashboard Resources
 
 All dashboard endpoints require an active JWT user unless noted otherwise.

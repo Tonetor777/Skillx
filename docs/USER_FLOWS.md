@@ -13,9 +13,11 @@
 
 1. Active users sign in with email and password.
 2. Refresh tokens can be refreshed while valid.
-3. Logout blacklists the refresh token.
-4. Unverified users can request email verification.
-5. Users can request password reset and confirm with the emailed token.
+3. Expired access tokens are refreshed automatically while the refresh token remains valid.
+4. Expired or invalid refresh tokens clear the browser session and return the user to login.
+5. Logout blacklists the refresh token.
+6. Unverified users can request email verification.
+7. Users can request password reset and confirm with the emailed token.
 
 ## Program and Cohort Management
 

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { beforeEach, test } from 'node:test';
 
-import { apiClient, ApiError, clearStoredTokens, scopeProgramsForAuthUser } from './client';
+import { apiClient, ApiError, clearStoredTokens, getStoredTokens, scopeProgramsForAuthUser, setStoredTokens } from './client';
 import type { Cohort, Program, User } from '../types';
 
 class MemoryStorage {
@@ -70,6 +70,68 @@ test('apiClient does not write debug logs in production-facing request paths', (
 
   assert.equal(source.includes('console.log'), false);
   assert.equal(source.includes('console.error'), false);
+});
+
+test('apiClient refreshes an expired access token and retries the original request', async () => {
+  const user = createUserFixture();
+  setStoredTokens('expired-access', 'valid-refresh', user);
+  const requests: Array<{ url: string; authorization?: string }> = [];
+
+  globalThis.fetch = (async (url: RequestInfo | URL, init?: RequestInit) => {
+    requests.push({
+      url: String(url),
+      authorization: init?.headers instanceof Headers
+        ? init.headers.get('Authorization') ?? undefined
+        : (init?.headers as Record<string, string> | undefined)?.Authorization,
+    });
+    if (requests.length === 1) {
+      return new Response(JSON.stringify({ detail: 'Given token not valid for any token type' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (String(url).endsWith('/auth/token/refresh/')) {
+      return new Response(JSON.stringify({ access: 'fresh-access' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    return new Response(JSON.stringify([]), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }) as typeof fetch;
+
+  await apiClient.get('/announcements');
+
+  assert.equal(requests.length, 3);
+  assert.equal(requests[0].authorization, 'Bearer expired-access');
+  assert.equal(requests[2].authorization, 'Bearer fresh-access');
+  assert.equal(getStoredTokens().access, 'fresh-access');
+  assert.equal(getStoredTokens().refresh, 'valid-refresh');
+});
+
+test('apiClient clears session and hides raw JWT errors when refresh token is invalid', async () => {
+  setStoredTokens('expired-access', 'expired-refresh', createUserFixture());
+
+  globalThis.fetch = (async (url: RequestInfo | URL) => {
+    const isRefresh = String(url).endsWith('/auth/token/refresh/');
+    return new Response(JSON.stringify({ detail: 'Given token not valid for any token type' }), {
+      status: isRefresh ? 401 : 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }) as typeof fetch;
+
+  await assert.rejects(() => apiClient.get('/announcements'), (error) => {
+    assert.ok(error instanceof ApiError);
+    assert.equal(error.status, 401);
+    assert.equal(error.message, 'Session expired. Please log in again.');
+    assert.equal(error.message.includes('Given token not valid'), false);
+    return true;
+  });
+  assert.equal(getStoredTokens().access, null);
+  assert.equal(getStoredTokens().refresh, null);
+  assert.equal(getStoredTokens().user, null);
 });
 
 test('mock program scoping returns only the enrolled program for students', () => {

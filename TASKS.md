@@ -28,7 +28,7 @@ Build the first production-ready version of Skilix.
 | Feature | Status | Notes |
 |----------|--------|-------|
 | User Model | ✅ | Custom Django user with roles, statuses, profile fields, and cohort relationship. |
-| JWT Authentication | ✅ | Simple JWT token and refresh endpoints are configured. |
+| JWT Authentication | ✅ | Simple JWT token and refresh endpoints are configured with explicit session expiry handling. |
 | Login | ✅ | Vite frontend uses backend JWT token endpoint and current-user DTO. |
 | Logout | ✅ | Server-side JWT refresh token blacklist endpoint is implemented. |
 | Refresh Token | ✅ | Simple JWT refresh endpoint is configured. |
@@ -164,7 +164,7 @@ Build the first production-ready version of Skilix.
 | Program Announcement | ✅ | Program-scoped announcements are exposed through the API. |
 | Cohort Announcement | ✅ | Cohort-scoped announcements are exposed through the API. |
 | Schedule Announcement | ✅ | Future scheduled announcements remain hidden until due. |
-| Announcement Notifications | ✅ Completed | Per-user unread announcement counts, badges, and mark-read actions are integrated. |
+| Announcement Notifications | ✅ Completed | Per-user unread announcement counts, badges, mark-read actions, and simplified student announcement feed are integrated. |
 
 ---
 

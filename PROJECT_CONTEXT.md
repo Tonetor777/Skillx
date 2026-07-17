@@ -198,6 +198,8 @@ Database
 - Student overview now shows the enrolled cohort/program from live cohort data and removes broad internal guidance copy from the student dashboard.
 - Student Programs dashboard visibility now defensively scopes students to the program attached to their enrolled cohort, including local mock API responses.
 - Student-facing dashboard pages now hide broad operational helper copy while preserving staff/admin guidance and required state messages.
+- Student announcements now render as a simple scoped feed without system/program/cohort filter tabs, while staff/admin filters remain available.
+- Expired access tokens now retry through refresh cleanly, invalid refresh tokens clear the browser session, and JWT lifetimes are explicit production environment settings.
 
 ---
 

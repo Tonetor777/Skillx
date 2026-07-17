@@ -16,14 +16,11 @@ import { can } from '../../shared/permissions/can';
 import { 
   Megaphone, 
   Plus, 
-  Trash, 
   Clock, 
   User, 
   AlertCircle, 
   CheckCircle2, 
   Loader2, 
-  Filter,
-  ShieldCheck,
   CheckCircle
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -97,6 +94,7 @@ export default function Announcements() {
   };
 
   if (!user) return null;
+  const isStaffAnnouncementManager = can.createAnnouncements(user.role);
 
   // 1. Loading State
   if (isLoading) {
@@ -126,10 +124,10 @@ export default function Announcements() {
   }
 
   // Filter lists based on selected categories
-  const filteredAnnouncements = announcements?.filter(ann => {
+  const filteredAnnouncements = isStaffAnnouncementManager ? announcements?.filter(ann => {
     if (filterType === 'all') return true;
     return ann.target_type === filterType;
-  }) || [];
+  }) || [] : announcements || [];
 
   const isEmpty = filteredAnnouncements.length === 0;
 
@@ -148,7 +146,7 @@ export default function Announcements() {
           <p className="skx-page-label">Announcements</p>
           <h1 className="mt-3 text-4xl md:text-5xl skx-amharic-title">ማስታወቂያዎች</h1>
           <p className="mt-2 font-display text-lg font-bold text-[#141414]">Announcements</p>
-          {can.createAnnouncements(user.role) && (
+          {isStaffAnnouncementManager && (
             <p className="text-[#5f5f5a] text-sm mt-2">
               Broadcast updates to selected audiences.
             </p>
@@ -165,7 +163,7 @@ export default function Announcements() {
               Mark all read
             </button>
           )}
-          {can.createAnnouncements(user.role) && (
+          {isStaffAnnouncementManager && (
             <button
               onClick={() => setIsCreating(true)}
               className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition-colors shadow-xs"
@@ -179,23 +177,25 @@ export default function Announcements() {
       </div>
 
       {/* Categories filter tabs */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-        <div className="flex gap-2.5 overflow-x-auto py-1">
-          {['all', 'system', 'program', 'cohort'].map((type) => (
-            <button
-              key={type}
-              onClick={() => setFilterType(type)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors shrink-0 ${
-                filterType === type 
-                  ? 'bg-indigo-600 text-white shadow-xs' 
-                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              {type === 'all' ? 'All Notices' : type === 'system' ? 'System-Wide' : `${type} Scoped`}
-            </button>
-          ))}
+      {isStaffAnnouncementManager && (
+        <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+          <div className="flex gap-2.5 overflow-x-auto py-1">
+            {['all', 'system', 'program', 'cohort'].map((type) => (
+              <button
+                key={type}
+                onClick={() => setFilterType(type)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors shrink-0 ${
+                  filterType === type 
+                    ? 'bg-indigo-600 text-white shadow-xs' 
+                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {type === 'all' ? 'All Notices' : type === 'system' ? 'System-Wide' : `${type} Scoped`}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Create Announcement Drawer Form Overlay */}
       {isCreating && (
@@ -298,7 +298,9 @@ export default function Announcements() {
         <div className="border border-dashed border-gray-200 rounded-xl p-12 text-center bg-gray-50/50" id="announcements-empty-state">
           <Megaphone className="w-12 h-12 text-gray-400 mx-auto mb-3" />
           <h3 className="text-base font-bold text-gray-900">No Announcements found</h3>
-          <p className="text-sm text-gray-500 mt-1">There are no notices matching this filter.</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {isStaffAnnouncementManager ? 'There are no notices matching this filter.' : 'No announcements.'}
+          </p>
         </div>
       ) : (
         /* Announcements list timeline */

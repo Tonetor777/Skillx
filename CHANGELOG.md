@@ -10,6 +10,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Added
 
+- Configurable JWT access and refresh token lifetimes through environment variables.
 - Reinvite action for approved admissions applications so Admin/Super Admin users can send a fresh invitation link after the previous link expires.
 - Gmail SMTP email delivery configuration using a Gmail app password, with Docker Compose environment wiring for backend, migration, Celery, and beat services.
 - Cohort selection during admissions approval so Admin/Super Admin reviewers choose the exact cohort before sending an invitation.
@@ -53,6 +54,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Changed
 
+- Student announcements now hide system/program/cohort filter tabs and show the scoped announcement feed directly.
 - Student-facing dashboard pages now use shorter copy and hide broad operational helper text.
 - Django email settings now prefer SMTP when SMTP credentials are configured, while keeping Resend available as an alternate backend.
 - Student signup applications now collect age, choice-based experience level, and program expectations, and no longer collect country.
@@ -78,6 +80,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Fixed
 
+- Expired sessions now clear authentication state instead of showing raw Simple JWT errors on protected dashboard pages.
 - Student Programs dashboard menu/page visibility now shows only the program attached to the student's enrolled cohort, including in mock API mode.
 - Student overview now displays the enrolled cohort and program from the current student's cohort data instead of placeholder class information.
 - Django admin styling in production by serving collected static files through WhiteNoise from the backend container.

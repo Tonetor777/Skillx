@@ -56,8 +56,14 @@ export class ApiError extends Error {
   }
 }
 
-// Token refresh flag to avoid loops
-let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+function dispatchUnauthorizedSession() {
+  clearStoredTokens();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('skilix-unauthorized'));
+  }
+}
 
 export function scopeProgramsForAuthUser(programs: Program[], user: User | null, cohorts: Cohort[]): Program[] {
   if (user?.role !== 'student') {
@@ -798,7 +804,7 @@ function normalizeEndpoint(endpoint: string): string {
   return query ? `${normalizedPath}?${query}` : normalizedPath;
 }
 
-async function request(method: string, endpoint: string, body?: any): Promise<any> {
+async function request(method: string, endpoint: string, body?: any, retryOnUnauthorized = true): Promise<any> {
   const normalizedEndpoint = normalizeEndpoint(endpoint);
   if (USE_MOCK_API) {
     await new Promise(r => setTimeout(r, 200));
@@ -822,22 +828,15 @@ async function request(method: string, endpoint: string, body?: any): Promise<an
       body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
     });
 
-    if (response.status === 401 && !isRefreshing) {
-      isRefreshing = true;
-      try {
-        const refreshed = await attemptTokenRefresh();
+    if (response.status === 401) {
+      if (retryOnUnauthorized) {
+        const refreshed = await refreshAccessToken();
         if (refreshed) {
-          isRefreshing = false;
-          // Retry the original request
-          return request(method, normalizedEndpoint, body);
+          return request(method, normalizedEndpoint, body, false);
         }
-      } catch (e) {
-        // Refresh failed, do logout
-        isRefreshing = false;
-        clearStoredTokens();
-        window.dispatchEvent(new Event('skilix-unauthorized'));
-        throw new ApiError(401, 'Session expired. Please log in again.');
       }
+      dispatchUnauthorizedSession();
+      throw new ApiError(401, 'Session expired. Please log in again.');
     }
 
     if (!response.ok) {
@@ -865,6 +864,15 @@ async function request(method: string, endpoint: string, body?: any): Promise<an
 }
 
 // Token Refresh Flow
+async function refreshAccessToken(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = attemptTokenRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
 async function attemptTokenRefresh(): Promise<boolean> {
   const { refresh } = getStoredTokens();
   if (!refresh) return false;

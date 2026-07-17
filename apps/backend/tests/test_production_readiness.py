@@ -2,6 +2,7 @@ import importlib
 import os
 import subprocess
 import sys
+from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -59,6 +60,26 @@ def test_backend_serves_collected_static_files_with_whitenoise():
         settings.STORAGES["staticfiles"]["BACKEND"]
         == "whitenoise.storage.CompressedManifestStaticFilesStorage"
     )
+
+
+def test_jwt_lifetimes_are_env_configurable(monkeypatch):
+    monkeypatch.setenv("JWT_ACCESS_TOKEN_MINUTES", "20")
+    monkeypatch.setenv("JWT_REFRESH_TOKEN_DAYS", "14")
+    monkeypatch.setenv("JWT_ROTATE_REFRESH_TOKENS", "false")
+    monkeypatch.setenv("JWT_BLACKLIST_AFTER_ROTATION", "true")
+
+    import skilix.settings as settings_module
+
+    reloaded = importlib.reload(settings_module)
+
+    assert reloaded.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"] == timedelta(minutes=20)
+    assert reloaded.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"] == timedelta(days=14)
+    assert reloaded.SIMPLE_JWT["ROTATE_REFRESH_TOKENS"] is False
+    assert reloaded.SIMPLE_JWT["BLACKLIST_AFTER_ROTATION"] is True
+
+    monkeypatch.delenv("JWT_ACCESS_TOKEN_MINUTES", raising=False)
+    monkeypatch.delenv("JWT_REFRESH_TOKEN_DAYS", raising=False)
+    importlib.reload(settings_module)
 
 
 def test_gmail_smtp_environment_configures_email_backend(monkeypatch):
