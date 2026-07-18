@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/authentication/context/AuthContext';
 import { useAnnouncementUnreadCount } from '../../../features/announcements/api/announcements';
 import { can } from '../../permissions/can';
-import { BrandLogo } from '../ui';
+import { BrandLogo, UserAvatar } from '../ui';
 import { 
   LayoutDashboard, 
   Users, 
@@ -98,6 +98,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const visibleMenuItems = menuItems.filter(item => item.roles.includes(user.role));
   const unreadAnnouncements = announcementUnreadCount?.count ?? 0;
   const isWideWorkspace = location.pathname.startsWith('/dashboard/modules') || location.pathname.startsWith('/dashboard/programs');
+  const compactSidebarRevealClass = isWideWorkspace
+    ? 'w-0 overflow-hidden whitespace-nowrap opacity-0 transition-all duration-200 group-hover/sidebar:w-auto group-hover/sidebar:opacity-100 group-focus-within/sidebar:w-auto group-focus-within/sidebar:opacity-100'
+    : 'flex-1';
 
   const handleLogout = async () => {
     await logout();
@@ -116,24 +119,45 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen skx-grid-bg flex text-[#141414]" id="dashboard-layout-root">
       {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-white/95 border-r border-[#d8d8d4] shrink-0 sticky top-0 h-screen" id="desktop-sidebar">
+      <aside
+        className={`group/sidebar hidden md:flex flex-col bg-white/95 border-r border-[#d8d8d4] shrink-0 sticky top-0 h-screen transition-[width] duration-200 ${
+          isWideWorkspace ? 'w-20 hover:w-64 focus-within:w-64' : 'w-64'
+        }`}
+        id="desktop-sidebar"
+      >
         {/* Branding Header */}
-        <div className="p-6 border-b border-[#d8d8d4] flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <BrandLogo className="h-9 w-9" />
-            <span className="font-display font-bold text-xl tracking-tight text-[#141414]">Nexus</span>
+        <div
+          className={`border-b border-[#d8d8d4] flex flex-col gap-1 transition-all duration-200 ${
+            isWideWorkspace ? 'p-3 group-hover/sidebar:p-6 group-focus-within/sidebar:p-6' : 'p-6'
+          }`}
+        >
+          <div className={`flex items-center gap-2 ${isWideWorkspace ? 'justify-center group-hover/sidebar:justify-start group-focus-within/sidebar:justify-start' : ''}`}>
+            {isWideWorkspace && (
+              <BrandLogo
+                variant="icon"
+                className="h-10 w-10 group-hover/sidebar:hidden group-focus-within/sidebar:hidden"
+              />
+            )}
+            <BrandLogo
+              variant="full"
+              className={`h-16 w-48 ${isWideWorkspace ? 'hidden group-hover/sidebar:block group-focus-within/sidebar:block' : ''}`}
+            />
           </div>
-          <p className="skx-page-label mt-2">Academy Management</p>
         </div>
 
         {/* User Quick Info */}
-        <div className="p-4 border-b border-[#d8d8d4] flex items-center gap-3 bg-[#fbfbfa]">
-          <img 
-            src={user.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80"} 
-            alt={user.first_name} 
-            className="w-10 h-10 border border-[#d8d8d4] object-cover shadow-xs"
+        <div
+          className={`p-4 border-b border-[#d8d8d4] flex items-center gap-3 bg-[#fbfbfa] ${
+            isWideWorkspace ? 'justify-center group-hover/sidebar:justify-start group-focus-within/sidebar:justify-start' : ''
+          }`}
+        >
+          <UserAvatar
+            firstName={user.first_name}
+            lastName={user.last_name}
+            src={user.avatar_url}
+            className="h-10 w-10 shadow-xs"
           />
-          <div className="flex-1 min-w-0">
+          <div className={`min-w-0 ${compactSidebarRevealClass}`}>
             <h4 className="font-semibold text-sm text-[#141414] truncate">
               {user.first_name} {user.last_name}
             </h4>
@@ -154,17 +178,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <Link
                 key={item.name}
                 to={item.path}
-                className={`flex items-center gap-3 border px-3 py-2 text-sm font-semibold transition-colors ${
+                className={`relative flex items-center gap-3 border px-3 py-2 text-sm font-semibold transition-colors ${
                   isActive 
                     ? 'border-[#141414] bg-[#f3f3f0] text-[#141414]' 
                     : 'border-transparent text-[#5f5f5a] hover:border-[#d8d8d4] hover:bg-[#fbfbfa] hover:text-[#141414]'
-                }`}
+                } ${isWideWorkspace ? 'justify-center group-hover/sidebar:justify-start group-focus-within/sidebar:justify-start' : ''}`}
                 id={`sidebar-item-${item.name.toLowerCase()}`}
+                title={isWideWorkspace ? item.name : undefined}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-[#141414]' : 'text-[#9a9a94]'}`} />
-                <span className="flex-1">{item.name}</span>
+                <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#141414]' : 'text-[#9a9a94]'}`} />
+                <span className={compactSidebarRevealClass}>{item.name}</span>
                 {item.name === 'Announcements' && unreadAnnouncements > 0 && (
-                  <span className="min-w-5 rounded-full bg-red-600 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white">
+                  <span
+                    className={`min-w-5 rounded-full bg-red-600 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white ${
+                      isWideWorkspace
+                        ? 'absolute right-2 top-1 min-w-4 px-1 text-[9px] group-hover/sidebar:static group-hover/sidebar:min-w-5 group-hover/sidebar:px-1.5 group-hover/sidebar:text-[10px] group-focus-within/sidebar:static group-focus-within/sidebar:min-w-5 group-focus-within/sidebar:px-1.5 group-focus-within/sidebar:text-[10px]'
+                        : ''
+                    }`}
+                  >
                     {unreadAnnouncements > 99 ? '99+' : unreadAnnouncements}
                   </span>
                 )}
@@ -177,11 +208,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="p-4 border-t border-[#d8d8d4]">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 border border-transparent px-3 py-2.5 text-sm font-semibold text-[#5f5f5a] hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 transition-colors text-left"
+            className={`w-full flex items-center gap-3 border border-transparent px-3 py-2.5 text-sm font-semibold text-[#5f5f5a] hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 transition-colors text-left ${
+              isWideWorkspace ? 'justify-center group-hover/sidebar:justify-start group-focus-within/sidebar:justify-start' : ''
+            }`}
             id="sidebar-logout-btn"
+            title={isWideWorkspace ? 'Logout' : undefined}
           >
             <LogOut className="w-4 h-4 text-slate-400 group-hover:text-rose-600" />
-            Logout
+            <span className={compactSidebarRevealClass}>Logout</span>
           </button>
         </div>
       </aside>
@@ -195,8 +229,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           >
             <div className="h-16 flex items-center justify-between px-6 border-b border-[#d8d8d4]">
               <div className="flex items-center gap-2.5">
-                <BrandLogo className="h-9 w-9" />
-                <span className="font-display font-bold text-xl text-[#141414]">Nexus</span>
+                <BrandLogo variant="full" className="h-14 w-44" />
               </div>
               <button onClick={() => setMobileMenuOpen(false)} className="p-1 text-[#5f5f5a] hover:bg-[#f3f3f0]">
                 <X className="w-5 h-5" />
@@ -204,10 +237,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
 
             <div className="p-4 border-b border-[#d8d8d4] flex items-center gap-3 bg-[#fbfbfa]">
-              <img 
-                src={user.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80"} 
-                alt={user.first_name} 
-                className="w-10 h-10 border border-[#d8d8d4]"
+              <UserAvatar
+                firstName={user.first_name}
+                lastName={user.last_name}
+                src={user.avatar_url}
+                className="h-10 w-10"
               />
               <div>
                 <h4 className="font-semibold text-sm text-slate-800">{user.first_name} {user.last_name}</h4>
@@ -286,10 +320,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="h-8 w-[1px] bg-[#d8d8d4] hidden md:block"></div>
             <div className="flex items-center gap-3">
               <span className="text-sm font-semibold text-[#141414]">{user.first_name} {user.last_name}</span>
-              <img 
-                src={user.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80"} 
-                alt={user.first_name} 
-                className="w-8 h-8 border border-[#d8d8d4] object-cover"
+              <UserAvatar
+                firstName={user.first_name}
+                lastName={user.last_name}
+                src={user.avatar_url}
+                className="h-8 w-8 text-xs"
               />
             </div>
           </div>

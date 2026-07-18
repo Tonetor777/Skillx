@@ -8,7 +8,6 @@ const initialUsers: User[] = [
     first_name: 'Sarah',
     last_name: 'Connor',
     role: 'super_admin',
-    avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80',
     created_at: '2026-01-01T00:00:00Z'
   },
   {
@@ -17,7 +16,6 @@ const initialUsers: User[] = [
     first_name: 'John',
     last_name: 'Doe',
     role: 'admin',
-    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&h=100&q=80',
     created_at: '2026-01-02T00:00:00Z'
   },
   {
@@ -26,7 +24,6 @@ const initialUsers: User[] = [
     first_name: 'David',
     last_name: 'Malan',
     role: 'teacher',
-    avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=100&h=100&q=80',
     created_at: '2026-01-03T00:00:00Z'
   },
   {
@@ -36,7 +33,6 @@ const initialUsers: User[] = [
     last_name: 'Mercer',
     role: 'student',
     cohort_id: 'coh_react_active',
-    avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=100&h=100&q=80',
     created_at: '2026-01-04T00:00:00Z'
   }
 ];

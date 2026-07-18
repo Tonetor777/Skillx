@@ -124,6 +124,7 @@ Build the first production-ready version of Skilix.
 |----------|--------|-------|
 | MinIO media URLs | ✅ Completed | Private S3-compatible MinIO storage is available when configured, with signed URL responses for profile photos and program thumbnails. |
 | Lesson media URLs | ✅ Completed | Lesson image assets return fresh media URLs and avoid storing expiring signed URLs in lesson content. |
+| Production profile avatar fallback | ✅ Completed | Profile surfaces now render uploaded avatars when present and local initials fallback when absent, with mock profile image URLs removed. |
 
 ---
 
@@ -208,6 +209,7 @@ Build the first production-ready version of Skilix.
 |----------|--------|-------|
 | Nexus-inspired UI refresh | ✅ Completed | Vite UI refreshed with monochrome academy styling, grid backgrounds, sharp bordered panels, reusable presentation components, and Amharic major titles. |
 | Reference-style curriculum layout | ✅ Completed | Modules and embedded Program curriculum now use a left module/lesson navigator with a right reading canvas. |
+| Curriculum week filtering and compact sidebar | ✅ Completed | Curriculum navigation now selects unique weeks, filters modules to the selected week, and compacts the desktop sidebar on Program and Modules workspaces. |
 
 ---
 

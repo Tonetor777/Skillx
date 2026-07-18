@@ -201,6 +201,8 @@ Database
 - Student announcements now render as a simple scoped feed without system/program/cohort filter tabs, while staff/admin filters remain available.
 - Expired access tokens now retry through refresh cleanly, invalid refresh tokens clear the browser session, and JWT lifetimes are explicit production environment settings.
 - Curriculum modules now allow multiple modules within the same cohort week by treating `module_number` as the week grouping value instead of a unique module slot.
+- Curriculum navigation now presents unique week choices, filters module cards to the selected week, and gives Program/Modules workspaces a compact hover-expanding desktop sidebar.
+- Profile UI now uses uploaded avatars or a local initials fallback, with external mock profile image URLs removed from production-facing surfaces and mock seed users.
 
 ---
 

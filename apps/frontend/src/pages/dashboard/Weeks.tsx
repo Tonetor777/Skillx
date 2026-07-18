@@ -107,6 +107,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
   const { user } = useAuth();
   const isStaff = !!user && can.manageCurriculum(user.role);
   const [selectedCohortId, setSelectedCohortId] = useState('');
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [activeForm, setActiveForm] = useState<ActiveForm>(null);
@@ -153,29 +154,42 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
       }));
   }, [modules]);
 
-  const flatModules = useMemo(() => {
-    return weekGroups.flatMap((group) => group.modules);
-  }, [weekGroups]);
+  const selectedWeekGroup = useMemo(() => {
+    if (weekGroups.length === 0) return undefined;
+    return weekGroups.find((group) => group.week === selectedWeek) ?? weekGroups[0];
+  }, [selectedWeek, weekGroups]);
+
+  const selectedWeekModules = selectedWeekGroup?.modules ?? [];
+  const visibleWeekGroups = selectedWeekGroup ? [selectedWeekGroup] : [];
 
   const selectedModule = useMemo(() => {
-    return flatModules.find((module) => module.id === selectedModuleId) ?? flatModules[0];
-  }, [flatModules, selectedModuleId]);
+    return selectedWeekModules.find((module) => module.id === selectedModuleId) ?? selectedWeekModules[0];
+  }, [selectedModuleId, selectedWeekModules]);
 
   const selectedLesson = useMemo(() => {
     const lessons = selectedModule?.lessons ?? [];
     return lessons.find((lesson) => lesson.id === selectedLessonId) ?? lessons[0];
   }, [selectedLessonId, selectedModule]);
-  const selectedWeekNumber = selectedModule?.module_number;
+  const selectedWeekNumber = selectedWeekGroup?.week ?? selectedModule?.module_number;
 
   useEffect(() => {
-    if (flatModules.length === 0) {
+    if (weekGroups.length === 0) {
+      if (selectedWeek !== null) setSelectedWeek(null);
       setSelectedModuleId(null);
       setSelectedLessonId(null);
       return;
     }
 
-    const currentModule = flatModules.find((module) => module.id === selectedModuleId);
-    const nextModule = currentModule ?? flatModules[0];
+    const currentGroup = selectedWeek !== null
+      ? weekGroups.find((group) => group.week === selectedWeek)
+      : undefined;
+    const nextGroup = currentGroup ?? weekGroups[0];
+    if (selectedWeek !== nextGroup.week) {
+      setSelectedWeek(nextGroup.week);
+    }
+
+    const currentModule = nextGroup.modules.find((module) => module.id === selectedModuleId);
+    const nextModule = currentModule ?? nextGroup.modules[0];
     if (nextModule?.id && nextModule.id !== selectedModuleId) {
       setSelectedModuleId(nextModule.id);
     }
@@ -188,7 +202,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
     if (!nextLesson && selectedLessonId !== null) {
       setSelectedLessonId(null);
     }
-  }, [flatModules, selectedLessonId, selectedModuleId]);
+  }, [selectedLessonId, selectedModuleId, selectedWeek, weekGroups]);
 
   useEffect(() => {
     if (!selectedModule) return;
@@ -252,6 +266,17 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
     });
   };
 
+  const selectWeek = (week: number) => {
+    const nextGroup = weekGroups.find((group) => group.week === week);
+    const nextModule = nextGroup?.modules[0];
+    setSelectedWeek(week);
+    setSelectedModuleId(nextModule?.id ?? null);
+    setSelectedLessonId(nextModule?.lessons[0]?.id ?? null);
+    setExpandedWeeks(new Set([week]));
+    setExpandedModules(nextModule?.id ? new Set([nextModule.id]) : new Set());
+    setActiveForm(null);
+  };
+
   const toggleModule = (module: Module) => {
     if (!module.id) return;
     setExpandedModules((current) => {
@@ -266,6 +291,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
   };
 
   const openModuleForm = (week: number, module?: Module) => {
+    setSelectedWeek(week);
     setSelectedModuleId(module?.id ?? null);
     setExpandedWeeks((current) => {
       const next = new Set(current);
@@ -286,6 +312,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
   };
 
   const openLessonForm = (module: Module, lesson?: Lesson) => {
+    setSelectedWeek(module.module_number);
     setSelectedModuleId(module.id ?? null);
     setSelectedLessonId(lesson?.id ?? null);
     expandModuleBranch(module);
@@ -305,6 +332,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
   const openResourceForm = (lesson: Lesson, resource?: Resource) => {
     const parentModule = modules.find((module) => module.lessons.some((item) => item.id === lesson.id));
     if (parentModule) {
+      setSelectedWeek(parentModule.module_number);
       setSelectedModuleId(parentModule.id ?? null);
       expandModuleBranch(parentModule);
     }
@@ -320,6 +348,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
   };
 
   const selectModule = (module: Module) => {
+    setSelectedWeek(module.module_number);
     setSelectedModuleId(module.id ?? null);
     setSelectedLessonId(module.lessons[0]?.id ?? null);
     expandModuleBranch(module);
@@ -327,6 +356,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
   };
 
   const selectLesson = (module: Module, lesson: Lesson) => {
+    setSelectedWeek(module.module_number);
     setSelectedModuleId(module.id ?? null);
     setSelectedLessonId(lesson.id ?? null);
     expandModuleBranch(module);
@@ -559,6 +589,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
                       value={effectiveCohortId}
                       onChange={(event) => {
                         setSelectedCohortId(event.target.value);
+                        setSelectedWeek(null);
                         setSelectedModuleId(null);
                         setSelectedLessonId(null);
                         setExpandedWeeks(new Set());
@@ -577,19 +608,19 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
                 )}
 
                 <label className="block">
-                  <span className="text-xs font-bold uppercase text-slate-500">Module</span>
+                  <span className="text-xs font-bold uppercase text-slate-500">Week</span>
                   <select
-                    value={selectedModule?.id ?? ''}
+                    value={selectedWeekNumber ?? ''}
                     onChange={(event) => {
-                      const nextModule = flatModules.find((module) => module.id === event.target.value);
-                      if (nextModule) selectModule(nextModule);
+                      const week = Number(event.target.value);
+                      if (Number.isFinite(week)) selectWeek(week);
                     }}
                     className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                   >
-                    {flatModules.length === 0 && <option value="">No modules available</option>}
-                    {flatModules.map((module) => (
-                      <option key={module.id ?? module.title} value={module.id}>
-                        Week {module.module_number}: {module.title}
+                    {weekGroups.length === 0 && <option value="">No weeks available</option>}
+                    {weekGroups.map((group) => (
+                      <option key={group.week} value={group.week}>
+                        Week {group.week}
                       </option>
                     ))}
                   </select>
@@ -632,7 +663,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {weekGroups.map((group) => {
+                  {visibleWeekGroups.map((group) => {
                     const isSelectedWeek = selectedWeekNumber === group.week;
                     const isWeekExpanded = expandedWeeks.has(group.week) || isSelectedWeek;
                     return (

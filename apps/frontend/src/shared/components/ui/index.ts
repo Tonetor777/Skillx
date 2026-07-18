@@ -5,3 +5,4 @@ export { default as PrimaryButton } from './PrimaryButton';
 export { default as SecondaryButton } from './SecondaryButton';
 export { default as StatusMessage } from './StatusMessage';
 export { default as Surface } from './Surface';
+export { default as UserAvatar } from './UserAvatar';

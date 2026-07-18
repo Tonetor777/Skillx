@@ -27,7 +27,7 @@ test('user-visible frontend branding no longer mentions Skilix', () => {
 test('Nexus branding and logo assets are wired into UI surfaces', () => {
   assert.ok(read('src/pages/Login.tsx').includes('Sign in to Nexus Academy'));
   assert.ok(read('src/pages/Signup.tsx').includes('Sign up to Nexus Academy'));
-  assert.ok(read('src/shared/components/layout/DashboardLayout.tsx').includes('Nexus'));
+  assert.ok(read('src/shared/components/layout/DashboardLayout.tsx').includes('variant="full"'));
   assert.ok(read('src/shared/components/ui/BrandLogo.tsx').includes('nexus-academy-logo.jpg'));
   assert.ok(read('src/shared/components/ui/BrandLogo.tsx').includes('nexus-academy-x-white-on-black.png'));
 });

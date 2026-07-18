@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useAuth } from '../../features/authentication/context/AuthContext';
 import { useCohorts } from '../../features/cohorts/api/cohorts';
 import apiClient from '../../shared/api/client';
+import { UserAvatar } from '../../shared/components/ui';
 import { 
   Save, 
   Mail, 
@@ -91,10 +92,11 @@ export default function MyProfile() {
         {/* Left Card: Summary & Roles badge */}
         <div className="bg-white rounded-xl border border-gray-100 p-6 flex flex-col items-center text-center space-y-4">
           <div className="relative">
-            <img 
-              src={user.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=140&h=140&q=80"} 
-              alt={user.first_name} 
-              className="w-24 h-24 rounded-full border-2 border-indigo-100 object-cover"
+            <UserAvatar
+              firstName={user.first_name}
+              lastName={user.last_name}
+              src={user.avatar_url}
+              className="h-24 w-24 rounded-full border-2 border-indigo-100 text-2xl"
             />
             <div className="absolute bottom-0 right-1 w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center border border-white">
               <Camera className="w-3.5 h-3.5" />
