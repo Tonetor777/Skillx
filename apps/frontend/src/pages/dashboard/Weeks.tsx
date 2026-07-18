@@ -150,7 +150,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
       .sort(([a], [b]) => a - b)
       .map(([week, weekModules]) => ({
         week,
-        modules: weekModules.sort((a, b) => a.title.localeCompare(b.title)),
+        modules: weekModules,
       }));
   }, [modules]);
 

@@ -54,6 +54,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Changed
 
+- Modules within the same curriculum week now display oldest-to-newest, keeping newly added modules at the bottom instead of alphabetizing by title.
 - Profile surfaces now use a local initials avatar fallback instead of external mock profile images, while preserving uploaded profile photos.
 - Curriculum navigation now selects unique weeks, filters the module list to the selected week, and uses a compact hover-expanding desktop sidebar on Program and Modules workspaces.
 - Student announcements now hide system/program/cohort filter tabs and show the scoped announcement feed directly.

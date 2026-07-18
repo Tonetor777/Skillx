@@ -23,3 +23,8 @@ test('curriculum navigator renders modules only for the selected week', () => {
   assert.ok(source.includes('visibleWeekGroups.map((group) =>'));
   assert.ok(source.includes('setSelectedWeek(module.module_number)'));
 });
+
+test('curriculum module groups preserve API order within each week', () => {
+  assert.ok(source.includes('modules: weekModules,'));
+  assert.equal(source.includes('localeCompare'), false);
+});

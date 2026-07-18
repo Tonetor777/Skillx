@@ -94,6 +94,7 @@ Build the first production-ready version of Skilix.
 | Publish Module | ✅ | Publish action sets status, publish date, and publisher. |
 | Draft Support | ✅ | Draft/published/archived API support is implemented for modules. |
 | Multiple Modules Per Week | ✅ Completed | Backend uniqueness constraint removed so a cohort week can contain multiple modules. |
+| Module ordering within weeks | ✅ Completed | Multiple modules in a week are ordered oldest-to-newest so recent modules appear at the bottom. |
 
 ---
 

@@ -128,7 +128,7 @@ def test_teacher_can_create_multiple_modules_in_same_week():
     assert first_response.status_code == 201
     assert second_response.status_code == 201
     same_week_modules = [item for item in list_response.data if item["module_number"] == 1]
-    assert [item["title"] for item in same_week_modules] == ["Applied Workshop", "Foundations"]
+    assert [item["title"] for item in same_week_modules] == ["Foundations", "Applied Workshop"]
 
 
 def test_resource_crud_ordering_and_delete():

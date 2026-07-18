@@ -26,7 +26,7 @@ class Module(models.Model):
     )
 
     class Meta:
-        ordering = ["cohort", "module_number", "title", "id"]
+        ordering = ["cohort", "module_number", "id"]
 
     def __str__(self) -> str:
         return f"{self.cohort} - Module {self.module_number}"
