@@ -48,7 +48,12 @@ def test_email_verification_request_sends_email_for_unverified_user():
 
     assert response.status_code == 200
     assert len(mail.outbox) == 1
-    assert "Verify your Skilix email" in mail.outbox[0].subject
+    message = mail.outbox[0]
+    assert "Verify your Nexus Academy email" in message.subject
+    assert "Verify your email:" in message.body
+    assert message.alternatives
+    assert "Verify email" in message.alternatives[0][0]
+    assert message.alternatives[0][1] == "text/html"
 
 
 def test_email_verification_confirm_activates_unverified_user():
@@ -72,13 +77,34 @@ def test_password_reset_flow_changes_password_and_activates_unverified_user():
     request_response = client.post("/api/auth/password-reset/request/", {"email": user.email}, format="json")
     confirm_response = client.post(
         "/api/auth/password-reset/confirm/",
-        {"uid": uid, "token": token, "password": "new-password"},
+        {"uid": uid, "token": token, "password": "new-password", "confirm_password": "new-password"},
         format="json",
     )
 
     user.refresh_from_db()
     assert request_response.status_code == 200
     assert len(mail.outbox) == 1
+    assert "Reset your Nexus Academy password" in mail.outbox[0].subject
+    assert "Reset your Nexus Academy password:" in mail.outbox[0].body
+    assert "Reset password" in mail.outbox[0].alternatives[0][0]
     assert confirm_response.status_code == 200
     assert user.check_password("new-password")
     assert user.status == UserStatus.ACTIVE
+
+
+def test_password_reset_confirm_rejects_mismatched_password_confirmation():
+    user = create_user("mismatch-reset@example.com", password="old-password")
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    client = APIClient()
+
+    response = client.post(
+        "/api/auth/password-reset/confirm/",
+        {"uid": uid, "token": token, "password": "new-password", "confirm_password": "different-password"},
+        format="json",
+    )
+
+    user.refresh_from_db()
+    assert response.status_code == 400
+    assert "confirm_password" in response.data
+    assert user.check_password("old-password")

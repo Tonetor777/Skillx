@@ -1,10 +1,13 @@
-from django.conf import settings
-from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from core.email import send_templated_email
 from submissions.models import Submission
+
+
+def _format_score(value) -> str:
+    return format(value, "f").rstrip("0").rstrip(".")
 
 
 @transaction.atomic
@@ -18,15 +21,17 @@ def grade_submission(submission: Submission, grader, grade, feedback: str):
     submission.graded_at = timezone.now()
     submission.is_locked = True
     submission.save(update_fields=["score", "feedback", "graded_by", "graded_at", "is_locked"])
-    send_mail(
-        subject=f"Your Skilix submission grade was {'updated' if was_graded else 'posted'}: {submission.assignment.title}",
-        message=(
-            f"Your submission for {submission.assignment.title} has been {'updated' if was_graded else 'graded'}.\n"
-            f"Score: {submission.score}/{submission.assignment.max_points}\n\n"
-            f"Feedback:\n{submission.feedback}\n"
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
+    send_templated_email(
+        subject=f"Your Nexus Academy submission grade was {'updated' if was_graded else 'posted'}: {submission.assignment.title}",
+        template_name="grade_notification",
+        context={
+            "action": "updated" if was_graded else "posted",
+            "graded_label": "updated" if was_graded else "graded",
+            "assignment_title": submission.assignment.title,
+            "score": _format_score(submission.score),
+            "max_points": submission.assignment.max_points,
+            "feedback": submission.feedback or "No feedback was provided.",
+        },
         recipient_list=[submission.student.email],
-        fail_silently=False,
     )
     return submission

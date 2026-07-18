@@ -93,7 +93,13 @@ class InvitationSerializer(serializers.ModelSerializer):
 class InvitationAcceptSerializer(serializers.Serializer):
     token = serializers.CharField()
     password = serializers.CharField(min_length=8, write_only=True)
+    confirm_password = serializers.CharField(min_length=8, write_only=True)
     user = serializers.SerializerMethodField(read_only=True)
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        return attrs
 
     def save(self, **kwargs):
         self.instance = accept_invitation(self.validated_data["token"], self.validated_data["password"])

@@ -5,7 +5,7 @@
 1. Applicant submits `/signup` with name, email, phone, age, experience level, program selection, and program expectations.
 2. Admin or Super Admin reviews the signup application in the dashboard.
 3. Reviewer selects an eligible cohort in the applicant's program and approval creates an expiring invitation email for that cohort.
-4. Applicant accepts the invitation, sets a password, and becomes an active student in exactly one cohort.
+4. Applicant accepts the invitation, enters matching password and confirm-password values, and becomes an active student in exactly one cohort.
 5. If the invitation expires before acceptance, Admin or Super Admin can reinvite the approved application from the applications dashboard.
 6. Rejected applications retain reviewer and review timestamp metadata.
 
@@ -17,7 +17,7 @@
 4. Expired or invalid refresh tokens clear the browser session and return the user to login.
 5. Logout blacklists the refresh token.
 6. Unverified users can request email verification.
-7. Users can request password reset and confirm with the emailed token.
+7. Users can request password reset and confirm with the emailed token plus matching password and confirm-password values.
 
 ## Program and Cohort Management
 
@@ -47,7 +47,7 @@
 4. Assignments with submissions are locked instead of deleted, preserving submission and grading history.
 5. Students submit only to unlocked assignments in their own cohort.
 6. Late submissions are flagged automatically.
-7. Grading locks the submission for student edits and sends an email notification to the student.
+7. Grading locks the submission for student edits and sends a branded email notification to the student.
 8. Teachers, Admins, and Super Admins can update score and feedback after initial grading.
 9. Leaderboards are derived from graded submissions and follow cohort visibility settings.
 

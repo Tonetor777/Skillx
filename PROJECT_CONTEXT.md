@@ -204,6 +204,8 @@ Database
 - Curriculum navigation now presents unique week choices, filters module cards to the selected week, and gives Program/Modules workspaces a compact hover-expanding desktop sidebar.
 - Profile UI now uses uploaded avatars or a local initials fallback, with external mock profile image URLs removed from production-facing surfaces and mock seed users.
 - Modules sharing a curriculum week now render in creation order so newly added modules appear at the bottom of that week.
+- User-facing email services now send branded multipart text/HTML messages for verification, password reset, invitations, and grading notifications.
+- Password setup and reset flows now require confirmation passwords, and public auth screens include accessible password visibility toggles.
 
 ---
 

@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.conf import settings
-from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
@@ -10,6 +9,7 @@ from rest_framework.exceptions import ValidationError
 from accounts.choices import UserRole, UserStatus
 from applications.models import Application, ApplicationStatus, Invitation, InvitationStatus
 from cohorts.models import Cohort, CohortStatus
+from core.email import send_templated_email
 
 
 def _split_name(name: str) -> tuple[str, str]:
@@ -112,12 +112,15 @@ def reinvite_application(application: Application) -> Invitation:
 
 def send_invitation_email(invitation: Invitation) -> None:
     accept_url = _frontend_url(f"/accept-invitation?token={invitation.token}")
-    send_mail(
-        subject="Your Skilix invitation",
-        message=f"You have been invited to join {invitation.cohort.name}. Accept your invitation: {accept_url}\n",
-        from_email=settings.DEFAULT_FROM_EMAIL,
+    send_templated_email(
+        subject="Your Nexus Academy invitation",
+        template_name="invitation",
+        context={
+            "accept_url": accept_url,
+            "cohort_name": invitation.cohort.name,
+            "expires_at": timezone.localtime(invitation.expires_at).strftime("%b %d, %Y %I:%M %p"),
+        },
         recipient_list=[invitation.email],
-        fail_silently=False,
     )
 
 

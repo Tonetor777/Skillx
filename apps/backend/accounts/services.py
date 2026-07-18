@@ -2,7 +2,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core import signing
-from django.core.mail import send_mail
 from django.urls import reverse
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -10,6 +9,7 @@ from django.utils.encoding import force_bytes
 from rest_framework.exceptions import ValidationError
 
 from accounts.choices import UserStatus
+from core.email import send_templated_email
 
 
 EMAIL_VERIFICATION_SALT = "skilix.email-verification"
@@ -29,16 +29,11 @@ def send_email_verification(user, request=None) -> None:
     path = reverse("email-verification-confirm")
     api_url = request.build_absolute_uri(path) if request else path
     frontend_url = _frontend_url(f"/verify-email?token={token}")
-    send_mail(
-        subject="Verify your Skilix email",
-        message=(
-            "Welcome to Skilix.\n\n"
-            f"Verify your email in the app: {frontend_url}\n"
-            f"API verification endpoint: {api_url}\n"
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
+    send_templated_email(
+        subject="Verify your Nexus Academy email",
+        template_name="email_verification",
+        context={"verification_url": frontend_url, "api_url": api_url},
         recipient_list=[user.email],
-        fail_silently=False,
     )
 
 
@@ -68,12 +63,11 @@ def send_password_reset(user) -> None:
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
     reset_url = _frontend_url(f"/reset-password/confirm?uid={uid}&token={token}")
-    send_mail(
-        subject="Reset your Skilix password",
-        message=f"Use this link to reset your Skilix password: {reset_url}\n",
-        from_email=settings.DEFAULT_FROM_EMAIL,
+    send_templated_email(
+        subject="Reset your Nexus Academy password",
+        template_name="password_reset",
+        context={"reset_url": reset_url},
         recipient_list=[user.email],
-        fail_silently=False,
     )
 
 

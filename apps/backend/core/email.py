@@ -2,7 +2,26 @@ import json
 from urllib import error, request
 
 from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
 from django.core.mail.backends.base import BaseEmailBackend
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+
+
+def send_templated_email(*, subject: str, template_name: str, context: dict, recipient_list: list[str]) -> int:
+    text_body = render_to_string(f"emails/{template_name}.txt", context).strip()
+    html_body = render_to_string(f"emails/{template_name}.html", context).strip()
+    if not text_body:
+        text_body = strip_tags(html_body)
+
+    message = EmailMultiAlternatives(
+        subject=subject,
+        body=f"{text_body}\n",
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=recipient_list,
+    )
+    message.attach_alternative(html_body, "text/html")
+    return message.send(fail_silently=False)
 
 
 class ResendEmailBackend(BaseEmailBackend):

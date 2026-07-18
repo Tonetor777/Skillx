@@ -79,7 +79,13 @@ def test_grading_sends_email_notification(domain):
 
     assert response.status_code == 200
     assert len(mail.outbox) == 1
-    assert "grade was posted" in mail.outbox[0].subject
+    message = mail.outbox[0]
+    assert "grade was posted" in message.subject
+    assert "Nexus Academy" in message.subject
+    assert "Score: 95/100" in message.body
+    assert message.alternatives
+    assert "Grade posted" in message.alternatives[0][0]
+    assert message.alternatives[0][1] == "text/html"
 
 
 def test_scheduled_announcement_is_hidden_until_due(domain):

@@ -2,16 +2,10 @@ import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { KeyRound } from 'lucide-react';
 import apiClient from '../shared/api/client';
 import { BrandLogo } from '../shared/components/ui';
-
-const schema = z.object({
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-});
-
-type FormValues = z.infer<typeof schema>;
+import { PasswordField } from '../features/authentication/components/PasswordField';
+import { passwordConfirmationSchema, type PasswordConfirmationValues } from '../features/authentication/passwordSchemas';
 
 export default function ConfirmPasswordReset() {
   const [searchParams] = useSearchParams();
@@ -19,16 +13,21 @@ export default function ConfirmPasswordReset() {
   const [apiError, setApiError] = useState<string | null>(null);
   const uid = searchParams.get('uid') ?? '';
   const token = searchParams.get('token') ?? '';
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { password: '' },
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<PasswordConfirmationValues>({
+    resolver: zodResolver(passwordConfirmationSchema),
+    defaultValues: { password: '', confirmPassword: '' },
   });
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (values: PasswordConfirmationValues) => {
     setMessage(null);
     setApiError(null);
     try {
-      const response = await apiClient.post('/auth/password-reset/confirm/', { uid, token, password: values.password });
+      const response = await apiClient.post('/auth/password-reset/confirm/', {
+        uid,
+        token,
+        password: values.password,
+        confirm_password: values.confirmPassword,
+      });
       setMessage(response.detail);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : 'Unable to reset password.');
@@ -48,12 +47,20 @@ export default function ConfirmPasswordReset() {
         {message && <p className="mb-4 border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{message}</p>}
         {apiError && <p className="mb-4 border border-red-200 bg-red-50 p-3 text-sm text-red-800">{apiError}</p>}
         <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
-          <label className="skx-field-label" htmlFor="password">New password</label>
-          <div className="relative">
-            <KeyRound className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <input id="password" type="password" className="skx-field pl-10" {...register('password')} />
-          </div>
-          {errors.password && <p className="text-xs font-medium text-red-600">{errors.password.message}</p>}
+          <PasswordField
+            id="password"
+            label="New password"
+            autoComplete="new-password"
+            error={errors.password?.message}
+            registration={register('password')}
+          />
+          <PasswordField
+            id="confirmPassword"
+            label="Confirm password"
+            autoComplete="new-password"
+            error={errors.confirmPassword?.message}
+            registration={register('confirmPassword')}
+          />
           <button type="submit" disabled={isSubmitting || !uid || !token} className="skx-primary-btn w-full">
             {isSubmitting ? 'Resetting password...' : 'Reset password'}
           </button>

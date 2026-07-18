@@ -4,9 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../features/authentication/context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, KeyRound, Mail, ShieldAlert } from 'lucide-react';
+import { ArrowUpRight, Mail, ShieldAlert } from 'lucide-react';
 import { motion } from 'motion/react';
 import { BrandLogo } from '../shared/components/ui';
+import { PasswordField } from '../features/authentication/components/PasswordField';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Must be a valid email address' }),
@@ -108,27 +109,14 @@ export default function Login() {
             </div>
 
             <div>
-              <label htmlFor="password" className="skx-field-label">
-                Password
-              </label>
-              <div className="mt-1.5 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                  <KeyRound className="w-4 h-4" />
-                </div>
-                <input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  className={`skx-field pl-10 ${
-                    errors.password ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
-                  }`}
-                  placeholder="••••••••"
-                  {...register('password')}
-                />
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-xs text-red-600 font-medium" id="password-error">{errors.password.message}</p>
-              )}
+              <PasswordField
+                id="password"
+                label="Password"
+                autoComplete="current-password"
+                placeholder="Enter password"
+                error={errors.password?.message}
+                registration={register('password')}
+              />
             </div>
 
             <div className="flex justify-end">

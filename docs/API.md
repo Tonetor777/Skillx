@@ -20,7 +20,7 @@ Use JWT bearer authentication in Swagger UI with the value `Bearer <access_token
 - `POST /api/auth/email-verification/request/`: request an email verification message.
 - `POST /api/auth/email-verification/confirm/`: confirm an email verification token.
 - `POST /api/auth/password-reset/request/`: request a password reset email.
-- `POST /api/auth/password-reset/confirm/`: confirm a password reset token and set a new password.
+- `POST /api/auth/password-reset/confirm/`: confirm a password reset token and set a new password with matching `password` and `confirm_password`.
 - `GET /api/accounts/me/`: current authenticated user.
 - `PATCH /api/accounts/me/`: update current user's profile fields. Supports JSON for text fields and multipart uploads for optional `photo`; returns `avatar_url`.
 
@@ -71,7 +71,7 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `POST /api/applications/{id}/reinvite/`: send a fresh invitation link for an approved application using its original invitation cohort. Admin/Super Admin only.
 - `POST /api/applications/{id}/reject/`: reject an application. Admin/Super Admin only.
 - `GET /api/invitations/`: list invitations. Admin/Super Admin only.
-- `POST /api/invitations/{token}/accept/`: accept a pending invitation and create or activate the student account.
+- `POST /api/invitations/{token}/accept/`: accept a pending invitation and create or activate the student account with matching `password` and `confirm_password`.
 - `POST /api/invitations/{id}/resend/`: resend a pending invitation. Admin/Super Admin only.
 - `POST /api/invitations/{id}/revoke/`: revoke a pending invitation. Admin/Super Admin only.
 - `GET /api/assignments/`: list assignments scoped to the current user. Supports `?cohort_id=`, `?lesson_id=`, and `?resource_id=`.

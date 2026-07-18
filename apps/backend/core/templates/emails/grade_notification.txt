@@ -1,0 +1,6 @@
+Your Nexus Academy submission grade was {{ action }}: {{ assignment_title }}
+
+Score: {{ score }}/{{ max_points }}
+
+Feedback:
+{{ feedback }}

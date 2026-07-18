@@ -10,6 +10,8 @@ This project follows a modified version of Keep a Changelog.
 
 ## Added
 
+- Branded multipart text/HTML templates for verification, password reset, invitation, and grade notification emails.
+- Password visibility toggles on login, invitation acceptance, and password reset confirmation screens.
 - Configurable JWT access and refresh token lifetimes through environment variables.
 - Reinvite action for approved admissions applications so Admin/Super Admin users can send a fresh invitation link after the previous link expires.
 - Gmail SMTP email delivery configuration using a Gmail app password, with Docker Compose environment wiring for backend, migration, Celery, and beat services.
@@ -54,6 +56,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Changed
 
+- Invitation acceptance and password reset confirmation now require matching password confirmation values in both the frontend and backend API.
 - Modules within the same curriculum week now display oldest-to-newest, keeping newly added modules at the bottom instead of alphabetizing by title.
 - Profile surfaces now use a local initials avatar fallback instead of external mock profile images, while preserving uploaded profile photos.
 - Curriculum navigation now selects unique weeks, filters the module list to the selected week, and uses a compact hover-expanding desktop sidebar on Program and Modules workspaces.

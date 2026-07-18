@@ -126,7 +126,7 @@ def test_invitation_accept_creates_student_and_prevents_reuse():
 
     accept_response = APIClient().post(
         f"/api/invitations/{invitation.token}/accept/",
-        {"password": "student-password"},
+        {"password": "student-password", "confirm_password": "student-password"},
         format="json",
     )
     login_after_acceptance = APIClient().post(
@@ -136,7 +136,7 @@ def test_invitation_accept_creates_student_and_prevents_reuse():
     )
     reuse_response = APIClient().post(
         f"/api/invitations/{invitation.token}/accept/",
-        {"password": "student-password"},
+        {"password": "student-password", "confirm_password": "student-password"},
         format="json",
     )
 
@@ -144,6 +144,9 @@ def test_invitation_accept_creates_student_and_prevents_reuse():
     invitation.refresh_from_db()
     assert approve_response.status_code == 200
     assert len(mail.outbox) == 1
+    assert "Your Nexus Academy invitation" in mail.outbox[0].subject
+    assert "Accept your invitation and set your password" in mail.outbox[0].body
+    assert "Accept invitation" in mail.outbox[0].alternatives[0][0]
     assert users_before_acceptance == 0
     assert get_user_model().objects.filter(email=application.email).count() == 1
     assert login_before_acceptance.status_code == 401
@@ -322,7 +325,7 @@ def test_expired_invitation_cannot_be_accepted_and_can_be_resent_or_revoked():
 
     expired_response = APIClient().post(
         f"/api/invitations/{invitation.token}/accept/",
-        {"password": "student-password"},
+        {"password": "student-password", "confirm_password": "student-password"},
         format="json",
     )
     invitation.refresh_from_db()
@@ -336,3 +339,25 @@ def test_expired_invitation_cannot_be_accepted_and_can_be_resent_or_revoked():
     assert resend_response.status_code == 200
     assert revoke_response.status_code == 200
     assert revoke_response.data["status"] == "revoked"
+
+
+def test_invitation_accept_rejects_mismatched_password_confirmation():
+    _, cohort = domain()
+    invitation = Invitation.objects.create(
+        email="mismatch-invite@example.com",
+        cohort=cohort,
+        token="mismatch-token",
+        expires_at=timezone.now() + timedelta(hours=1),
+    )
+
+    response = APIClient().post(
+        f"/api/invitations/{invitation.token}/accept/",
+        {"password": "student-password", "confirm_password": "different-password"},
+        format="json",
+    )
+
+    invitation.refresh_from_db()
+    assert response.status_code == 400
+    assert "confirm_password" in response.data
+    assert invitation.status == InvitationStatus.PENDING
+    assert not get_user_model().objects.filter(email=invitation.email).exists()

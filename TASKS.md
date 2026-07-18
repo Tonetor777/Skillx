@@ -34,6 +34,7 @@ Build the first production-ready version of Skilix.
 | Refresh Token | ✅ | Simple JWT refresh endpoint is configured. |
 | Email Verification | ✅ | Signed email verification token request/confirm flow is implemented. |
 | Password Reset | ✅ | Password reset request/confirm flow is implemented. |
+| Password Confirmation and Visibility | ✅ Completed | Invitation acceptance and password reset require matching confirmation fields, with password visibility toggles on auth screens. |
 | Role-based Access Control | ✅ | Central role/status constants and permission helpers enforce integrated API endpoints. |
 
 ---
@@ -221,6 +222,7 @@ Build the first production-ready version of Skilix.
 | Production security settings | ✅ Completed | Django settings enforce strong runtime secrets for production and expose env-driven HTTPS, CORS, CSRF, HSTS, cookie, proxy, and throttle settings. |
 | Resend email delivery | ✅ Completed | Resend-compatible Django email backend is available as an alternate integration. |
 | Gmail SMTP email delivery | ✅ Completed | Gmail SMTP settings with app-password support are implemented as the active email delivery path. |
+| Branded transactional email templates | ✅ Completed | User-facing email services send multipart text/HTML templates for verification, password reset, invitations, and grading notifications. |
 | Railway backend deployment | ✅ Completed | Root Railway config and backend Dockerfile are available with migration, Gunicorn, and health check commands. |
 | Vercel frontend deployment | ✅ Completed | Vercel SPA rewrite remains configured; production `VITE_API_URL` is documented. |
 | Dokploy all-in-one deployment | ✅ Completed | Production compose stack, frontend Nginx image, and Dokploy runbook are available for separate frontend/API domains. |
