@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { MailCheck } from 'lucide-react';
 import apiClient from '../shared/api/client';
+import { BrandLogo } from '../shared/components/ui';
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
@@ -31,9 +32,7 @@ export default function VerifyEmail() {
     <main className="min-h-screen skx-grid-bg flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <section className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="skx-brand-mark h-12 w-12">
-            S
-          </div>
+          <BrandLogo className="h-12 w-12" />
         </div>
         <div className="mt-8 skx-surface bg-white/90 py-8 px-6 sm:px-10 text-center">
           <MailCheck className={`mx-auto h-10 w-10 ${failed ? 'text-red-500' : 'text-emerald-500'}`} />

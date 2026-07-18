@@ -97,6 +97,40 @@ def test_teacher_can_create_publish_and_student_can_view_published_module():
     assert visible_student_response.data[0]["lessons"][0]["title"] == "Intro"
 
 
+def test_teacher_can_create_multiple_modules_in_same_week():
+    teacher, _, cohort = domain()
+    teacher_client = auth_client(teacher)
+
+    first_response = teacher_client.post(
+        "/api/modules/",
+        {
+            "cohort_id": str(cohort.id),
+            "module_number": 1,
+            "title": "Foundations",
+            "description": "Learn the basics.",
+            "status": "draft",
+        },
+        format="json",
+    )
+    second_response = teacher_client.post(
+        "/api/modules/",
+        {
+            "cohort_id": str(cohort.id),
+            "module_number": 1,
+            "title": "Applied Workshop",
+            "description": "Practice the basics.",
+            "status": "draft",
+        },
+        format="json",
+    )
+    list_response = teacher_client.get(f"/api/modules/?cohort_id={cohort.id}")
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+    same_week_modules = [item for item in list_response.data if item["module_number"] == 1]
+    assert [item["title"] for item in same_week_modules] == ["Applied Workshop", "Foundations"]
+
+
 def test_resource_crud_ordering_and_delete():
     teacher, _, cohort = domain()
     module = Module.objects.create(cohort=cohort, module_number=1, title="Resources", status=ModuleStatus.PUBLISHED, created_by=teacher)

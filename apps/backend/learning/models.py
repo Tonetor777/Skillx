@@ -26,8 +26,7 @@ class Module(models.Model):
     )
 
     class Meta:
-        ordering = ["cohort", "module_number"]
-        unique_together = ("cohort", "module_number")
+        ordering = ["cohort", "module_number", "title", "id"]
 
     def __str__(self) -> str:
         return f"{self.cohort} - Module {self.module_number}"

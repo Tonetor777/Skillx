@@ -376,7 +376,7 @@ export default function Overview() {
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
               <h3 className="font-bold text-lg text-slate-800 mb-2">Program Quick Guide</h3>
               <p className="text-sm text-slate-500 leading-relaxed mb-4">
-                Welcome to the Skilix Workspace. This applet supports program coordination, cohort isolation, syllabus resource distribution, application approval, homework submission lockers, grading checks, and announcements channels.
+                Welcome to the Nexus Workspace. This applet supports program coordination, cohort isolation, syllabus resource distribution, application approval, homework submission lockers, grading checks, and announcements channels.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="border border-slate-100 rounded-lg p-3.5 bg-slate-50/50">

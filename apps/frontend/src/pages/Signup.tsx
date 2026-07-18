@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { AlertCircle, ArrowUpRight, Loader2, Send } from 'lucide-react';
 import { usePublicPrograms } from '../features/programs/api/programs';
 import { useCreateApplication } from '../features/applications/api/applications';
+import { BrandLogo } from '../shared/components/ui';
 
 const experienceOptions = [
   { value: 'BEGINNER', label: 'Beginner' },
@@ -47,11 +48,11 @@ export default function Signup() {
     <main className="min-h-screen skx-grid-bg px-4 py-10">
       <section className="mx-auto max-w-3xl">
         <div className="mb-8 flex items-start justify-between gap-4 border-b border-[#d8d8d4] pb-6">
-          <div className="flex items-start gap-3">
-            <div className="skx-brand-mark h-11 w-11">S</div>
+          <div className="flex flex-col items-start gap-3 sm:flex-row">
+            <BrandLogo variant="full" className="h-20 w-52 shrink-0 sm:h-16 sm:w-40" />
             <div>
               <p className="skx-page-label">Student Signup</p>
-              <h1 className="mt-2 font-display text-4xl font-bold text-[#141414]">Sign up to Skilix</h1>
+              <h1 className="mt-2 font-display text-4xl font-bold text-[#141414]">Sign up to Nexus Academy</h1>
               <p className="mt-2 text-sm text-[#5f5f5a]">
                 Choose a program and submit your details for admissions approval.
               </p>

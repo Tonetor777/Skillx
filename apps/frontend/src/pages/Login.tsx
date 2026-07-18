@@ -6,6 +6,7 @@ import { useAuth } from '../features/authentication/context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, KeyRound, Mail, ShieldAlert } from 'lucide-react';
 import { motion } from 'motion/react';
+import { BrandLogo } from '../shared/components/ui';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Must be a valid email address' }),
@@ -53,16 +54,14 @@ export default function Login() {
           animate={{ opacity: 1, y: 0 }}
           className="flex justify-center"
         >
-          <div className="skx-brand-mark h-12 w-12 text-lg">
-            S
-          </div>
+          <BrandLogo variant="full" className="h-24 w-56" />
         </motion.div>
         
         <h2 className="mt-6 text-center text-4xl skx-amharic-title">
-          ወደ Skilix ግባ
+          ወደ Nexus Academy ግባ
         </h2>
         <p className="mt-2 text-center font-display text-lg font-bold text-[#141414]">
-          Sign in to Skilix
+          Sign in to Nexus Academy
         </p>
         <p className="mt-2 text-center text-sm text-[#5f5f5a]">
           Approved students can sign in after accepting their email invitation.

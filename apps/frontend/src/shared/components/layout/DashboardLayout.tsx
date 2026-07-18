@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/authentication/context/AuthContext';
 import { useAnnouncementUnreadCount } from '../../../features/announcements/api/announcements';
 import { can } from '../../permissions/can';
+import { BrandLogo } from '../ui';
 import { 
   LayoutDashboard, 
   Users, 
@@ -119,10 +120,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Branding Header */}
         <div className="p-6 border-b border-[#d8d8d4] flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <div className="skx-brand-mark">
-              S
-            </div>
-            <span className="font-display font-bold text-xl tracking-tight text-[#141414]">Skilix</span>
+            <BrandLogo className="h-9 w-9" />
+            <span className="font-display font-bold text-xl tracking-tight text-[#141414]">Nexus</span>
           </div>
           <p className="skx-page-label mt-2">Academy Management</p>
         </div>
@@ -196,10 +195,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           >
             <div className="h-16 flex items-center justify-between px-6 border-b border-[#d8d8d4]">
               <div className="flex items-center gap-2.5">
-                <div className="skx-brand-mark">
-                  S
-                </div>
-                <span className="font-display font-bold text-xl text-[#141414]">Skilix</span>
+                <BrandLogo className="h-9 w-9" />
+                <span className="font-display font-bold text-xl text-[#141414]">Nexus</span>
               </div>
               <button onClick={() => setMobileMenuOpen(false)} className="p-1 text-[#5f5f5a] hover:bg-[#f3f3f0]">
                 <X className="w-5 h-5" />

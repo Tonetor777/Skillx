@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail } from 'lucide-react';
 import apiClient from '../shared/api/client';
+import { BrandLogo } from '../shared/components/ui';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -35,9 +36,7 @@ export default function RequestPasswordReset() {
     <main className="min-h-screen skx-grid-bg flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <section className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="skx-brand-mark h-12 w-12">
-            S
-          </div>
+          <BrandLogo className="h-12 w-12" />
         </div>
         <h1 className="mt-6 text-center text-4xl skx-amharic-title">የይለፍ ቃል መቀየሪያ</h1>
         <p className="mt-2 text-center font-display text-lg font-bold text-[#141414]">Reset password</p>

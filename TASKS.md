@@ -93,6 +93,7 @@ Build the first production-ready version of Skilix.
 | Module CRUD | ✅ | Backend API and reference-style two-pane frontend controls are implemented in Program curriculum and Modules views. |
 | Publish Module | ✅ | Publish action sets status, publish date, and publisher. |
 | Draft Support | ✅ | Draft/published/archived API support is implemented for modules. |
+| Multiple Modules Per Week | ✅ Completed | Backend uniqueness constraint removed so a cohort week can contain multiple modules. |
 
 ---
 

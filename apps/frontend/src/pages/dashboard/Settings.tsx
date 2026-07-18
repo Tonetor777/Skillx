@@ -55,7 +55,7 @@ export default function PlatformSettings() {
       branding_name: settings.branding_name,
       theme: settings.theme as any,
     } : {
-      branding_name: 'Skilix LMS',
+      branding_name: 'Nexus Academy LMS',
       theme: 'zinc',
     },
   });
@@ -131,7 +131,7 @@ export default function PlatformSettings() {
               <input
                 type="text"
                 className="mt-1.5 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 text-sm"
-                placeholder="e.g. Skilix Academy"
+                placeholder="e.g. Nexus Academy"
                 {...register('branding_name')}
               />
               {errors.branding_name && (

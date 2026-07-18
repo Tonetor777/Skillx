@@ -360,7 +360,7 @@ export class MockDatabase {
       localStorage.setItem('skilix_submissions', JSON.stringify(initialSubmissions));
       localStorage.setItem('skilix_applications', JSON.stringify(initialApplications));
       localStorage.setItem('skilix_announcements', JSON.stringify(initialAnnouncements));
-      localStorage.setItem('skilix_settings', JSON.stringify({ branding_name: 'Skilix LMS', theme: 'zinc' }));
+      localStorage.setItem('skilix_settings', JSON.stringify({ branding_name: 'Nexus Academy LMS', theme: 'zinc' }));
     }
   }
 
@@ -375,7 +375,7 @@ export class MockDatabase {
 
   static getSettings(): { branding_name: string; theme: string } {
     this.init();
-    return JSON.parse(localStorage.getItem('skilix_settings') || '{"branding_name":"Skilix LMS","theme":"zinc"}');
+    return JSON.parse(localStorage.getItem('skilix_settings') || '{"branding_name":"Nexus Academy LMS","theme":"zinc"}');
   }
 
   static setSettings(settings: { branding_name: string; theme: string }): void {

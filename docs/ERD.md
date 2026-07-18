@@ -9,7 +9,7 @@ Initial entities:
 - `TeacherAssignment`: teacher-to-cohort relationship.
 - `Application`: public student signup application with contact details, age, experience level, selected program, and program expectations.
 - `Invitation`: secure expiring invitation for approved applicants, accepted to activate a student account.
-- `Module`: cohort learning unit.
+- `Module`: cohort learning unit grouped by `module_number`; multiple modules can share the same week number within a cohort.
 - `Lesson`: ordered submodule/lesson inside a module.
 - `LessonImage`: uploaded image asset owned by a lesson and referenced from lesson content.
 - `Resource`: ordered links attached to a lesson.

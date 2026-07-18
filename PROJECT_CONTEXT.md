@@ -200,6 +200,7 @@ Database
 - Student-facing dashboard pages now hide broad operational helper copy while preserving staff/admin guidance and required state messages.
 - Student announcements now render as a simple scoped feed without system/program/cohort filter tabs, while staff/admin filters remain available.
 - Expired access tokens now retry through refresh cleanly, invalid refresh tokens clear the browser session, and JWT lifetimes are explicit production environment settings.
+- Curriculum modules now allow multiple modules within the same cohort week by treating `module_number` as the week grouping value instead of a unique module slot.
 
 ---
 

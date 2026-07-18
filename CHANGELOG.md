@@ -80,6 +80,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Fixed
 
+- Multiple curriculum modules can now be created in the same cohort week; the backend migration drops the old unique constraint on cohort/module number.
 - Expired sessions now clear authentication state instead of showing raw Simple JWT errors on protected dashboard pages.
 - Student Programs dashboard menu/page visibility now shows only the program attached to the student's enrolled cohort, including in mock API mode.
 - Student overview now displays the enrolled cohort and program from the current student's cohort data instead of placeholder class information.
