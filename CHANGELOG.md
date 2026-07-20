@@ -87,6 +87,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Fixed
 
+- Dokploy CI frontend tests now pass concrete `*.test.ts` paths to Node's test runner instead of relying on quoted recursive glob support.
 - Corrupted frontend auth user storage now clears the browser session safely instead of crashing app startup.
 - Multiple curriculum modules can now be created in the same cohort week; the backend migration drops the old unique constraint on cohort/module number.
 - Expired sessions now clear authentication state instead of showing raw Simple JWT errors on protected dashboard pages.

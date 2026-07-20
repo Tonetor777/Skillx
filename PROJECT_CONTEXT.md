@@ -209,6 +209,7 @@ Database
 - Password setup and reset flows now require confirmation passwords, and public auth screens include accessible password visibility toggles.
 - High-severity security hardening now restricts structural Program/Cohort management to Admin/Super Admin users, limits teacher announcement creation to assigned teaching scope, rejects public applications for invalid or archived programs, and prevents invitation acceptance from converting existing staff accounts into students.
 - Medium-severity stability hardening now adds bounded DRF list pagination with frontend compatibility unwrapping, computes dashboard summary totals with database aggregates, and clears corrupted browser auth storage without crashing the app.
+- Frontend CI tests now enumerate concrete `*.test.ts` files before invoking Node's test runner, avoiding Node 20 quoted-glob failures in GitHub Actions.
 
 ---
 
@@ -572,8 +573,8 @@ The MVP is considered successful when:
 
 # Last Updated
 
-Date: 2026-07-02
+Date: 2026-07-20
 
 Updated By: Codex
 
-Reason: Integrated the Vite frontend with Django REST APIs, added seed data, tests, and API documentation.
+Reason: Hardened frontend test discovery for Dokploy GitHub Actions on Node 20.

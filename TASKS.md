@@ -226,7 +226,7 @@ Build the first production-ready version of Skilix.
 | Railway backend deployment | ✅ Completed | Root Railway config and backend Dockerfile are available with migration, Gunicorn, and health check commands. |
 | Vercel frontend deployment | ✅ Completed | Vercel SPA rewrite remains configured; production `VITE_API_URL` is documented. |
 | Dokploy all-in-one deployment | ✅ Completed | Production compose stack, frontend Nginx image, and Dokploy runbook are available for separate frontend/API domains. |
-| Dokploy CI/CD | ✅ Completed | GitHub Actions validates frontend/backend release checks and triggers Dokploy through a webhook after `main` passes CI. |
+| Dokploy CI/CD | ✅ Completed | GitHub Actions validates frontend/backend release checks and triggers Dokploy through a webhook after `main` passes CI; frontend tests enumerate concrete test files for Node 20 CI compatibility. |
 | Frontend bundle readiness | ✅ Completed | Route-level lazy loading is implemented and API debug logging has been removed. |
 | Frontend production tests | ✅ Completed | Existing tests are preserved and production API-client logging regression coverage has been added. |
 | API schema cleanup | ✅ Completed | Serializer method fields and APIViews are annotated for stable OpenAPI generation. |
