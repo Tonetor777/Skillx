@@ -11,7 +11,7 @@ export const can = {
     return role === 'super_admin';
   },
 
-  // Teachers, Admins, and Super Admins can create programs and cohorts. Students cannot.
+  // Admins and Super Admins manage structural program and cohort records.
   managePrograms: (role: UserRole): boolean => {
     return role === 'super_admin' || role === 'admin';
   },

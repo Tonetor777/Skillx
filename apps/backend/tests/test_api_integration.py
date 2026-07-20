@@ -49,6 +49,10 @@ def auth_client(user):
     return client
 
 
+def results(response):
+    return response.data["results"]
+
+
 @pytest.fixture
 def domain():
     super_admin = create_user("superadmin@example.com", UserRole.SUPER_ADMIN)
@@ -126,12 +130,42 @@ def test_program_and_cohort_endpoints_emit_ui_dtos(domain):
     cohort_response = client.get("/api/cohorts/")
 
     assert program_response.status_code == 200
-    assert program_response.data[0]["name"] == "React Engineering"
-    assert "weeks" in program_response.data[0]
+    assert program_response.data["count"] == 1
+    assert program_response.data["next"] is None
+    assert program_response.data["previous"] is None
+    assert results(program_response)[0]["name"] == "React Engineering"
+    assert "weeks" in results(program_response)[0]
     assert cohort_response.status_code == 200
-    assert cohort_response.data[0]["program_name"] == "React Engineering"
-    assert cohort_response.data[0]["students_count"] == 1
-    assert cohort_response.data[0]["teachers"][0]["role"] == "teacher"
+    assert results(cohort_response)[0]["program_name"] == "React Engineering"
+    assert results(cohort_response)[0]["students_count"] == 1
+    assert results(cohort_response)[0]["teachers"][0]["role"] == "teacher"
+
+
+def test_list_endpoints_are_paginated_with_page_size_clamp():
+    admin = create_user("admin-pagination@example.com", UserRole.ADMIN)
+    for index in range(120):
+        Program.objects.create(
+            title=f"Paginated Program {index:03}",
+            slug=f"paginated-program-{index:03}",
+            description="Pagination fixture.",
+            status=ProgramStatus.ACTIVE,
+        )
+    client = auth_client(admin)
+
+    default_response = client.get("/api/programs/")
+    oversized_response = client.get("/api/programs/?page_size=500")
+    second_page_response = client.get("/api/programs/?page=2&page_size=50")
+
+    assert default_response.status_code == 200
+    assert default_response.data["count"] == 120
+    assert len(results(default_response)) == 50
+    assert default_response.data["next"]
+    assert default_response.data["previous"] is None
+    assert oversized_response.status_code == 200
+    assert len(results(oversized_response)) == 100
+    assert second_page_response.status_code == 200
+    assert len(results(second_page_response)) == 50
+    assert second_page_response.data["previous"]
 
 
 def test_profile_update_accepts_json_and_photo_upload(domain):
@@ -241,7 +275,7 @@ def test_student_only_sees_own_cohort_assignments(domain):
     response = auth_client(domain["student"]).get("/api/assignments/")
 
     assert response.status_code == 200
-    assert [item["title"] for item in response.data] == ["First Build"]
+    assert [item["title"] for item in results(response)] == ["First Build"]
 
 
 def test_teacher_can_create_and_edit_assignment_from_lesson_scope(domain):
@@ -425,7 +459,7 @@ def test_announcements_and_settings_permissions(domain):
     super_settings_update = super_client.patch("/api/settings/", {"branding_name": "Skilix Academy", "theme": "slate"}, format="json")
 
     assert announcements.status_code == 200
-    assert announcements.data[0]["target_type"] == "cohort"
+    assert results(announcements)[0]["target_type"] == "cohort"
     assert admin_settings_update.status_code == 403
     assert super_settings_update.status_code == 200
     assert super_settings_update.data["branding_name"] == "Skilix Academy"

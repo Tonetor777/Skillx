@@ -158,7 +158,7 @@ def accept_invitation(token: str, password: str):
 
     User = get_user_model()
     first_name, last_name = _split_name(invitation.email.split("@")[0].replace(".", " "))
-    user, _ = User.objects.get_or_create(
+    user, created = User.objects.get_or_create(
         email=invitation.email,
         defaults={
             "username": invitation.email,
@@ -168,8 +168,9 @@ def accept_invitation(token: str, password: str):
             "role": UserRole.STUDENT,
         },
     )
+    if not created and user.role != UserRole.STUDENT:
+        raise ValidationError({"email": "This invitation cannot be accepted for an existing staff account."})
     user.set_password(password)
-    user.role = UserRole.STUDENT
     user.status = UserStatus.ACTIVE
     user.cohort = invitation.cohort
     user.save()

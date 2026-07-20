@@ -178,6 +178,8 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
     ),
+    "DEFAULT_PAGINATION_CLASS": "core.pagination.StandardResultsSetPagination",
+    "PAGE_SIZE": int(os.getenv("DRF_PAGE_SIZE", "50")),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": (
         "rest_framework.throttling.AnonRateThrottle",
@@ -189,6 +191,9 @@ REST_FRAMEWORK = {
         "auth": os.getenv("DRF_THROTTLE_AUTH_RATE", "10/minute"),
     },
 }
+
+DRF_PAGE_SIZE = int(os.getenv("DRF_PAGE_SIZE", "50"))
+DRF_MAX_PAGE_SIZE = int(os.getenv("DRF_MAX_PAGE_SIZE", "100"))
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv("JWT_ACCESS_TOKEN_MINUTES", "15"))),

@@ -38,6 +38,10 @@ def auth_client(user):
     return client
 
 
+def results(response):
+    return response.data["results"]
+
+
 @pytest.fixture
 def domain():
     admin = create_user("admin-final@example.com", UserRole.ADMIN)
@@ -102,7 +106,7 @@ def test_scheduled_announcement_is_hidden_until_due(domain):
     response = auth_client(student).get("/api/announcements/")
 
     assert response.status_code == 200
-    assert [item["title"] for item in response.data] == ["Now"]
+    assert [item["title"] for item in results(response)] == ["Now"]
 
 
 def test_announcement_unread_count_respects_student_scope_and_schedule(domain):
@@ -133,8 +137,8 @@ def test_announcement_unread_count_respects_student_scope_and_schedule(domain):
 
     assert response.status_code == 200
     assert response.data["count"] == 2
-    assert {item["title"] for item in list_response.data} == {"System", "Cohort", "Program"}
-    assert {item["title"]: item["is_read"] for item in list_response.data} == {
+    assert {item["title"] for item in results(list_response)} == {"System", "Cohort", "Program"}
+    assert {item["title"]: item["is_read"] for item in results(list_response)} == {
         "System": True,
         "Cohort": False,
         "Program": False,
@@ -161,6 +165,107 @@ def test_announcement_unread_count_respects_teacher_scope(domain):
 
     assert response.status_code == 200
     assert response.data["count"] == 3
+
+
+def test_teacher_announcement_creation_is_limited_to_teaching_scope(domain):
+    _, teacher, _, cohort, _, _ = domain
+    other_program = Program.objects.create(title="Other Create", slug="other-create", description="", status=ProgramStatus.ACTIVE)
+    other_cohort = Cohort.objects.create(
+        program=other_program,
+        name="Other Create Cohort",
+        start_date=timezone.localdate(),
+        end_date=timezone.localdate() + timedelta(weeks=4),
+        status=CohortStatus.ACTIVE,
+    )
+    client = auth_client(teacher)
+
+    cohort_response = client.post(
+        "/api/announcements/",
+        {
+            "title": "Assigned Cohort Notice",
+            "content": "Message for my class.",
+            "target_type": "cohort",
+            "target_id": str(cohort.id),
+        },
+        format="json",
+    )
+    program_response = client.post(
+        "/api/announcements/",
+        {
+            "title": "Assigned Program Notice",
+            "content": "Message for my program.",
+            "target_type": "program",
+            "target_id": str(cohort.program_id),
+        },
+        format="json",
+    )
+    system_response = client.post(
+        "/api/announcements/",
+        {
+            "title": "System Notice",
+            "content": "Blocked global message.",
+            "target_type": "system",
+        },
+        format="json",
+    )
+    other_cohort_response = client.post(
+        "/api/announcements/",
+        {
+            "title": "Other Cohort Notice",
+            "content": "Blocked other class.",
+            "target_type": "cohort",
+            "target_id": str(other_cohort.id),
+        },
+        format="json",
+    )
+    other_program_response = client.post(
+        "/api/announcements/",
+        {
+            "title": "Other Program Notice",
+            "content": "Blocked other program.",
+            "target_type": "program",
+            "target_id": str(other_program.id),
+        },
+        format="json",
+    )
+    invalid_target_response = client.post(
+        "/api/announcements/",
+        {
+            "title": "Invalid Notice",
+            "content": "Blocked invalid target.",
+            "target_type": "cohort",
+            "target_id": "not-a-cohort",
+        },
+        format="json",
+    )
+
+    assert cohort_response.status_code == 201
+    assert cohort_response.data["target_type"] == "cohort"
+    assert program_response.status_code == 201
+    assert program_response.data["target_type"] == "program"
+    assert system_response.status_code == 403
+    assert other_cohort_response.status_code == 403
+    assert other_program_response.status_code == 403
+    assert invalid_target_response.status_code == 400
+    assert Announcement.objects.filter(created_by=teacher).count() == 2
+
+
+def test_admin_can_create_system_announcement(domain):
+    admin, _, _, _, _, _ = domain
+
+    response = auth_client(admin).post(
+        "/api/announcements/",
+        {
+            "title": "System Notice",
+            "content": "Allowed global message.",
+            "target_type": "system",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201
+    assert response.data["target_type"] == "system"
+    assert response.data["target_id"] is None
 
 
 def test_admin_unread_count_includes_due_announcements(domain):
@@ -263,7 +368,17 @@ def test_leaderboard_ranking_and_visibility_rules(domain):
 
 
 def test_dashboard_summary_returns_role_specific_data(domain):
-    admin, teacher, student, _, _, _ = domain
+    admin, teacher, student, cohort, _, _ = domain
+    create_user("second-student-final@example.com", UserRole.STUDENT, cohort=cohort)
+    hidden_program = Program.objects.create(title="Hidden Summary", slug="hidden-summary", description="", status=ProgramStatus.ACTIVE)
+    hidden_cohort = Cohort.objects.create(
+        program=hidden_program,
+        name="Hidden Summary Cohort",
+        start_date=timezone.localdate(),
+        end_date=timezone.localdate() + timedelta(weeks=4),
+        status=CohortStatus.ACTIVE,
+    )
+    create_user("hidden-student-final@example.com", UserRole.STUDENT, cohort=hidden_cohort)
 
     student_response = auth_client(student).get("/api/dashboard/summary/")
     teacher_response = auth_client(teacher).get("/api/dashboard/summary/")
@@ -274,5 +389,6 @@ def test_dashboard_summary_returns_role_specific_data(domain):
     assert "progress" in student_response.data
     assert teacher_response.data["role"] == "teacher"
     assert "pending_grading" in teacher_response.data
+    assert teacher_response.data["analytics"]["students_total"] == 2
     assert admin_response.data["role"] == "admin"
     assert "applications" in admin_response.data

@@ -35,6 +35,12 @@ def auth_client(user):
     return client
 
 
+def results(response):
+    if isinstance(response.data, list):
+        return response.data
+    return response.data["results"]
+
+
 def create_program(title="Program", status=ProgramStatus.ACTIVE):
     return Program.objects.create(
         title=title,
@@ -70,11 +76,43 @@ def test_program_archive_soft_hides_from_default_list_but_detail_remains_availab
     assert archive_response.status_code == 200
     assert archive_response.data["status"] == "archived"
     assert list_response.status_code == 200
-    assert list_response.data == []
+    assert results(list_response) == []
     assert detail_response.status_code == 200
     assert detail_response.data["cohorts"][0]["students_count"] == 1
     assert detail_response.data["cohorts"][0]["id"] == str(cohort.id)
     assert student.cohort_id == cohort.id
+
+
+def test_program_structural_management_is_admin_only():
+    admin = create_user("admin-manage-program@example.com", UserRole.ADMIN)
+    teacher = create_user("teacher-manage-program@example.com", UserRole.TEACHER)
+    program = create_program("Teacher Cannot Manage")
+    client = auth_client(teacher)
+
+    create_response = client.post(
+        "/api/programs/",
+        {"name": "Teacher Created", "description": "Blocked.", "weeks": []},
+        format="json",
+    )
+    update_response = client.patch(
+        f"/api/programs/{program.id}/",
+        {"name": "Teacher Updated"},
+        format="json",
+    )
+    archive_response = client.patch(f"/api/programs/{program.id}/archive/")
+    admin_create_response = auth_client(admin).post(
+        "/api/programs/",
+        {"name": "Admin Created", "description": "Allowed.", "weeks": []},
+        format="json",
+    )
+
+    program.refresh_from_db()
+    assert create_response.status_code == 403
+    assert update_response.status_code == 403
+    assert archive_response.status_code == 403
+    assert admin_create_response.status_code == 201
+    assert program.title == "Teacher Cannot Manage"
+    assert program.status == ProgramStatus.ACTIVE
 
 
 def test_empty_program_can_be_deleted_by_admins_only():
@@ -144,6 +182,49 @@ def test_cohort_status_and_current_week_are_validated():
     assert invalid_response.status_code == 400
 
 
+def test_cohort_structural_management_is_admin_only_and_validates_program_id():
+    admin = create_user("admin-manage-cohort@example.com", UserRole.ADMIN)
+    teacher = create_user("teacher-manage-cohort@example.com", UserRole.TEACHER)
+    program = create_program("Manage Cohort Program")
+    other_program = create_program("Move Target Program")
+    cohort = create_cohort(program, "Teacher Cannot Move")
+    client = auth_client(teacher)
+
+    create_response = client.post(
+        "/api/cohorts/",
+        {
+            "name": "Teacher Created Cohort",
+            "program_id": str(program.id),
+            "start_date": timezone.localdate().isoformat(),
+            "end_date": (timezone.localdate() + timedelta(weeks=12)).isoformat(),
+        },
+        format="json",
+    )
+    update_response = client.patch(
+        f"/api/cohorts/{cohort.id}/",
+        {"program_id": str(other_program.id), "name": "Teacher Moved Cohort"},
+        format="json",
+    )
+    invalid_program_response = auth_client(admin).post(
+        "/api/cohorts/",
+        {
+            "name": "Invalid Program Cohort",
+            "program_id": "not-a-program",
+            "start_date": timezone.localdate().isoformat(),
+            "end_date": (timezone.localdate() + timedelta(weeks=12)).isoformat(),
+        },
+        format="json",
+    )
+
+    cohort.refresh_from_db()
+    assert create_response.status_code == 403
+    assert update_response.status_code == 403
+    assert invalid_program_response.status_code == 400
+    assert "program_id" in invalid_program_response.data
+    assert cohort.program == program
+    assert cohort.name == "Teacher Cannot Move"
+
+
 def test_empty_cohort_can_be_deleted_by_admins_only():
     admin = create_user("admin-delete-cohort@example.com", UserRole.ADMIN)
     super_admin = create_user("super-delete-cohort@example.com", UserRole.SUPER_ADMIN)
@@ -194,9 +275,9 @@ def test_teacher_and_student_cohort_scoping_is_preserved():
     teacher_response = auth_client(teacher).get("/api/cohorts/")
     student_response = auth_client(student).get("/api/cohorts/")
 
-    assert [item["id"] for item in teacher_response.data] == [str(teacher_cohort.id)]
-    assert [item["id"] for item in student_response.data] == [str(student_cohort.id)]
-    assert str(hidden_cohort.id) not in [item["id"] for item in teacher_response.data]
+    assert [item["id"] for item in results(teacher_response)] == [str(teacher_cohort.id)]
+    assert [item["id"] for item in results(student_response)] == [str(student_cohort.id)]
+    assert str(hidden_cohort.id) not in [item["id"] for item in results(teacher_response)]
 
 
 def test_student_program_access_is_limited_to_enrolled_cohort_program():
@@ -211,7 +292,7 @@ def test_student_program_access_is_limited_to_enrolled_cohort_program():
     other_detail_response = client.get(f"/api/programs/{other_program.id}/")
 
     assert list_response.status_code == 200
-    assert [item["id"] for item in list_response.data] == [str(enrolled_program.id)]
+    assert [item["id"] for item in results(list_response)] == [str(enrolled_program.id)]
     assert enrolled_detail_response.status_code == 200
     assert other_detail_response.status_code == 404
 
@@ -223,7 +304,7 @@ def test_public_program_catalog_lists_only_active_signup_options():
 
     response = client.get("/api/programs/public/")
 
-    returned_ids = [item["id"] for item in response.data]
+    returned_ids = [item["id"] for item in results(response)]
     assert response.status_code == 200
     assert str(active_program.id) in returned_ids
     assert str(archived_program.id) not in returned_ids

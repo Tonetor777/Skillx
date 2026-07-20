@@ -56,6 +56,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Changed
 
+- Dokploy backend now starts Gunicorn with three workers, a 60-second timeout, and stdout/stderr request logging for better production stability diagnostics.
 - Invitation acceptance and password reset confirmation now require matching password confirmation values in both the frontend and backend API.
 - Modules within the same curriculum week now display oldest-to-newest, keeping newly added modules at the bottom instead of alphabetizing by title.
 - Profile surfaces now use a local initials avatar fallback instead of external mock profile images, while preserving uploaded profile photos.
@@ -86,6 +87,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Fixed
 
+- Corrupted frontend auth user storage now clears the browser session safely instead of crashing app startup.
 - Multiple curriculum modules can now be created in the same cohort week; the backend migration drops the old unique constraint on cohort/module number.
 - Expired sessions now clear authentication state instead of showing raw Simple JWT errors on protected dashboard pages.
 - Student Programs dashboard menu/page visibility now shows only the program attached to the student's enrolled cohort, including in mock API mode.
@@ -99,6 +101,17 @@ This project follows a modified version of Keep a Changelog.
 - Add Week now opens a visible new-week module form before the week has saved modules.
 - Django local development now accepts requests using the `0.0.0.0:8000` host header.
 - Docker Compose now applies Django migrations before backend startup, preventing JWT token issuance from failing when Simple JWT blacklist tables are missing.
+
+## Security
+
+- Tightened Program and Cohort structural management so only Admin/Super Admin users can create, update, archive, or delete those records.
+- Scoped teacher announcement creation to assigned cohorts or programs they teach, while keeping system broadcasts Admin/Super Admin only.
+- Hardened admissions so public applications require active programs and invitation acceptance cannot convert existing staff accounts into students.
+- Added bounded DRF list pagination with frontend compatibility unwrapping to reduce unbounded API response risk.
+
+## Performance
+
+- Dashboard summaries now compute student grade/attendance totals and teacher student counts with database aggregates instead of Python-side loops.
 
 ## Removed
 

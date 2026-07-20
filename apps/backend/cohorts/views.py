@@ -27,9 +27,9 @@ class CohortViewSet(ModelViewSet):
         return queryset
 
     def get_permissions(self):
-        if self.action == "destroy":
+        if self.action in {"create", "partial_update", "destroy"}:
             return [IsAdminOrSuperAdmin()]
-        if self.action in {"create", "partial_update", "grade_settings"}:
+        if self.action == "grade_settings":
             return [IsTeacherAdminOrSuperAdmin()]
         return super().get_permissions()
 

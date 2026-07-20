@@ -39,6 +39,10 @@ def auth_client(user):
     return client
 
 
+def results(response):
+    return response.data["results"]
+
+
 def png_file(name="lesson.png"):
     buffer = BytesIO()
     Image.new("RGB", (2, 2), color="white").save(buffer, format="PNG")
@@ -88,13 +92,13 @@ def test_teacher_can_create_publish_and_student_can_view_published_module():
 
     assert create_response.status_code == 201
     assert lesson_response.status_code == 201
-    assert hidden_student_response.data == []
+    assert results(hidden_student_response) == []
     assert publish_response.status_code == 200
     assert publish_response.data["status"] == "published"
     assert publish_response.data["publish_date"]
     assert publish_response.data["published_by_name"]
-    assert [item["id"] for item in visible_student_response.data] == [module_id]
-    assert visible_student_response.data[0]["lessons"][0]["title"] == "Intro"
+    assert [item["id"] for item in results(visible_student_response)] == [module_id]
+    assert results(visible_student_response)[0]["lessons"][0]["title"] == "Intro"
 
 
 def test_teacher_can_create_multiple_modules_in_same_week():
@@ -127,7 +131,7 @@ def test_teacher_can_create_multiple_modules_in_same_week():
 
     assert first_response.status_code == 201
     assert second_response.status_code == 201
-    same_week_modules = [item for item in list_response.data if item["module_number"] == 1]
+    same_week_modules = [item for item in results(list_response) if item["module_number"] == 1]
     assert [item["title"] for item in same_week_modules] == ["Foundations", "Applied Workshop"]
 
 
@@ -152,7 +156,7 @@ def test_resource_crud_ordering_and_delete():
 
     assert first.status_code == 201
     assert second.status_code == 201
-    assert [item["title"] for item in list_response.data] == ["First", "Second"]
+    assert [item["title"] for item in results(list_response)] == ["First", "Second"]
     assert delete_response.status_code == 204
     assert Resource.objects.count() == 1
 
@@ -178,7 +182,7 @@ def test_lesson_content_accepts_and_returns_serialized_editor_document():
 
     assert response.status_code == 201
     assert response.data["content"] == editor_document
-    assert detail_response.data[0]["content"] == editor_document
+    assert results(detail_response)[0]["content"] == editor_document
 
 
 def test_teacher_can_upload_lesson_image_and_serializers_return_current_url():
@@ -198,8 +202,8 @@ def test_teacher_can_upload_lesson_image_and_serializers_return_current_url():
     assert upload_response.data["lesson_id"] == str(lesson.id)
     assert upload_response.data["image_url"]
     assert upload_response.data["alt_text"] == "Architecture diagram"
-    assert student_modules_response.data[0]["lessons"][0]["images"][0]["image_url"]
-    assert student_modules_response.data[0]["lessons"][0]["images"][0]["id"] == upload_response.data["id"]
+    assert results(student_modules_response)[0]["lessons"][0]["images"][0]["image_url"]
+    assert results(student_modules_response)[0]["lessons"][0]["images"][0]["id"] == upload_response.data["id"]
 
 
 def test_lesson_image_upload_permissions_and_validation_are_enforced():
@@ -260,7 +264,7 @@ def test_students_only_receive_lesson_images_for_published_own_cohort_lessons():
     response = auth_client(student).get("/api/lesson-images/")
 
     assert response.status_code == 200
-    assert [item["id"] for item in response.data] == [str(own_image.id)]
+    assert [item["id"] for item in results(response)] == [str(own_image.id)]
 
 
 def test_lesson_image_size_validation_rejects_large_images():

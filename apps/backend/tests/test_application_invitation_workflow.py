@@ -99,6 +99,51 @@ def test_public_application_submission_requires_valid_experience_choice():
     assert "experience" in response.data
 
 
+def test_public_application_submission_requires_active_existing_program():
+    active_program, _ = domain()
+    archived_program = Program.objects.create(
+        title="Archived Admissions",
+        slug="archived-admissions",
+        description="",
+        status=ProgramStatus.ARCHIVED,
+    )
+    client = APIClient()
+    payload = {
+        "first_name": "Grace",
+        "last_name": "Hopper",
+        "email": "program-validation@example.com",
+        "phone": "+251000000",
+        "age": 28,
+        "experience": ExperienceLevel.INTERMEDIATE,
+        "expectations": "I expect mentor support and structured projects throughout the program.",
+    }
+
+    missing_response = client.post("/api/applications/", payload, format="json")
+    invalid_response = client.post(
+        "/api/applications/",
+        {**payload, "email": "invalid-program@example.com", "program_id": "not-a-program"},
+        format="json",
+    )
+    archived_response = client.post(
+        "/api/applications/",
+        {**payload, "email": "archived-program@example.com", "program_id": str(archived_program.id)},
+        format="json",
+    )
+    valid_response = client.post(
+        "/api/applications/",
+        {**payload, "email": "active-program@example.com", "program_id": str(active_program.id)},
+        format="json",
+    )
+
+    assert missing_response.status_code == 400
+    assert invalid_response.status_code == 400
+    assert archived_response.status_code == 400
+    assert valid_response.status_code == 201
+    assert "program_id" in missing_response.data
+    assert "program_id" in invalid_response.data
+    assert "program_id" in archived_response.data
+
+
 def test_invitation_accept_creates_student_and_prevents_reuse():
     program, cohort = domain()
     super_admin = create_user("super-admin-invite@example.com", UserRole.SUPER_ADMIN)
@@ -157,6 +202,33 @@ def test_invitation_accept_creates_student_and_prevents_reuse():
     assert user.status == UserStatus.ACTIVE
     assert user.cohort == cohort
     assert invitation.status == InvitationStatus.ACCEPTED
+
+
+def test_invitation_accept_rejects_existing_staff_account_without_changes():
+    _, cohort = domain()
+    staff = create_user("staff-invited@example.com", UserRole.ADMIN)
+    invitation = Invitation.objects.create(
+        email=staff.email,
+        cohort=cohort,
+        token="staff-invite-token",
+        expires_at=timezone.now() + timedelta(hours=1),
+    )
+
+    response = APIClient().post(
+        f"/api/invitations/{invitation.token}/accept/",
+        {"password": "student-password", "confirm_password": "student-password"},
+        format="json",
+    )
+
+    staff.refresh_from_db()
+    invitation.refresh_from_db()
+    assert response.status_code == 400
+    assert staff.role == UserRole.ADMIN
+    assert staff.status == UserStatus.ACTIVE
+    assert staff.cohort_id is None
+    assert staff.check_password("password")
+    assert invitation.status == InvitationStatus.PENDING
+    assert invitation.accepted_at is None
 
 
 def test_admin_and_super_admin_can_review_signup_applications():

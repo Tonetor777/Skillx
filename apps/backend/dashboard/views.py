@@ -1,4 +1,5 @@
-from django.db.models import Avg, Count, Q, Sum
+from django.db.models import Avg, Case, Count, FloatField, Q, Sum, Value, When
+from django.db.models.functions import Coalesce
 from drf_spectacular.utils import OpenApiTypes, extend_schema, inline_serializer
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -6,10 +7,11 @@ from rest_framework import serializers
 from rest_framework.views import APIView
 
 from accounts.choices import UserRole
+from accounts.models import User
 from accounts.permissions import IsActiveUser, IsSuperAdmin
 from applications.models import Application
 from announcements.models import Announcement
-from attendance.models import ATTENDANCE_CREDIT, AttendanceRecord
+from attendance.models import AttendanceRecord
 from cohorts.models import Cohort
 from dashboard.models import PlatformSettings
 from dashboard.serializers import PlatformSettingsSerializer
@@ -103,14 +105,35 @@ class DashboardSummaryView(APIView):
     def get(self, request):
         user = request.user
         if user.role == UserRole.STUDENT:
-            submissions = Submission.objects.select_related("assignment").filter(student=user)
+            submissions = Submission.objects.filter(student=user)
             graded_submissions = submissions.filter(score__isnull=False)
-            earned_points = sum(float(submission.score or 0) for submission in graded_submissions)
-            possible_points = sum(float(submission.assignment.max_points) for submission in graded_submissions)
+            grade_totals = graded_submissions.aggregate(
+                earned_points=Coalesce(Sum("score"), Value(0.0), output_field=FloatField()),
+                possible_points=Coalesce(Sum("assignment__max_points"), Value(0.0), output_field=FloatField()),
+                average=Avg("score"),
+                graded_total=Count("id"),
+            )
+            earned_points = float(grade_totals["earned_points"] or 0)
+            possible_points = float(grade_totals["possible_points"] or 0)
             assignment_percent = (earned_points / possible_points * 100) if possible_points else 0
-            attendance_records = AttendanceRecord.objects.filter(student=user, session__cohort_id=user.cohort_id)
-            attendance_count = attendance_records.count()
-            attendance_credits = sum(float(ATTENDANCE_CREDIT.get(record.status, 0)) for record in attendance_records)
+            attendance_totals = AttendanceRecord.objects.filter(student=user, session__cohort_id=user.cohort_id).aggregate(
+                attendance_count=Count("id"),
+                attendance_credits=Coalesce(
+                    Sum(
+                        Case(
+                            When(status="PRESENT", then=Value(1.0)),
+                            When(status="EXCUSED", then=Value(1.0)),
+                            When(status="LATE", then=Value(0.5)),
+                            default=Value(0.0),
+                            output_field=FloatField(),
+                        )
+                    ),
+                    Value(0.0),
+                    output_field=FloatField(),
+                ),
+            )
+            attendance_count = attendance_totals["attendance_count"]
+            attendance_credits = float(attendance_totals["attendance_credits"] or 0)
             attendance_percent = (attendance_credits / attendance_count * 100) if attendance_count else 0
             assignment_weight = float(user.cohort.assignment_weight) if user.cohort_id else 90
             attendance_weight = float(user.cohort.attendance_weight) if user.cohort_id else 10
@@ -121,11 +144,11 @@ class DashboardSummaryView(APIView):
                     "progress": {
                         "assignments_total": Assignment.objects.filter(cohort_id=user.cohort_id).count(),
                         "submissions_total": submissions.count(),
-                        "graded_total": submissions.filter(score__isnull=False).count(),
+                        "graded_total": grade_totals["graded_total"],
                     },
                     "current_module": Module.objects.filter(cohort_id=user.cohort_id, status="PUBLISHED").order_by("-module_number").values("module_number", "title").first(),
                     "grades": {
-                        "average": graded_submissions.aggregate(value=Avg("score"))["value"] or 0,
+                        "average": grade_totals["average"] or 0,
                         "assignment_percent": round(assignment_percent, 2),
                         "attendance_percent": round(attendance_percent, 2),
                         "total_percent": round(total_percent, 2),
@@ -137,6 +160,7 @@ class DashboardSummaryView(APIView):
             )
         if user.role == UserRole.TEACHER:
             cohorts = Cohort.objects.filter(teacher_assignments__teacher=user).distinct()
+            students_total = User.objects.filter(cohort__in=cohorts, role=UserRole.STUDENT).distinct().count()
             return Response(
                 {
                     "role": "teacher",
@@ -144,7 +168,7 @@ class DashboardSummaryView(APIView):
                     "pending_grading": Submission.objects.filter(assignment__cohort__in=cohorts, score__isnull=True).count(),
                     "analytics": {
                         "assignments_total": Assignment.objects.filter(cohort__in=cohorts).count(),
-                        "students_total": sum(cohort.students.count() for cohort in cohorts),
+                        "students_total": students_total,
                     },
                 }
             )

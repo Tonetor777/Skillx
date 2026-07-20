@@ -3,6 +3,7 @@ from rest_framework import serializers
 from accounts.serializers import CurrentUserSerializer
 from applications.models import Application, ExperienceLevel, Invitation
 from applications.services import accept_invitation
+from programs.models import Program, ProgramStatus
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
@@ -60,6 +61,15 @@ class ApplicationSerializer(serializers.ModelSerializer):
         data["last_name"] = last
         data["program_id"] = str(instance.program_id)
         return data
+
+    def validate_program_id(self, value):
+        try:
+            program = Program.objects.get(id=value)
+        except (Program.DoesNotExist, ValueError) as exc:
+            raise serializers.ValidationError("Program does not exist.") from exc
+        if program.status != ProgramStatus.ACTIVE:
+            raise serializers.ValidationError("Program is not accepting applications.")
+        return value
 
     def validate(self, attrs):
         first_name = attrs.pop("first_name", "").strip()

@@ -1,6 +1,10 @@
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
+from accounts.choices import UserRole
 from announcements.models import Announcement
+from cohorts.models import Cohort
+from programs.models import Program
 
 
 class AnnouncementSerializer(serializers.ModelSerializer):
@@ -57,6 +61,41 @@ class AnnouncementSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             return False
         return obj.read_receipts.filter(user=request.user).exists()
+
+    def validate(self, attrs):
+        target_type = attrs.get("target_type")
+        target_id = attrs.get("target_id")
+        user = self.context["request"].user
+
+        if target_type == "system":
+            if target_id:
+                raise serializers.ValidationError({"target_id": "System announcements cannot have a target id."})
+            if user.role == UserRole.TEACHER:
+                raise PermissionDenied("Teachers cannot create system announcements.")
+            return attrs
+
+        if not target_id:
+            raise serializers.ValidationError({"target_id": "A target id is required."})
+
+        if target_type == "cohort":
+            try:
+                cohort = Cohort.objects.get(id=target_id)
+            except (Cohort.DoesNotExist, ValueError) as exc:
+                raise serializers.ValidationError({"target_id": "Cohort does not exist."}) from exc
+            if user.role == UserRole.TEACHER and not cohort.teacher_assignments.filter(teacher=user).exists():
+                raise PermissionDenied("Teachers can only announce to assigned cohorts.")
+            return attrs
+
+        if target_type == "program":
+            try:
+                program = Program.objects.get(id=target_id)
+            except (Program.DoesNotExist, ValueError) as exc:
+                raise serializers.ValidationError({"target_id": "Program does not exist."}) from exc
+            if user.role == UserRole.TEACHER and not program.cohorts.filter(teacher_assignments__teacher=user).exists():
+                raise PermissionDenied("Teachers can only announce to programs they teach.")
+            return attrs
+
+        return attrs
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

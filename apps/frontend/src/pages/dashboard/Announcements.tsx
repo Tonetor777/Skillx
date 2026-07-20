@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -53,6 +53,7 @@ export default function Announcements() {
     register,
     handleSubmit,
     reset,
+    setValue,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<AnnouncementFormValues>({
@@ -66,6 +67,12 @@ export default function Announcements() {
   });
 
   const selectedTargetType = watch('target_type');
+
+  useEffect(() => {
+    if (user?.role === 'teacher' && selectedTargetType === 'system') {
+      setValue('target_type', 'cohort');
+    }
+  }, [selectedTargetType, setValue, user?.role]);
 
   const onSubmit = async (data: AnnouncementFormValues) => {
     try {
@@ -95,6 +102,7 @@ export default function Announcements() {
 
   if (!user) return null;
   const isStaffAnnouncementManager = can.createAnnouncements(user.role);
+  const canCreateSystemAnnouncements = user.role === 'super_admin' || user.role === 'admin';
 
   // 1. Loading State
   if (isLoading) {
@@ -226,7 +234,7 @@ export default function Announcements() {
                   className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                   {...register('target_type')}
                 >
-                  <option value="system">Global (System Wide)</option>
+                  {canCreateSystemAnnouncements && <option value="system">Global (System Wide)</option>}
                   <option value="program">Program Scoped (All Cohorts)</option>
                   <option value="cohort">Cohort Scoped (Selected Class Only)</option>
                 </select>

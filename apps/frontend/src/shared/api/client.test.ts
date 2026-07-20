@@ -65,6 +65,58 @@ test('apiClient surfaces network errors instead of silently falling back to mock
   });
 });
 
+test('apiClient unwraps DRF paginated list responses for existing consumers', async () => {
+  globalThis.fetch = (async () => {
+    return new Response(JSON.stringify({
+      count: 2,
+      next: null,
+      previous: null,
+      results: [{ id: 'prg_1' }, { id: 'prg_2' }],
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }) as typeof fetch;
+
+  const response = await apiClient.get('/programs');
+
+  assert.deepEqual(response, [{ id: 'prg_1' }, { id: 'prg_2' }]);
+});
+
+test('apiClient preserves non-paginated objects that happen to contain results', async () => {
+  globalThis.fetch = (async () => {
+    return new Response(JSON.stringify({
+      cohort_id: 'coh_1',
+      cohort_name: 'Alpha',
+      results: [{ rank: 1 }],
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }) as typeof fetch;
+
+  const response = await apiClient.get('/leaderboard');
+
+  assert.deepEqual(response, {
+    cohort_id: 'coh_1',
+    cohort_name: 'Alpha',
+    results: [{ rank: 1 }],
+  });
+});
+
+test('getStoredTokens clears corrupted stored user JSON without throwing', () => {
+  localStorage.setItem('skilix_access_token', 'access');
+  localStorage.setItem('skilix_refresh_token', 'refresh');
+  localStorage.setItem('skilix_auth_user', '{not valid json');
+
+  const stored = getStoredTokens();
+
+  assert.deepEqual(stored, { access: null, refresh: null, user: null });
+  assert.equal(localStorage.getItem('skilix_access_token'), null);
+  assert.equal(localStorage.getItem('skilix_refresh_token'), null);
+  assert.equal(localStorage.getItem('skilix_auth_user'), null);
+});
+
 test('apiClient does not write debug logs in production-facing request paths', () => {
   const source = readFileSync(new URL('./client.ts', import.meta.url), 'utf8');
 

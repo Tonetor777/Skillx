@@ -175,6 +175,7 @@ Database
 - Assignment management now supports staff edits plus delete-or-lock behavior: empty assignments can be deleted, while assignments with submissions are preserved and locked against further student submissions.
 - Production-readiness work is now underway: Django settings enforce strong production secrets, expose env-driven HTTPS/CORS/CSRF settings, add DRF throttling, and support Gmail SMTP email delivery with Resend still available as an alternate backend.
 - Dokploy all-in-one production deployment is available through `docker-compose.dokploy.yml`, with frontend, backend, migrations, Celery, PostgreSQL, Redis, and MinIO services.
+- Dokploy backend Gunicorn now runs with multiple workers, a 60-second timeout, and request/error logs emitted to container output for easier intermittent routing and restart diagnostics.
 - GitHub Actions now validates the Dokploy stack and triggers Dokploy deployments through a repository-secret webhook after `main` passes CI.
 - Local Docker backend services now receive explicit debug and secret-key compose defaults so development startup is not affected by production-like host shell variables.
 - Railway deployment configuration now builds the backend from the repository root, runs migrations before deploy, starts Gunicorn, and uses `/api/health/` as the health check.
@@ -206,6 +207,8 @@ Database
 - Modules sharing a curriculum week now render in creation order so newly added modules appear at the bottom of that week.
 - User-facing email services now send branded multipart text/HTML messages for verification, password reset, invitations, and grading notifications.
 - Password setup and reset flows now require confirmation passwords, and public auth screens include accessible password visibility toggles.
+- High-severity security hardening now restricts structural Program/Cohort management to Admin/Super Admin users, limits teacher announcement creation to assigned teaching scope, rejects public applications for invalid or archived programs, and prevents invitation acceptance from converting existing staff accounts into students.
+- Medium-severity stability hardening now adds bounded DRF list pagination with frontend compatibility unwrapping, computes dashboard summary totals with database aggregates, and clears corrupted browser auth storage without crashing the app.
 
 ---
 

@@ -3,6 +3,7 @@ from rest_framework import serializers
 from accounts.choices import UserRole
 from accounts.models import User
 from cohorts.models import Cohort, CohortStatus, TeacherAssignment, TeacherAssignmentRole
+from programs.models import Program
 
 
 class CohortTeacherSerializer(serializers.ModelSerializer):
@@ -143,6 +144,13 @@ class CohortSerializer(serializers.ModelSerializer):
         if normalized not in CohortStatus.values:
             raise serializers.ValidationError("Cohort status is invalid.")
         return normalized
+
+    def validate_program_id(self, value):
+        try:
+            Program.objects.get(id=value)
+        except (Program.DoesNotExist, ValueError) as exc:
+            raise serializers.ValidationError("Program does not exist.") from exc
+        return value
 
     def validate(self, attrs):
         start_date = attrs.get("start_date", getattr(self.instance, "start_date", None))

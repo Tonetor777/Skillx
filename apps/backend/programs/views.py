@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from accounts.choices import UserRole
-from accounts.permissions import IsActiveUser, IsAdminOrSuperAdmin, IsTeacherAdminOrSuperAdmin
+from accounts.permissions import IsActiveUser, IsAdminOrSuperAdmin
 from programs.models import Program, ProgramStatus
 from programs.serializers import ProgramSerializer
 from programs.services import delete_empty_program
@@ -29,10 +29,8 @@ class ProgramViewSet(ModelViewSet):
         return queryset.exclude(status=ProgramStatus.ARCHIVED)
 
     def get_permissions(self):
-        if self.action == "destroy":
+        if self.action in {"create", "partial_update", "destroy", "archive"}:
             return [IsAdminOrSuperAdmin()]
-        if self.action in {"create", "partial_update", "archive"}:
-            return [IsTeacherAdminOrSuperAdmin()]
         return super().get_permissions()
 
     def destroy(self, request, *args, **kwargs):

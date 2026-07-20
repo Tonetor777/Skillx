@@ -17,12 +17,42 @@ export interface TokenState {
   user: User | null;
 }
 
+function isPaginatedResponse(value: unknown): value is { results: unknown[] } {
+  if (typeof value !== 'object' || value === null || !('results' in value)) {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.count === 'number'
+    && 'next' in candidate
+    && 'previous' in candidate
+    && Array.isArray(candidate.results)
+  );
+}
+
+function unwrapPaginatedResponse(value: unknown): unknown {
+  return isPaginatedResponse(value) ? value.results : value;
+}
+
 export function getStoredTokens(): TokenState {
-  return {
-    access: localStorage.getItem(ACCESS_TOKEN_KEY),
-    refresh: localStorage.getItem(REFRESH_TOKEN_KEY),
-    user: localStorage.getItem(AUTH_USER_KEY) ? JSON.parse(localStorage.getItem(AUTH_USER_KEY)!) : null,
-  };
+  const access = localStorage.getItem(ACCESS_TOKEN_KEY);
+  const refresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+  const storedUser = localStorage.getItem(AUTH_USER_KEY);
+
+  if (!storedUser) {
+    return { access, refresh, user: null };
+  }
+
+  try {
+    return {
+      access,
+      refresh,
+      user: JSON.parse(storedUser) as User,
+    };
+  } catch {
+    clearStoredTokens();
+    return { access: null, refresh: null, user: null };
+  }
 }
 
 export function setStoredTokens(access: string, refresh: string, user: User) {
@@ -850,7 +880,7 @@ async function request(method: string, endpoint: string, body?: any, retryOnUnau
     }
 
     if (response.status === 204) return null;
-    return await response.json();
+    return unwrapPaginatedResponse(await response.json());
 
   } catch (error) {
     // Reraise specific API Errors
