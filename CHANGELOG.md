@@ -87,6 +87,8 @@ This project follows a modified version of Keep a Changelog.
 
 ## Fixed
 
+- Dokploy deploy workflow now reports a clear missing-secret error when `DOKPLOY_DEPLOY_WEBHOOK_URL` is not configured.
+- Dokploy deploy workflow now validates that the webhook secret is a raw HTTP(S) URL before calling `curl`.
 - Dokploy CI frontend tests now pass concrete `*.test.ts` paths to Node's test runner instead of relying on quoted recursive glob support.
 - Corrupted frontend auth user storage now clears the browser session safely instead of crashing app startup.
 - Multiple curriculum modules can now be created in the same cohort week; the backend migration drops the old unique constraint on cohort/module number.

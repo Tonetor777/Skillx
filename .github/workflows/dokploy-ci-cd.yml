@@ -153,5 +153,12 @@ jobs:
         env:
           DOKPLOY_DEPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_DEPLOY_WEBHOOK_URL }}
         run: |
-          test -n "$DOKPLOY_DEPLOY_WEBHOOK_URL"
+          if [ -z "$DOKPLOY_DEPLOY_WEBHOOK_URL" ]; then
+            echo "::error title=Missing Dokploy deploy webhook::Add DOKPLOY_DEPLOY_WEBHOOK_URL as a GitHub repository secret before deploying from main."
+            exit 1
+          fi
+          if [[ ! "$DOKPLOY_DEPLOY_WEBHOOK_URL" =~ ^https?://[^[:space:]]+$ ]]; then
+            echo "::error title=Invalid Dokploy deploy webhook::DOKPLOY_DEPLOY_WEBHOOK_URL must be the raw Dokploy webhook URL only, starting with http:// or https:// and containing no spaces, quotes, or Markdown."
+            exit 1
+          fi
           curl --fail --show-error --silent --request POST "$DOKPLOY_DEPLOY_WEBHOOK_URL"
