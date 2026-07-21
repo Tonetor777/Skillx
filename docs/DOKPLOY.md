@@ -101,7 +101,7 @@ Use a Gmail app password for `EMAIL_HOST_PASSWORD`; never use or commit the norm
 
 After deployment:
 
-1. Open `https://api.example.com/api/health/`.
+1. Open `https://api.example.com/api/health/`, and confirm `HEAD https://api.example.com/api/health/` returns `200 OK`.
 2. Open `https://app.example.com`.
 3. Sign in with a seeded or created admin account.
 4. Submit and approve an application.

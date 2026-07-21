@@ -11,7 +11,7 @@ from rest_framework import serializers
         fields={"status": serializers.CharField(), "service": serializers.CharField()},
     )
 )
-@api_view(["GET"])
+@api_view(["GET", "HEAD"])
 @permission_classes([AllowAny])
 def health_check(request):
     return Response({"status": "ok", "service": "skilix-api"})

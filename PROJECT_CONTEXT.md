@@ -211,6 +211,7 @@ Database
 - Medium-severity stability hardening now adds bounded DRF list pagination with frontend compatibility unwrapping, computes dashboard summary totals with database aggregates, and clears corrupted browser auth storage without crashing the app.
 - Frontend CI tests now enumerate concrete `*.test.ts` files before invoking Node's test runner, avoiding Node 20 quoted-glob failures in GitHub Actions.
 - Dokploy deploy workflow now emits a clear missing-secret error if `DOKPLOY_DEPLOY_WEBHOOK_URL` is not configured in GitHub repository secrets.
+- Backend health checks now support both `GET` and `HEAD` requests at `/api/health/` for production load balancers and uptime monitors.
 
 ---
 

@@ -56,6 +56,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Changed
 
+- Backend health check now accepts both `GET` and `HEAD` requests at `/api/health/`.
 - Dokploy backend Gunicorn timeout increased from 60 to 180 seconds to give slower uploads and large multipart requests more room to complete.
 - Dokploy backend now starts Gunicorn with three workers, a 180-second timeout, and stdout/stderr request logging for better production stability diagnostics.
 - Invitation acceptance and password reset confirmation now require matching password confirmation values in both the frontend and backend API.

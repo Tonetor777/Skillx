@@ -230,6 +230,7 @@ Build the first production-ready version of Skilix.
 | Frontend bundle readiness | ✅ Completed | Route-level lazy loading is implemented and API debug logging has been removed. |
 | Frontend production tests | ✅ Completed | Existing tests are preserved and production API-client logging regression coverage has been added. |
 | API schema cleanup | ✅ Completed | Serializer method fields and APIViews are annotated for stable OpenAPI generation. |
+| Health check methods | ✅ Completed | Backend health check supports GET and HEAD smoke checks. |
 | High-severity security hardening | ✅ Completed | Teacher/admin structural boundaries, scoped teacher announcements, safe invitation acceptance, and public signup program validation are enforced with regression tests. |
 | Medium-severity stability and performance hardening | ✅ Completed | Bounded API pagination, dashboard query aggregation, and resilient frontend auth storage handling are implemented with backend/frontend regression tests. |
 | Release documentation | ✅ Completed | README, environment template, and Dokploy runbook cover local Docker, MinIO, auto-migrations, release checks, and Dokploy/Railway/Vercel deployment guidance. |

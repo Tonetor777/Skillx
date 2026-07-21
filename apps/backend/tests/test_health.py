@@ -10,6 +10,13 @@ def test_health_endpoint(client):
     assert response.json() == {"status": "ok", "service": "skilix-api"}
 
 
+def test_health_endpoint_supports_head(client):
+    response = client.head(reverse("health-check"))
+
+    assert response.status_code == 200
+    assert response.content == b""
+
+
 def test_default_allowed_hosts_support_docker_development_bind_address():
     assert "0.0.0.0" in settings_module.DEFAULT_ALLOWED_HOSTS.split(",")
 

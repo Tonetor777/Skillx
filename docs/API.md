@@ -13,7 +13,7 @@ Use JWT bearer authentication in Swagger UI with the value `Bearer <access_token
 
 ## Authentication
 
-- `GET /api/health/`: service health check.
+- `GET`/`HEAD /api/health/`: service health check.
 - `POST /api/auth/token/`: obtain JWT access and refresh tokens for active users. Response includes `user`.
 - `POST /api/auth/token/refresh/`: refresh access token.
 - `POST /api/auth/logout/`: blacklist a refresh token for the authenticated user.

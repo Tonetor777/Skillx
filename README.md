@@ -302,7 +302,7 @@ npm --prefix apps/frontend run test
 npm --prefix apps/frontend run build
 ```
 
-After deploy, confirm `https://api.example.com/api/health/` returns `{"status":"ok","service":"skilix-api"}` and smoke test login, application approval, invitations, uploads, dashboards, and grading.
+After deploy, confirm `GET https://api.example.com/api/health/` returns `{"status":"ok","service":"skilix-api"}` and `HEAD https://api.example.com/api/health/` returns `200 OK`, then smoke test login, application approval, invitations, uploads, dashboards, and grading.
 
 Rollback by redeploying the previous Dokploy deployment. Database migrations should remain backward-compatible during MVP releases.
 
