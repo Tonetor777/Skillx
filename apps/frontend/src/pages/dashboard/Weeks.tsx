@@ -5,6 +5,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Edit3,
   ExternalLink,
@@ -76,6 +77,11 @@ type ActiveForm =
   | { type: 'lesson'; module: Module; lesson?: Lesson }
   | { type: 'resource'; lesson: Lesson; resource?: Resource }
   | null;
+
+type LessonNavigationTarget = {
+  module: Module;
+  lesson: Lesson;
+};
 
 const emptyModuleForm: ModuleForm = {
   cohort_id: '',
@@ -171,6 +177,20 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
     return lessons.find((lesson) => lesson.id === selectedLessonId) ?? lessons[0];
   }, [selectedLessonId, selectedModule]);
   const selectedWeekNumber = selectedWeekGroup?.week ?? selectedModule?.module_number;
+  const lessonNavigationTargets = useMemo<LessonNavigationTarget[]>(() => {
+    return selectedWeekModules.flatMap((module) => (
+      module.lessons.map((lesson) => ({ module, lesson }))
+    ));
+  }, [selectedWeekModules]);
+  const currentLessonNavigationIndex = selectedLesson
+    ? lessonNavigationTargets.findIndex(({ lesson }) => lesson.id === selectedLesson.id)
+    : -1;
+  const previousLessonTarget = currentLessonNavigationIndex > 0
+    ? lessonNavigationTargets[currentLessonNavigationIndex - 1]
+    : undefined;
+  const nextLessonTarget = currentLessonNavigationIndex >= 0 && currentLessonNavigationIndex < lessonNavigationTargets.length - 1
+    ? lessonNavigationTargets[currentLessonNavigationIndex + 1]
+    : undefined;
 
   useEffect(() => {
     if (weekGroups.length === 0) {
@@ -361,6 +381,11 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
     setSelectedLessonId(lesson.id ?? null);
     expandModuleBranch(module);
     setActiveForm(null);
+  };
+
+  const goToLessonTarget = (target?: LessonNavigationTarget) => {
+    if (!target || target.module.module_number !== selectedWeekNumber) return;
+    selectLesson(target.module, target.lesson);
   };
 
   const submitModule = async (event: React.FormEvent) => {
@@ -934,6 +959,27 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
                           </div>
                         )}
                       </section>
+
+                      <footer className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                        <button
+                          type="button"
+                          onClick={() => goToLessonTarget(previousLessonTarget)}
+                          disabled={!previousLessonTarget}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Previous lesson
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => goToLessonTarget(nextLessonTarget)}
+                          disabled={!nextLessonTarget}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-900 bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-white disabled:text-slate-500 disabled:opacity-50"
+                        >
+                          Next lesson
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </footer>
                     </>
                   ) : (
                     <section className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center">

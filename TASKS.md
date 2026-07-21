@@ -107,6 +107,7 @@ Build the first production-ready version of Skilix.
 | Native Lesson Editor | ✅ | TipTap-powered lesson authoring stores structured JSON in `Lesson.content` with plain-text fallback rendering for existing lessons. |
 | Inline Lesson Images | ✅ | Lesson-owned image uploads are validated, rendered inline, and referenced by asset id from lesson content. |
 | YouTube Lesson Embeds | ✅ | YouTube links in lesson content are detected and rendered as safe appended iframe embeds. |
+| Lesson Previous/Next Navigation | ✅ Completed | Lesson footer navigation moves across lessons and same-week modules while stopping at week boundaries. |
 
 ---
 

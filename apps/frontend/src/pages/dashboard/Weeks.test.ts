@@ -28,3 +28,20 @@ test('curriculum module groups preserve API order within each week', () => {
   assert.ok(source.includes('modules: weekModules,'));
   assert.equal(source.includes('localeCompare'), false);
 });
+
+test('lesson footer navigation stays within the selected week', () => {
+  assert.ok(source.includes('const lessonNavigationTargets = useMemo<LessonNavigationTarget[]>(() => {'));
+  assert.ok(source.includes('return selectedWeekModules.flatMap((module) => ('));
+  assert.ok(source.includes('const previousLessonTarget = currentLessonNavigationIndex > 0'));
+  assert.ok(source.includes('const nextLessonTarget = currentLessonNavigationIndex >= 0'));
+  assert.ok(source.includes('target.module.module_number !== selectedWeekNumber'));
+});
+
+test('lesson footer navigation reuses lesson selection and disables week boundaries', () => {
+  assert.ok(source.includes('const goToLessonTarget = (target?: LessonNavigationTarget) => {'));
+  assert.ok(source.includes('selectLesson(target.module, target.lesson);'));
+  assert.ok(source.includes('Previous lesson'));
+  assert.ok(source.includes('Next lesson'));
+  assert.ok(source.includes('disabled={!previousLessonTarget}'));
+  assert.ok(source.includes('disabled={!nextLessonTarget}'));
+});

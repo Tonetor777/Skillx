@@ -205,6 +205,7 @@ Database
 - Curriculum navigation now presents unique week choices, filters module cards to the selected week, and gives Program/Modules workspaces a compact hover-expanding desktop sidebar.
 - Profile UI now uses uploaded avatars or a local initials fallback, with external mock profile image URLs removed from production-facing surfaces and mock seed users.
 - Modules sharing a curriculum week now render in creation order so newly added modules appear at the bottom of that week.
+- Lesson reading views now include previous/next footer navigation that moves across lessons and same-week modules without crossing week boundaries.
 - User-facing email services now send branded multipart text/HTML messages for verification, password reset, invitations, and grading notifications.
 - Password setup and reset flows now require confirmation passwords, and public auth screens include accessible password visibility toggles.
 - High-severity security hardening now restricts structural Program/Cohort management to Admin/Super Admin users, limits teacher announcement creation to assigned teaching scope, rejects public applications for invalid or archived programs, and prevents invitation acceptance from converting existing staff accounts into students.
