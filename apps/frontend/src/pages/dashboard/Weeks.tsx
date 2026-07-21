@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   BookOpen,
@@ -124,6 +124,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
   const [navigatorCollapsed, setNavigatorCollapsed] = useState(false);
   const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(new Set());
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const lessonReaderRef = useRef<HTMLElement | null>(null);
 
   const { data: cohorts = [] } = useCohorts();
   const cohortOptions = useMemo(() => {
@@ -247,6 +248,13 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
   const showMessage = (text: string) => {
     setMessage(text);
     window.setTimeout(() => setMessage(''), 2500);
+  };
+
+  const scrollLessonReaderToStart = () => {
+    window.requestAnimationFrame(() => {
+      lessonReaderRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      lessonReaderRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    });
   };
 
   const nextWeekNumber = weekGroups.length > 0 ? Math.max(...weekGroups.map((group) => group.week)) + 1 : 1;
@@ -381,6 +389,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
     setSelectedLessonId(lesson.id ?? null);
     expandModuleBranch(module);
     setActiveForm(null);
+    scrollLessonReaderToStart();
   };
 
   const goToLessonTarget = (target?: LessonNavigationTarget) => {
@@ -821,7 +830,7 @@ export function CurriculumManager({ programId, embedded = false }: CurriculumMan
           )}
         </aside>
 
-        <main className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto">
+        <main ref={lessonReaderRef} className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto">
           {activeForm?.type === 'module' && (
             <section className="border-b border-slate-100 p-5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Week {activeForm.week}</span>

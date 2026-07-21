@@ -45,3 +45,12 @@ test('lesson footer navigation reuses lesson selection and disables week boundar
   assert.ok(source.includes('disabled={!previousLessonTarget}'));
   assert.ok(source.includes('disabled={!nextLessonTarget}'));
 });
+
+test('lesson selection scrolls the reader back to the start', () => {
+  assert.ok(source.includes('const lessonReaderRef = useRef<HTMLElement | null>(null);'));
+  assert.ok(source.includes('const scrollLessonReaderToStart = () => {'));
+  assert.ok(source.includes("lessonReaderRef.current?.scrollTo({ top: 0, behavior: 'smooth' });"));
+  assert.ok(source.includes("lessonReaderRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });"));
+  assert.ok(source.includes('scrollLessonReaderToStart();'));
+  assert.ok(source.includes('<main ref={lessonReaderRef}'));
+});

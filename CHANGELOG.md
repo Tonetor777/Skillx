@@ -22,7 +22,7 @@ This project follows a modified version of Keep a Changelog.
 - Public `/signup` route for student signup requests, with `/apply` redirected for compatibility.
 - Public active-program catalog endpoint for unauthenticated signup program selection.
 - Lesson image upload API and inline image rendering for TipTap lesson content.
-- Previous/next lesson footer navigation within the selected curriculum week, including same-week module transitions.
+- Previous/next lesson footer navigation within the selected curriculum week, including same-week module transitions and scroll-to-start behavior.
 - YouTube link detection that appends safe iframe embeds to rendered lesson content.
 - Cohort-date attendance tracking with bulk roster status recording.
 - Cohort assignment/attendance grade weights and weighted student total grade summaries.
