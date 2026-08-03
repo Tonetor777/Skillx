@@ -141,6 +141,22 @@ def test_program_and_cohort_endpoints_emit_ui_dtos(domain):
     assert results(cohort_response)[0]["teachers"][0]["role"] == "teacher"
 
 
+def test_cohort_rosters_only_include_active_students(domain):
+    create_user("attached-teacher@example.com", UserRole.TEACHER, cohort=domain["cohort"])
+    create_user("suspended-student@example.com", UserRole.STUDENT, cohort=domain["cohort"], status=UserStatus.SUSPENDED)
+    client = auth_client(domain["admin"])
+
+    program_response = client.get("/api/programs/")
+    cohort_response = client.get("/api/cohorts/")
+    roster = results(cohort_response)[0]["students"]
+
+    assert program_response.status_code == 200
+    assert cohort_response.status_code == 200
+    assert results(program_response)[0]["cohorts"][0]["students_count"] == 1
+    assert results(cohort_response)[0]["students_count"] == 1
+    assert [student["email"] for student in roster] == ["student@example.com"]
+
+
 def test_list_endpoints_are_paginated_with_page_size_clamp():
     admin = create_user("admin-pagination@example.com", UserRole.ADMIN)
     for index in range(120):

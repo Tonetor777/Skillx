@@ -43,7 +43,7 @@ export default function Attendance() {
   const updateSettings = useUpdateCohortGradeSettings();
 
   const selectedSession = useMemo(() => {
-    return sessions.find((session) => session.date === date) ?? sessions[0];
+    return sessions.find((session) => session.date === date);
   }, [date, sessions]);
 
   useEffect(() => {
@@ -63,6 +63,7 @@ export default function Attendance() {
     if (!selectedSession) {
       setStatusByStudent({});
       setNoteByStudent({});
+      setTitle('');
       return;
     }
     const nextStatuses: Record<string, AttendanceStatus> = {};
@@ -78,7 +79,6 @@ export default function Attendance() {
     setStatusByStudent(nextStatuses);
     setNoteByStudent(nextNotes);
     setTitle(selectedSession.title || '');
-    setDate(selectedSession.date);
   }, [selectedCohort, selectedSession]);
 
   if (!user) return null;

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from accounts.choices import UserRole
+from accounts.choices import UserRole, UserStatus
 from accounts.models import User
 from cohorts.models import Cohort, CohortStatus, TeacherAssignment, TeacherAssignmentRole
 from programs.models import Program
@@ -72,7 +72,7 @@ class CohortSerializer(serializers.ModelSerializer):
     program_id = serializers.CharField(write_only=True)
     program_name = serializers.CharField(source="program.title", read_only=True)
     is_active = serializers.BooleanField(write_only=True, required=False)
-    students_count = serializers.IntegerField(source="students.count", read_only=True)
+    students_count = serializers.SerializerMethodField()
     students = serializers.SerializerMethodField()
     teachers = serializers.SerializerMethodField()
     status = serializers.CharField(required=False)
@@ -105,8 +105,11 @@ class CohortSerializer(serializers.ModelSerializer):
         teachers = User.objects.filter(teaching_assignments__cohort=obj).distinct()
         return CohortTeacherSerializer(teachers, many=True, context=self.context).data
 
+    def get_students_count(self, obj) -> int:
+        return obj.students.filter(role=UserRole.STUDENT, status=UserStatus.ACTIVE).count()
+
     def get_students(self, obj) -> list[dict]:
-        students = obj.students.order_by("first_name", "last_name", "email")
+        students = obj.students.filter(role=UserRole.STUDENT, status=UserStatus.ACTIVE).order_by("first_name", "last_name", "email")
         request = self.context.get("request")
         if request and request.user.role == UserRole.STUDENT:
             students = students.filter(id=request.user.id)

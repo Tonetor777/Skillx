@@ -2,6 +2,7 @@ import json
 
 from rest_framework import serializers
 
+from accounts.choices import UserRole, UserStatus
 from programs.models import Program, ProgramStatus
 from core.upload_validation import validate_image_upload
 
@@ -63,7 +64,7 @@ class ProgramSerializer(serializers.ModelSerializer):
                 "name": cohort.name,
                 "status": cohort.status.lower(),
                 "current_week": cohort.current_week,
-                "students_count": cohort.students.count(),
+                "students_count": cohort.students.filter(role=UserRole.STUDENT, status=UserStatus.ACTIVE).count(),
                 "start_date": cohort.start_date.isoformat(),
                 "end_date": cohort.end_date.isoformat(),
             }

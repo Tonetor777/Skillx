@@ -38,6 +38,7 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `PATCH /api/programs/{id}/archive/`: archive a program without deleting data. Teacher/Admin/Super Admin only.
 - `DELETE /api/programs/{id}/`: hard delete an empty program. Blocked when cohorts, applications, or announcements exist. Admin/Super Admin only.
 - `GET /api/cohorts/`: list cohorts scoped to the current user.
+- Cohort DTO `students` and `students_count` include active users with the Student role only.
 - `POST /api/cohorts/`: create a cohort. Teacher/Admin/Super Admin only.
 - `GET /api/cohorts/{id}/`: retrieve a cohort.
 - `PATCH /api/cohorts/{id}/`: update a cohort, including validated `current_week`, `status`, and `leaderboard_visible`. Teacher/Admin/Super Admin only.

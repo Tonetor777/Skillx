@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from accounts.choices import UserRole
+from accounts.choices import UserRole, UserStatus
 from accounts.models import User
 from attendance.models import AttendanceRecord, AttendanceSession, AttendanceStatus
 from cohorts.models import Cohort
@@ -129,7 +129,7 @@ class AttendanceRecordUpsertSerializer(serializers.Serializer):
     def validate_student_id(self, value):
         session = self.context["session"]
         try:
-            student = User.objects.get(id=value, cohort_id=session.cohort_id, role=UserRole.STUDENT)
+            student = User.objects.get(id=value, cohort_id=session.cohort_id, role=UserRole.STUDENT, status=UserStatus.ACTIVE)
         except User.DoesNotExist as exc:
             raise serializers.ValidationError("Student must belong to this attendance session cohort.") from exc
         return value

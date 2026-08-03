@@ -26,6 +26,7 @@ This project follows a modified version of Keep a Changelog.
 - Previous/next lesson footer navigation within the selected curriculum week, including same-week module transitions and scroll-to-start behavior.
 - YouTube link detection that appends safe iframe embeds to rendered lesson content.
 - Cohort-date attendance tracking with bulk roster status recording.
+- Attendance rosters now exclude inactive or non-student cohort-linked users so bulk saves only send valid active students.
 - Cohort assignment/attendance grade weights and weighted student total grade summaries.
 - Railway production deployment config with a root backend Dockerfile, migration predeploy command, Gunicorn start command, and `/api/health/` health check.
 - Dokploy all-in-one production compose stack with frontend, backend, migrations, Celery, PostgreSQL, Redis, MinIO, named volumes, and separate frontend/API domain support.

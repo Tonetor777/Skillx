@@ -17,7 +17,7 @@ from submissions.models import Submission
 pytestmark = pytest.mark.django_db
 
 
-def create_user(email, role, *, cohort=None):
+def create_user(email, role, *, cohort=None, status=UserStatus.ACTIVE):
     User = get_user_model()
     return User.objects.create_user(
         username=email,
@@ -27,7 +27,7 @@ def create_user(email, role, *, cohort=None):
         last_name="User",
         name=f"{email.split('@')[0].title()} User",
         role=role,
-        status=UserStatus.ACTIVE,
+        status=status,
         cohort=cohort,
     )
 
@@ -126,6 +126,20 @@ def test_bulk_attendance_records_upsert_and_score_statuses(domain):
     assert AttendanceRecord.objects.count() == 1
     assert record.status == AttendanceStatus.EXCUSED
     assert record.credit == 1
+
+
+def test_attendance_records_reject_inactive_students(domain):
+    inactive_student = create_user("inactive-attendance@example.com", UserRole.STUDENT, cohort=domain["cohort"], status=UserStatus.SUSPENDED)
+    session = AttendanceSession.objects.create(cohort=domain["cohort"], date=timezone.localdate(), recorded_by=domain["teacher"])
+
+    response = auth_client(domain["teacher"]).post(
+        f"/api/attendance-sessions/{session.id}/records/",
+        {"records": [{"student_id": str(inactive_student.id), "status": "present"}]},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert AttendanceRecord.objects.count() == 0
 
 
 def test_grade_settings_permissions_and_weight_validation(domain):
