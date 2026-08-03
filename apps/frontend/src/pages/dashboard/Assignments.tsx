@@ -6,8 +6,11 @@ import { useAssignments, useCreateAssignment, useDeleteAssignment, useUpdateAssi
 import { useSubmissions, useCreateSubmission, useGradeSubmission } from '../../features/submissions/api/submissions';
 import { useModules } from '../../features/weeks/api/weeks';
 import { useAuth } from '../../features/authentication/context/AuthContext';
+import { RichContentEditor } from '../../shared/rich-content/RichContentEditor';
+import { RichContentRenderer } from '../../shared/rich-content/RichContentRenderer';
+import { richContentHasRenderableContent, richContentPreviewText } from '../../shared/rich-content/utils';
 import { can } from '../../shared/permissions/can';
-import type { Assignment } from '../../shared/types';
+import type { Assignment, Submission } from '../../shared/types';
 import { 
   ClipboardList, 
   Plus, 
@@ -22,7 +25,9 @@ import {
   FileCode,
   Edit3,
   ShieldCheck,
-  Trash2
+  Trash2,
+  UserRound,
+  X
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -82,6 +87,8 @@ export default function Assignments() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [gradingSubmissionId, setGradingSubmissionId] = useState<string | null>(null);
+  const [expandedSubmissionId, setExpandedSubmissionId] = useState<string | null>(null);
+  const [historyStudentId, setHistoryStudentId] = useState<string | null>(null);
   const [showToast, setShowToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
 
   // Forms
@@ -112,6 +119,12 @@ export default function Assignments() {
 
   // Submissions associated with selected assignment (for instructors)
   const instructorSubmissions = submissions?.filter(s => s.assignment_id === selectedAsgId) || [];
+  const historyStudent = submissions?.find(s => s.student_id === historyStudentId);
+  const historySubmissions = historyStudentId
+    ? (submissions ?? [])
+        .filter(s => s.student_id === historyStudentId)
+        .sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())
+    : [];
   const selectedModuleId = createAsgForm.watch('module_id');
   const selectedModule = modules?.find(module => module.id === selectedModuleId);
   const isAssignmentFormOpen = isCreating || !!editingAssignment;
@@ -208,6 +221,12 @@ export default function Assignments() {
     }
   };
 
+  const openGrading = (submission: Submission, maxPoints: number) => {
+    setGradingSubmissionId(submission.id);
+    gradeForm.setValue('grade', submission.grade ?? maxPoints);
+    gradeForm.setValue('feedback', submission.feedback ?? '');
+  };
+
   const triggerToast = (message: string, tone: 'success' | 'error' = 'success') => {
     setShowToast({ message, tone });
     setTimeout(() => setShowToast(null), 3000);
@@ -218,7 +237,7 @@ export default function Assignments() {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-xl border border-gray-100 p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl border border-gray-100 p-6 max-w-3xl w-full shadow-2xl max-h-[90vh] overflow-y-auto"
       >
         <h3 className="font-sans font-bold text-lg text-gray-900 mb-1">
           {editingAssignment ? 'Edit Course Assignment' : 'Create Course Assignment'}
@@ -243,10 +262,17 @@ export default function Assignments() {
 
           <div>
             <label className="block text-xs font-semibold text-gray-700">Detailed Description & Specifications</label>
-            <textarea
-              rows={4}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-              placeholder="Define the task requirements, guidelines, deliverables, and score distribution."
+            <div className="mt-1">
+              <RichContentEditor
+                value={createAsgForm.watch('description')}
+                onChange={(description) => createAsgForm.setValue('description', description, { shouldDirty: true, shouldValidate: true })}
+                placeholder="Define the task requirements, guidelines, deliverables, and score distribution."
+                loadingLabel="Loading assignment editor..."
+                linkPromptLabel="Assignment link URL"
+              />
+            </div>
+            <input
+              type="hidden"
               {...createAsgForm.register('description')}
             />
             {createAsgForm.formState.errors.description && (
@@ -429,7 +455,13 @@ export default function Assignments() {
               </>
             )}
           </div>
-          <p className="text-sm text-gray-600 leading-relaxed font-sans border-t border-gray-50 pt-3">{selectedAsg.description}</p>
+          <div className="border-t border-gray-50 pt-3">
+            {richContentHasRenderableContent(selectedAsg.description) ? (
+              <RichContentRenderer content={selectedAsg.description} hideYouTubeLinks={user.role === 'student'} />
+            ) : (
+              <p className="text-sm text-gray-500">No assignment instructions available.</p>
+            )}
+          </div>
           <div className="text-xs font-bold text-gray-400">
             MAX POINT LOCK: {selectedAsg.max_points} PTS
           </div>
@@ -597,6 +629,86 @@ export default function Assignments() {
                 </div>
               )}
 
+              {historyStudentId && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-end p-4">
+                  <motion.aside
+                    initial={{ opacity: 0, x: 32 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="h-full max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-gray-100 bg-white p-6 shadow-2xl"
+                  >
+                    <div className="flex items-start justify-between gap-4 border-b border-gray-100 pb-4">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">Student Submission History</p>
+                        <h3 className="mt-1 text-lg font-bold text-gray-900">{historyStudent?.student_name ?? 'Student'}</h3>
+                        <p className="text-xs text-gray-500">{historyStudent?.student_email}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setHistoryStudentId(null)}
+                        className="rounded-md border border-gray-200 p-2 text-gray-500 hover:text-gray-900"
+                        aria-label="Close student submission history"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {historySubmissions.length === 0 ? (
+                      <div className="mt-6 rounded-lg border border-dashed border-gray-200 bg-gray-50 p-8 text-center text-sm text-gray-500">
+                        No visible submissions for this student.
+                      </div>
+                    ) : (
+                      <div className="mt-5 space-y-4">
+                        {historySubmissions.map((submission) => {
+                          const historyAssignment = assignments?.find(assignment => assignment.id === submission.assignment_id);
+                          const maxPoints = historyAssignment?.max_points ?? selectedAsg.max_points;
+                          const isGraded = submission.status === 'graded';
+                          return (
+                            <section key={submission.id} className="rounded-lg border border-gray-200 bg-white p-4">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                  <h4 className="text-sm font-bold text-gray-900">{submission.assignment_title}</h4>
+                                  <p className="text-xs text-gray-500">
+                                    {historyAssignment?.module_title ?? 'Module'} · {historyAssignment?.lesson_title ?? 'Lesson'} · Submitted {new Date(submission.submitted_at).toLocaleString()}
+                                  </p>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {submission.is_late && <span className="rounded-full border border-red-100 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">Late</span>}
+                                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                                    isGraded ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-amber-100 bg-amber-50 text-amber-700'
+                                  }`}>
+                                    {isGraded ? 'Graded' : 'Pending'}
+                                  </span>
+                                </div>
+                              </div>
+                              <pre className="mt-3 whitespace-pre-wrap break-words rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-6 text-slate-700">
+                                {submission.content}
+                              </pre>
+                              <div className="mt-3 flex flex-col gap-3 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="text-xs text-gray-600">
+                                  <span className="font-bold text-gray-900">Score:</span> {isGraded ? `${submission.grade} / ${maxPoints}` : '--'}
+                                  {isGraded && (
+                                    <span className="block pt-1">
+                                      <span className="font-bold text-gray-900">Feedback:</span> {submission.feedback}
+                                    </span>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => openGrading(submission, maxPoints)}
+                                  className="self-start rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 sm:self-center"
+                                >
+                                  {isGraded ? 'Adjust Score' : 'Evaluate'}
+                                </button>
+                              </div>
+                            </section>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </motion.aside>
+                </div>
+              )}
+
               {/* Submissions List Queue */}
               <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
                 <h3 className="font-bold text-lg text-gray-900 border-b border-gray-100 pb-3">Student Submission Queue</h3>
@@ -623,7 +735,8 @@ export default function Assignments() {
                         {instructorSubmissions.map((sub) => {
                           const isGraded = sub.status === 'graded';
                           return (
-                            <tr key={sub.id} className="hover:bg-gray-50/30">
+                            <React.Fragment key={sub.id}>
+                            <tr className="hover:bg-gray-50/30">
                               <td className="p-3 pl-4">
                                 <div className="flex items-center gap-2">
                                   <div className="w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
@@ -661,31 +774,86 @@ export default function Assignments() {
                                 {isGraded ? `${sub.grade} / ${selectedAsg.max_points}` : '--'}
                               </td>
                               <td className="p-3 text-right pr-4">
-                                {isGraded ? (
+                                <div className="flex flex-wrap justify-end gap-2">
                                   <button
-                                    onClick={() => {
-                                      setGradingSubmissionId(sub.id);
-                                      gradeForm.setValue('grade', sub.grade || 100);
-                                      gradeForm.setValue('feedback', sub.feedback || '');
-                                    }}
-                                    className="text-xs text-indigo-600 hover:text-indigo-500 font-semibold"
+                                    type="button"
+                                    onClick={() => setExpandedSubmissionId(expandedSubmissionId === sub.id ? null : sub.id)}
+                                    className="text-xs font-semibold text-slate-600 hover:text-slate-900"
                                   >
-                                    Adjust Score
+                                    {expandedSubmissionId === sub.id ? 'Hide Details' : 'View Full'}
                                   </button>
-                                ) : (
                                   <button
-                                    onClick={() => {
-                                      setGradingSubmissionId(sub.id);
-                                      gradeForm.setValue('grade', selectedAsg.max_points);
-                                      gradeForm.setValue('feedback', '');
-                                    }}
-                                    className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-xs font-semibold"
+                                    type="button"
+                                    onClick={() => setHistoryStudentId(sub.student_id)}
+                                    className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
                                   >
-                                    Evaluate
+                                    <UserRound className="h-3.5 w-3.5" /> History
                                   </button>
-                                )}
+                                  {isGraded ? (
+                                    <button
+                                      onClick={() => openGrading(sub, selectedAsg.max_points)}
+                                      className="text-xs text-indigo-600 hover:text-indigo-500 font-semibold"
+                                    >
+                                      Adjust Score
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => openGrading(sub, selectedAsg.max_points)}
+                                      className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-xs font-semibold"
+                                    >
+                                      Evaluate
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
+                            {expandedSubmissionId === sub.id && (
+                              <tr className="bg-slate-50/70">
+                                <td colSpan={6} className="p-4">
+                                  <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+                                    <div>
+                                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Full Submission Content</span>
+                                      <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg border border-slate-200 bg-white p-4 text-xs leading-6 text-slate-700">
+                                        {sub.content}
+                                      </pre>
+                                    </div>
+                                    <div className="rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-600">
+                                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                        <span className="font-bold text-slate-900">Submission Details</span>
+                                        {sub.is_late && <span className="rounded-full bg-red-50 px-2 py-0.5 font-bold text-red-700">Late</span>}
+                                      </div>
+                                      <dl className="mt-3 space-y-2">
+                                        <div>
+                                          <dt className="font-semibold text-slate-400">Submitted</dt>
+                                          <dd>{new Date(sub.submitted_at).toLocaleString()}</dd>
+                                        </div>
+                                        <div>
+                                          <dt className="font-semibold text-slate-400">Status</dt>
+                                          <dd>{isGraded ? 'Graded' : 'Pending review'}</dd>
+                                        </div>
+                                        <div>
+                                          <dt className="font-semibold text-slate-400">Score</dt>
+                                          <dd>{isGraded ? `${sub.grade} / ${selectedAsg.max_points}` : '--'}</dd>
+                                        </div>
+                                        {isGraded && (
+                                          <>
+                                            <div>
+                                              <dt className="font-semibold text-slate-400">Feedback</dt>
+                                              <dd className="whitespace-pre-wrap">{sub.feedback}</dd>
+                                            </div>
+                                            <div>
+                                              <dt className="font-semibold text-slate-400">Graded By</dt>
+                                              <dd>{sub.graded_by_name ?? 'Instructor'}{sub.graded_at ? ` on ${new Date(sub.graded_at).toLocaleDateString()}` : ''}</dd>
+                                            </div>
+                                          </>
+                                        )}
+                                      </dl>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                            </React.Fragment>
                           );
                         })}
                       </tbody>
@@ -813,7 +981,7 @@ export default function Assignments() {
 
                   <h3 className="font-bold text-lg text-gray-900 tracking-tight leading-snug">{asg.title}</h3>
                   <p className="text-gray-500 text-xs mt-1.5 line-clamp-3 leading-relaxed">
-                    {asg.description}
+                    {richContentPreviewText(asg.description) || 'No assignment instructions available.'}
                   </p>
                 </div>
 

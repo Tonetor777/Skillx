@@ -136,6 +136,7 @@ Build the first production-ready version of Skilix.
 | Feature | Status | Notes |
 |----------|--------|-------|
 | Assignment CRUD | ✅ Completed | Assignment model/API is linked to lessons and optional resources, with staff edit and delete-or-lock controls. |
+| Assignment Submission Visibility and Rich Editor | ✅ Completed | Staff can inspect full submission details and student submission history; assignment descriptions use shared TipTap rich authoring without assignment image uploads. |
 | Submission | ✅ | Assignment-based submission API creates or updates the current student's submission. |
 | Late Detection | ✅ | Submissions are flagged late when submitted after assignment due date. |
 | Lock After Grading | ✅ | Grading locks student edits after score/feedback are recorded, while staff can correct grades. |

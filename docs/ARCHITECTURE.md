@@ -16,7 +16,7 @@ The Vite frontend uses a local presentation layer in `apps/frontend/src/shared/c
 
 Global theme tokens live in `apps/frontend/src/index.css`. The current MVP visual system uses a monochrome academy style with grid-paper backgrounds, sharp bordered panels, black primary actions, `Space Grotesk` display typography, and `Noto Sans Ethiopic` for major Amharic titles.
 
-Lesson authoring uses TipTap in the weeks feature to provide structured in-app lesson content without building a custom editor engine. TipTap JSON is serialized into the existing `Lesson.content` field and rendered through React components so legacy plain-text lessons continue to display safely. Uploaded lesson images are stored as lesson-owned media assets and referenced from content by asset id so private signed URLs can be regenerated on each API response. YouTube URLs in lesson text are parsed into safe iframe embeds at render time; raw iframe HTML is not stored or rendered.
+Lesson and assignment authoring use a shared TipTap rich-content layer without building a custom editor engine. TipTap JSON is serialized into existing text fields (`Lesson.content` and `Assignment.description`) and rendered through React components so legacy plain-text content continues to display safely. Uploaded lesson images are stored as lesson-owned media assets and referenced from content by asset id so private signed URLs can be regenerated on each API response; assignment descriptions intentionally do not support image uploads. YouTube URLs in rich content are parsed into safe iframe embeds at render time; raw iframe HTML is not stored or rendered.
 
 ## Media Storage
 
@@ -36,4 +36,4 @@ When `DJANGO_DEBUG=true`, Django exposes generated OpenAPI documentation at `/ap
 
 The backend is organized into domain apps: accounts, programs, cohorts, attendance, applications, learning, submissions, announcements, and dashboard.
 
-Attendance is cohort-scoped and date-based. The dashboard grade summary combines graded assignment points with attendance credits using cohort-level weights, while submissions remain locked for student edits after grading and can still be corrected by authorized staff.
+Attendance is cohort-scoped and date-based. The dashboard grade summary combines graded assignment points with attendance credits using cohort-level weights, while submissions remain locked for student edits after grading and can still be corrected by authorized staff. Staff assignment views expose full submission details and student-level submission history within the user's existing cohort/program scope.

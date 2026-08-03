@@ -676,7 +676,15 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
       MockDatabase.set('submissions', subs);
       return newSub;
     }
-    return subs;
+    const assignmentMatch = endpoint.match(/[?&]assignment_id=([^&]+)/);
+    const studentMatch = endpoint.match(/[?&]student_id=([^&]+)/);
+    const assignmentId = assignmentMatch ? decodeURIComponent(assignmentMatch[1]) : null;
+    const studentId = studentMatch ? decodeURIComponent(studentMatch[1]) : null;
+    return subs.filter(sub => {
+      if (assignmentId && sub.assignment_id !== assignmentId) return false;
+      if (studentId && sub.student_id !== studentId) return false;
+      return true;
+    });
   }
 
   // Attendance Endpoints

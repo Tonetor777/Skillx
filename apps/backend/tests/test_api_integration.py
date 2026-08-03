@@ -442,6 +442,57 @@ def test_submission_create_and_grade_permissions(domain):
     assert submission.is_locked is True
 
 
+def test_submission_student_filter_preserves_staff_and_student_scope(domain):
+    teacher_client = auth_client(domain["teacher"])
+    admin_client = auth_client(domain["admin"])
+    student_client = auth_client(domain["student"])
+    other_program = Program.objects.create(title="Other Program", slug="other-program", description="", status=ProgramStatus.ACTIVE)
+    other_cohort = Cohort.objects.create(
+        program=other_program,
+        name="Hidden Cohort",
+        start_date=timezone.localdate(),
+        end_date=timezone.localdate() + timedelta(weeks=8),
+        status=CohortStatus.ACTIVE,
+    )
+    other_student = create_user("other-student@example.com", UserRole.STUDENT, cohort=other_cohort)
+    other_module = Module.objects.create(cohort=other_cohort, module_number=1, title="Hidden", status=ModuleStatus.PUBLISHED, created_by=domain["teacher"])
+    other_lesson = Lesson.objects.create(module=other_module, title="Hidden Lesson", order=1)
+    other_assignment = Assignment.objects.create(
+        cohort=other_cohort,
+        module=other_module,
+        lesson=other_lesson,
+        title="Hidden Build",
+        description="Hidden submission.",
+        max_points=50,
+        due_date=timezone.now() + timedelta(days=3),
+        created_by=domain["teacher"],
+    )
+    own_submission = Submission.objects.create(
+        assignment=domain["assignment"],
+        student=domain["student"],
+        primary_link="https://example.com/own",
+    )
+    hidden_submission = Submission.objects.create(
+        assignment=other_assignment,
+        student=other_student,
+        primary_link="https://example.com/hidden",
+    )
+
+    teacher_response = teacher_client.get(f"/api/submissions/?student_id={domain['student'].id}")
+    teacher_hidden_response = teacher_client.get(f"/api/submissions/?student_id={other_student.id}")
+    admin_hidden_response = admin_client.get(f"/api/submissions/?student_id={other_student.id}")
+    student_other_response = student_client.get(f"/api/submissions/?student_id={other_student.id}")
+    combined_response = teacher_client.get(
+        f"/api/submissions/?assignment_id={domain['assignment'].id}&student_id={domain['student'].id}"
+    )
+
+    assert [item["id"] for item in results(teacher_response)] == [str(own_submission.id)]
+    assert [item["id"] for item in results(teacher_hidden_response)] == []
+    assert [item["id"] for item in results(admin_hidden_response)] == [str(hidden_submission.id)]
+    assert [item["id"] for item in results(student_other_response)] == []
+    assert [item["id"] for item in results(combined_response)] == [str(own_submission.id)]
+
+
 def test_announcements_and_settings_permissions(domain):
     Announcement.objects.create(
         title="Cohort Update",

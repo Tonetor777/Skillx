@@ -19,6 +19,7 @@ This project follows a modified version of Keep a Changelog.
 - Empty-record hard delete actions for programs and cohorts, with safeguards that block deletion when dependent records exist.
 - Per-user in-app announcement notifications with unread counts, dashboard badges, and mark-read actions.
 - Assignment edit controls and delete-or-lock management: staff can delete empty assignments, while submitted assignments are preserved and locked against further student submissions.
+- Shared TipTap rich assignment descriptions and staff submission visibility, including full submission detail expansion and per-student submission history inside the assignments workspace.
 - Public `/signup` route for student signup requests, with `/apply` redirected for compatibility.
 - Public active-program catalog endpoint for unauthenticated signup program selection.
 - Lesson image upload API and inline image rendering for TipTap lesson content.

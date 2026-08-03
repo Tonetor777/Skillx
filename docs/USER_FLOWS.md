@@ -41,15 +41,16 @@
 
 ## Assignments and Grading
 
-1. Teacher, Admin, or Super Admin creates assignments for lessons, optionally tied to a resource.
-2. Teacher, Admin, or Super Admin can edit assignment title, description, points, due date, and lesson scope.
+1. Teacher, Admin, or Super Admin creates assignments for lessons, optionally tied to a resource, with rich text instructions.
+2. Teacher, Admin, or Super Admin can edit assignment title, rich description, points, due date, and lesson scope.
 3. Teacher, Admin, or Super Admin can delete assignments with no submissions.
 4. Assignments with submissions are locked instead of deleted, preserving submission and grading history.
 5. Students submit only to unlocked assignments in their own cohort.
 6. Late submissions are flagged automatically.
 7. Grading locks the submission for student edits and sends a branded email notification to the student.
 8. Teachers, Admins, and Super Admins can update score and feedback after initial grading.
-9. Leaderboards are derived from graded submissions and follow cohort visibility settings.
+9. Staff can expand full submission details and view a student's visible submission history from the assignment workspace.
+10. Leaderboards are derived from graded submissions and follow cohort visibility settings.
 
 ## Attendance and Weighted Grades
 

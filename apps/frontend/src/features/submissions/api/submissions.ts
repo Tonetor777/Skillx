@@ -2,11 +2,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Submission } from '../../../shared/types';
 import apiClient from '../../../shared/api/client';
 
-export const useSubmissions = (assignmentId?: string) => {
+type SubmissionFilters = {
+  assignmentId?: string;
+  studentId?: string;
+};
+
+export const useSubmissions = (filtersOrAssignmentId?: string | SubmissionFilters) => {
+  const filters: SubmissionFilters = typeof filtersOrAssignmentId === 'string'
+    ? { assignmentId: filtersOrAssignmentId }
+    : filtersOrAssignmentId ?? {};
+
   return useQuery<Submission[]>({
-    queryKey: ['submissions', { assignmentId }],
+    queryKey: ['submissions', filters],
     queryFn: async () => {
-      const query = assignmentId ? `?assignment_id=${encodeURIComponent(assignmentId)}` : '';
+      const params = new URLSearchParams();
+      if (filters.assignmentId) params.set('assignment_id', filters.assignmentId);
+      if (filters.studentId) params.set('student_id', filters.studentId);
+      const query = params.toString() ? `?${params.toString()}` : '';
       return apiClient.get(`/submissions${query}`);
     },
   });

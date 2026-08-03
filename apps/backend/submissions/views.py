@@ -20,8 +20,11 @@ class SubmissionViewSet(ModelViewSet):
         user = self.request.user
         queryset = Submission.objects.select_related("assignment", "assignment__cohort", "student", "graded_by")
         assignment_id = self.request.query_params.get("assignment_id")
+        student_id = self.request.query_params.get("student_id")
         if assignment_id:
             queryset = queryset.filter(assignment_id=assignment_id)
+        if student_id:
+            queryset = queryset.filter(student_id=student_id)
         if user.role == UserRole.STUDENT:
             return queryset.filter(student=user)
         if user.role == UserRole.TEACHER:

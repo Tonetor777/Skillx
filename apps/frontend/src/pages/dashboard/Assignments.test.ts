@@ -15,3 +15,16 @@ test('assignment dashboard blocks student submissions for locked assignments', (
   assert.ok(source.includes('This assignment is locked and no longer accepts submissions.'));
   assert.ok(source.includes("asg.is_locked ? 'View Closed' : 'Submit solution'"));
 });
+
+test('assignment dashboard uses rich assignment descriptions without raw JSON previews', () => {
+  assert.ok(source.includes('RichContentEditor'));
+  assert.ok(source.includes('RichContentRenderer'));
+  assert.ok(source.includes('richContentPreviewText(asg.description)'));
+});
+
+test('assignment dashboard exposes full submission details and student history for staff', () => {
+  assert.ok(source.includes('View Full'));
+  assert.ok(source.includes('Full Submission Content'));
+  assert.ok(source.includes('Student Submission History'));
+  assert.ok(source.includes('setHistoryStudentId(sub.student_id)'));
+});
