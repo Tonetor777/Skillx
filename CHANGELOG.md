@@ -60,6 +60,7 @@ This project follows a modified version of Keep a Changelog.
 
 ## Changed
 
+- MinIO-backed media storage can now write through an internal S3 endpoint while returning signed browser URLs through a separate public media endpoint.
 - Backend health check now accepts both `GET` and `HEAD` requests at `/api/health/`.
 - Assignment grade summaries and leaderboards now average normalized 100-point assignment scores, including the small-assignment curve for assignments worth fewer than 10 points.
 - Attendance roster rows can now be saved individually from the dashboard without saving the whole roster.

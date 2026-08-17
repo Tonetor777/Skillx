@@ -125,7 +125,7 @@ Build the first production-ready version of Skilix.
 
 | Feature | Status | Notes |
 |----------|--------|-------|
-| MinIO media URLs | ✅ Completed | Private S3-compatible MinIO storage is available when configured, with signed URL responses for profile photos and program thumbnails. |
+| MinIO media URLs | ✅ Completed | Private S3-compatible MinIO storage writes through the internal endpoint and can return signed media URLs through a separate public endpoint. |
 | Lesson media URLs | ✅ Completed | Lesson image assets return fresh media URLs and avoid storing expiring signed URLs in lesson content. |
 | Production profile avatar fallback | ✅ Completed | Profile surfaces now render uploaded avatars when present and local initials fallback when absent, with mock profile image URLs removed. |
 

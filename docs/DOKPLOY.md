@@ -78,6 +78,7 @@ AWS_ACCESS_KEY_ID=<strong-minio-user>
 AWS_SECRET_ACCESS_KEY=<strong-minio-password>
 AWS_STORAGE_BUCKET_NAME=skilix-media
 AWS_S3_ENDPOINT_URL=http://minio:9000
+AWS_S3_PUBLIC_ENDPOINT_URL=https://media.example.com
 AWS_S3_REGION_NAME=us-east-1
 AWS_S3_ADDRESSING_STYLE=path
 AWS_QUERYSTRING_AUTH=true

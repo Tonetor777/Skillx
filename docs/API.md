@@ -109,7 +109,7 @@ Attendance is recorded per cohort date. Status scoring is `present = 1.0`, `excu
 
 ## Media Uploads
 
-When `AWS_STORAGE_BUCKET_NAME` and `AWS_S3_ENDPOINT_URL` are configured, new media uploads are stored in private S3-compatible storage such as MinIO and returned through signed URL fields. Without these variables, local Django media storage is used for development.
+When `AWS_STORAGE_BUCKET_NAME` and `AWS_S3_ENDPOINT_URL` are configured, new media uploads are stored in private S3-compatible storage such as MinIO and returned through signed URL fields. Production deployments may set `AWS_S3_PUBLIC_ENDPOINT_URL` so API responses return browser-accessible signed URLs while backend writes continue through the internal S3 endpoint. Without these variables, local Django media storage is used for development.
 
 - Profile `photo`: image files only (`.png`, `.jpg`, `.jpeg`, `.webp`), max 5MB.
 - Program `thumbnail`: image files only (`.png`, `.jpg`, `.jpeg`, `.webp`), max 5MB.

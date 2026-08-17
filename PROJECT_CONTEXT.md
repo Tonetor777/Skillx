@@ -186,7 +186,7 @@ Database
 - Curriculum delivery now uses a reference-style two-pane layout with a left module/lesson navigator and a right lesson reading canvas in both Modules and embedded Program curriculum views.
 - Attendance is now cohort-date based, contributes to weighted student total grades, and can be recorded by assigned teachers/Admin/Super Admins.
 - Attendance roster serialization now only includes active students, preventing non-student or inactive cohort-linked users from being sent to the bulk attendance API.
-- Media uploads now support private MinIO/S3-compatible storage when S3 environment variables are configured, with signed URL responses for profile photos, program thumbnails, and lesson images.
+- Media uploads now support private MinIO/S3-compatible storage when S3 environment variables are configured, with internal upload endpoints separated from optional public signed URL hosts for profile photos, program thumbnails, and lesson images.
 - Student signup no longer collects resume or payment proof uploads and now uses `/signup` with `/apply` redirected for compatibility.
 - Student signup now collects first name, last name, email, phone number, age, choice-based experience level, and program expectations while no longer collecting country.
 - Student program APIs are scoped so students only see the program attached to their enrolled cohort.

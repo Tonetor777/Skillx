@@ -6,6 +6,8 @@ import dj_database_url
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
 
+from core.storage import s3_storage_backend_config
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR.parent.parent / ".env")
 
@@ -148,6 +150,7 @@ STORAGES = {
 
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "")
 AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL", "")
+AWS_S3_PUBLIC_ENDPOINT_URL = os.getenv("AWS_S3_PUBLIC_ENDPOINT_URL", "")
 AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-1")
 AWS_S3_ADDRESSING_STYLE = os.getenv("AWS_S3_ADDRESSING_STYLE", "path")
 AWS_QUERYSTRING_AUTH = os.getenv("AWS_QUERYSTRING_AUTH", "true").lower() == "true"
@@ -155,10 +158,7 @@ AWS_QUERYSTRING_EXPIRE = int(os.getenv("AWS_QUERYSTRING_EXPIRE", "3600"))
 AWS_S3_FILE_OVERWRITE = False
 AWS_DEFAULT_ACL = None
 
-if AWS_STORAGE_BUCKET_NAME and AWS_S3_ENDPOINT_URL:
-    STORAGES["default"] = {
-        "BACKEND": "storages.backends.s3.S3Storage",
-    }
+STORAGES["default"] = s3_storage_backend_config(AWS_STORAGE_BUCKET_NAME, AWS_S3_ENDPOINT_URL)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"

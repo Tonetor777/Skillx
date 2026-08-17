@@ -20,7 +20,7 @@ Lesson and assignment authoring use a shared TipTap rich-content layer without b
 
 ## Media Storage
 
-Django uses local `MEDIA_ROOT` storage in development by default. When `AWS_STORAGE_BUCKET_NAME` and `AWS_S3_ENDPOINT_URL` are configured, Django switches uploaded media to private S3-compatible storage through `django-storages`. The Docker/Dokploy stack uses MinIO as the S3-compatible media service.
+Django uses local `MEDIA_ROOT` storage in development by default. When `AWS_STORAGE_BUCKET_NAME` and `AWS_S3_ENDPOINT_URL` are configured, Django switches uploaded media to private S3-compatible storage through `django-storages`. The Docker/Dokploy stack uses MinIO as the S3-compatible media service. Production deployments can set `AWS_S3_ENDPOINT_URL` to the internal MinIO URL for writes and `AWS_S3_PUBLIC_ENDPOINT_URL` to the public media hostname used for signed browser URLs.
 
 Current media surfaces are user profile photos, program thumbnails, and lesson images. API serializers return stable URL fields such as `avatar_url`, `thumbnail_url`, and `image_url`; with MinIO enabled these URLs are signed and expire according to `AWS_QUERYSTRING_EXPIRE`.
 
