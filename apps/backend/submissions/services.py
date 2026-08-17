@@ -2,7 +2,10 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from accounts.choices import UserRole, UserStatus
+from accounts.models import User
 from core.email import send_templated_email
+from learning.models import Assignment
 from submissions.models import Submission
 
 
@@ -35,3 +38,27 @@ def grade_submission(submission: Submission, grader, grade, feedback: str):
         recipient_list=[submission.student.email],
     )
     return submission
+
+
+@transaction.atomic
+def manually_grade_missing_submission(assignment: Assignment, student_id: str, grader, grade, feedback: str):
+    try:
+        student = User.objects.get(id=student_id)
+    except (User.DoesNotExist, ValueError) as exc:
+        raise ValidationError({"student_id": "Student does not exist."}) from exc
+    if student.role != UserRole.STUDENT or student.status != UserStatus.ACTIVE or student.cohort_id != assignment.cohort_id:
+        raise ValidationError({"student_id": "Student must be active and enrolled in this assignment cohort."})
+
+    submission, created = Submission.objects.get_or_create(
+        assignment=assignment,
+        student=student,
+        defaults={
+            "primary_link": "No submission - manually graded",
+            "is_late": timezone.now() > assignment.due_date,
+            "is_locked": True,
+        },
+    )
+    if not created and submission.primary_link.strip() == "":
+        submission.primary_link = "No submission - manually graded"
+        submission.save(update_fields=["primary_link"])
+    return grade_submission(submission, grader, grade, feedback)

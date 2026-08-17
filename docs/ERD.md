@@ -22,5 +22,5 @@ Initial entities:
 - `PlatformSettings`: singleton platform branding/theme settings.
 
 Students belong to exactly one active cohort and can only access the program attached to that cohort. Teachers can be assigned to multiple cohorts.
-Leaderboards are derived from graded submissions and respect `Cohort.leaderboard_visible`.
-Student total grade is derived from graded assignment points and attendance credits using cohort grade weights.
+Leaderboards are derived from normalized graded submissions and respect `Cohort.leaderboard_visible`.
+Student total grade is derived from normalized assignment averages and attendance credits using cohort grade weights. Manual grades for missing work are stored as locked `Submission` rows with placeholder content.

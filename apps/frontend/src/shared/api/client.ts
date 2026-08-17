@@ -34,6 +34,12 @@ function unwrapPaginatedResponse(value: unknown): unknown {
   return isPaginatedResponse(value) ? value.results : value;
 }
 
+function normalizeAssignmentScore(score: number, maxPoints: number): number {
+  if (score === 0 || maxPoints <= 0) return 0;
+  if (maxPoints < 10) return ((score + (10 - maxPoints)) / 10) * 100;
+  return (score / maxPoints) * 100;
+}
+
 export function getStoredTokens(): TokenState {
   const access = localStorage.getItem(ACCESS_TOKEN_KEY);
   const refresh = localStorage.getItem(REFRESH_TOKEN_KEY);
@@ -372,6 +378,38 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
       const assignmentIndex = asgs.findIndex(a => a.id === assignmentId);
       const found = asgs[assignmentIndex];
       if (found) {
+        if (endpoint.includes('/manual-grade') && method === 'POST') {
+          const users = MockDatabase.get<User>('users');
+          const student = users.find(u => u.id === body.student_id);
+          const authUser = getStoredTokens().user;
+          if (!student) throw new ApiError(404, 'Student not found');
+          const subs = MockDatabase.get<Submission>('submissions');
+          const existingIndex = subs.findIndex(sub => sub.assignment_id === assignmentId && sub.student_id === body.student_id);
+          const gradedSubmission: Submission = {
+            id: existingIndex > -1 ? subs[existingIndex].id : `sub_${Math.random().toString(36).substr(2, 9)}`,
+            assignment_id: assignmentId,
+            assignment_title: found.title,
+            student_id: student.id,
+            student_name: `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.email,
+            student_email: student.email,
+            content: existingIndex > -1 ? subs[existingIndex].content : 'No submission - manually graded',
+            submitted_at: existingIndex > -1 ? subs[existingIndex].submitted_at : new Date().toISOString(),
+            status: 'graded',
+            grade: body.grade,
+            feedback: body.feedback,
+            graded_by_id: authUser?.id || 'usr_teacher',
+            graded_by_name: `${authUser?.first_name || 'David'} ${authUser?.last_name || 'Malan'}`,
+            graded_at: new Date().toISOString(),
+            is_late: existingIndex > -1 ? subs[existingIndex].is_late : new Date() > new Date(found.due_date)
+          };
+          if (existingIndex > -1) {
+            subs[existingIndex] = gradedSubmission;
+          } else {
+            subs.push(gradedSubmission);
+          }
+          MockDatabase.set('submissions', subs);
+          return gradedSubmission;
+        }
         if (method === 'PATCH') {
           const scope = body.lesson_id ? resolveLessonScope(body.lesson_id) : null;
           asgs[assignmentIndex] = {
@@ -750,9 +788,11 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
     const cohorts = MockDatabase.get<Cohort>('cohorts');
     const cohort = cohorts.find(c => c.id === authUser?.cohort_id);
     const graded = submissions.filter(sub => sub.status === 'graded');
-    const earned = graded.reduce((total, sub) => total + (sub.grade || 0), 0);
-    const possible = graded.reduce((total, sub) => total + (assignments.find(asg => asg.id === sub.assignment_id)?.max_points || 0), 0);
-    const assignmentPercent = possible ? (earned / possible) * 100 : 0;
+    const normalizedScores = graded.map((sub) => {
+      const maxPoints = assignments.find(asg => asg.id === sub.assignment_id)?.max_points || 0;
+      return normalizeAssignmentScore(sub.grade || 0, maxPoints);
+    });
+    const assignmentPercent = normalizedScores.length ? normalizedScores.reduce((total, score) => total + score, 0) / normalizedScores.length : 0;
     return {
       role: authUser?.role || 'student',
       progress: {
@@ -761,7 +801,7 @@ function handleMockRequest(method: string, endpoint: string, body?: any): any {
         graded_total: graded.length
       },
       grades: {
-        average: graded.length ? earned / graded.length : 0,
+        average: assignmentPercent,
         assignment_percent: assignmentPercent,
         attendance_percent: 0,
         total_percent: assignmentPercent * ((cohort?.assignment_weight || 90) / 100),

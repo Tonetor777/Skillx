@@ -174,6 +174,7 @@ Database
 - Announcement notifications now track per-user unread state, expose unread-count and mark-read APIs, and show unread badges in the dashboard.
 - Assignment management now supports staff edits plus delete-or-lock behavior: empty assignments can be deleted, while assignments with submissions are preserved and locked against further student submissions.
 - Assignment descriptions now use the shared TipTap rich editor without assignment image uploads, and staff can inspect full submission details plus student-level submission history from the assignments workspace.
+- Staff can manually create locked grade rows for active enrolled students who did not submit, and assignment grade summaries now average normalized 100-point assignment scores across mixed max-point assignments.
 - Production-readiness work is now underway: Django settings enforce strong production secrets, expose env-driven HTTPS/CORS/CSRF settings, add DRF throttling, and support Gmail SMTP email delivery with Resend still available as an alternate backend.
 - Dokploy all-in-one production deployment is available through `docker-compose.dokploy.yml`, with frontend, backend, migrations, Celery, PostgreSQL, Redis, and MinIO services.
 - Dokploy backend Gunicorn now runs with multiple workers, a 180-second timeout, and request/error logs emitted to container output for easier intermittent routing, upload, and restart diagnostics.

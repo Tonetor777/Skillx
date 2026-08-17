@@ -280,3 +280,9 @@ class AssignmentSerializer(serializers.ModelSerializer):
         validated_data["cohort"] = lesson.module.cohort
         validated_data["created_by"] = request.user
         return super().create(validated_data)
+
+
+class ManualAssignmentGradeSerializer(serializers.Serializer):
+    student_id = serializers.CharField()
+    grade = serializers.DecimalField(max_digits=5, decimal_places=2)
+    feedback = serializers.CharField(min_length=5)

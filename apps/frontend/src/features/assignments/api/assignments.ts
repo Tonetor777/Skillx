@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Assignment } from '../../../shared/types';
+import { Assignment, Submission } from '../../../shared/types';
 import apiClient from '../../../shared/api/client';
 
 export const useAssignments = (cohortId?: string) => {
@@ -51,6 +51,19 @@ export const useDeleteAssignment = () => {
     onSuccess: (assignment, id) => {
       queryClient.invalidateQueries({ queryKey: ['assignments'] });
       queryClient.invalidateQueries({ queryKey: ['assignments', assignment?.id ?? id] });
+      queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+    },
+  });
+};
+
+export const useManualGradeAssignment = () => {
+  const queryClient = useQueryClient();
+  return useMutation<Submission, Error, { assignmentId: string; student_id: string; grade: number; feedback: string }>({
+    mutationFn: ({ assignmentId, student_id, grade, feedback }) => apiClient.post(`/assignments/${assignmentId}/manual-grade`, { student_id, grade, feedback }),
+    onSuccess: (_submission, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['assignments', variables.assignmentId] });
       queryClient.invalidateQueries({ queryKey: ['submissions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
     },

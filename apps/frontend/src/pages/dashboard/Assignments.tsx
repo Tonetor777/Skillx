@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAssignments, useCreateAssignment, useDeleteAssignment, useUpdateAssignment } from '../../features/assignments/api/assignments';
+import { useAssignments, useCreateAssignment, useDeleteAssignment, useManualGradeAssignment, useUpdateAssignment } from '../../features/assignments/api/assignments';
 import { useSubmissions, useCreateSubmission, useGradeSubmission } from '../../features/submissions/api/submissions';
 import { useModules } from '../../features/weeks/api/weeks';
+import { useCohorts } from '../../features/cohorts/api/cohorts';
 import { useAuth } from '../../features/authentication/context/AuthContext';
 import { RichContentEditor } from '../../shared/rich-content/RichContentEditor';
 import { RichContentRenderer } from '../../shared/rich-content/RichContentRenderer';
@@ -74,11 +75,13 @@ export default function Assignments() {
     user?.role === 'student' ? user.cohort_id : undefined
   );
   const { data: submissions, isLoading: submissionsLoading } = useSubmissions();
+  const { data: cohorts } = useCohorts();
   
   // Mutations
   const createAssignmentMutation = useCreateAssignment();
   const updateAssignmentMutation = useUpdateAssignment();
   const deleteAssignmentMutation = useDeleteAssignment();
+  const manualGradeMutation = useManualGradeAssignment();
   const submitAssignmentMutation = useCreateSubmission();
   const gradeSubmissionMutation = useGradeSubmission();
 
@@ -87,6 +90,7 @@ export default function Assignments() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [gradingSubmissionId, setGradingSubmissionId] = useState<string | null>(null);
+  const [manualGradeStudentId, setManualGradeStudentId] = useState<string | null>(null);
   const [expandedSubmissionId, setExpandedSubmissionId] = useState<string | null>(null);
   const [historyStudentId, setHistoryStudentId] = useState<string | null>(null);
   const [showToast, setShowToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
@@ -119,6 +123,11 @@ export default function Assignments() {
 
   // Submissions associated with selected assignment (for instructors)
   const instructorSubmissions = submissions?.filter(s => s.assignment_id === selectedAsgId) || [];
+  const selectedCohort = cohorts?.find(cohort => cohort.id === selectedAsg?.cohort_id);
+  const missingSubmissionStudents = selectedCohort?.students?.filter(
+    student => !instructorSubmissions.some(submission => submission.student_id === student.id)
+  ) ?? [];
+  const manualGradeStudent = selectedCohort?.students?.find(student => student.id === manualGradeStudentId);
   const historyStudent = submissions?.find(s => s.student_id === historyStudentId);
   const historySubmissions = historyStudentId
     ? (submissions ?? [])
@@ -206,14 +215,24 @@ export default function Assignments() {
   };
 
   const handleTeacherGrade = async (data: GradingFormValues) => {
-    if (!gradingSubmissionId) return;
+    if (!gradingSubmissionId && (!manualGradeStudentId || !selectedAsg)) return;
     try {
-      await gradeSubmissionMutation.mutateAsync({
-        id: gradingSubmissionId,
-        grade: data.grade,
-        feedback: data.feedback,
-      });
+      if (manualGradeStudentId && selectedAsg) {
+        await manualGradeMutation.mutateAsync({
+          assignmentId: selectedAsg.id,
+          student_id: manualGradeStudentId,
+          grade: data.grade,
+          feedback: data.feedback,
+        });
+      } else if (gradingSubmissionId) {
+        await gradeSubmissionMutation.mutateAsync({
+          id: gradingSubmissionId,
+          grade: data.grade,
+          feedback: data.feedback,
+        });
+      }
       setGradingSubmissionId(null);
+      setManualGradeStudentId(null);
       gradeForm.reset();
       triggerToast('Submission evaluation saved. Student edits remain locked.');
     } catch (err) {
@@ -223,8 +242,16 @@ export default function Assignments() {
 
   const openGrading = (submission: Submission, maxPoints: number) => {
     setGradingSubmissionId(submission.id);
+    setManualGradeStudentId(null);
     gradeForm.setValue('grade', submission.grade ?? maxPoints);
     gradeForm.setValue('feedback', submission.feedback ?? '');
+  };
+
+  const openManualGrading = (studentId: string) => {
+    setManualGradeStudentId(studentId);
+    setGradingSubmissionId(null);
+    gradeForm.setValue('grade', 0);
+    gradeForm.setValue('feedback', 'Manual grade for missing submission.');
   };
 
   const triggerToast = (message: string, tone: 'success' | 'error' = 'success') => {
@@ -576,15 +603,21 @@ export default function Assignments() {
           {user.role !== 'student' && (
             <div className="lg:col-span-3 space-y-6">
               {/* Grading Review Overlay Drawer */}
-              {gradingSubmissionId && (
+              {(gradingSubmissionId || manualGradeStudentId) && (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="bg-white rounded-xl border border-gray-100 p-6 max-w-lg w-full shadow-2xl space-y-4"
                   >
-                    <h3 className="font-sans font-bold text-lg text-gray-900">Evaluate Student Submission</h3>
-                    <p className="text-xs text-gray-500">Record or update score metrics and feedback. Student edits stay locked after grading.</p>
+                    <h3 className="font-sans font-bold text-lg text-gray-900">
+                      {manualGradeStudentId ? 'Evaluate Missing Submission' : 'Evaluate Student Submission'}
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      {manualGradeStudentId
+                        ? `Create a locked manual grade row for ${manualGradeStudent?.name ?? 'this student'}.`
+                        : 'Record or update score metrics and feedback. Student edits stay locked after grading.'}
+                    </p>
 
                     <form onSubmit={gradeForm.handleSubmit(handleTeacherGrade)} className="space-y-4">
                       <div>
@@ -611,7 +644,10 @@ export default function Assignments() {
                       <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
                         <button
                           type="button"
-                          onClick={() => setGradingSubmissionId(null)}
+                          onClick={() => {
+                            setGradingSubmissionId(null);
+                            setManualGradeStudentId(null);
+                          }}
                           className="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-50"
                         >
                           Cancel
@@ -856,6 +892,59 @@ export default function Assignments() {
                             </React.Fragment>
                           );
                         })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
+                <h3 className="font-bold text-lg text-gray-900 border-b border-gray-100 pb-3">Missing Submission Roster</h3>
+                {missingSubmissionStudents.length === 0 ? (
+                  <div className="border border-dashed border-gray-100 py-8 text-center rounded-lg bg-gray-50/50">
+                    <ShieldCheck className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-xs text-gray-400 italic">Every enrolled student has a submission or manual grade row for this task.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-sm">
+                      <thead>
+                        <tr className="bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                          <th className="p-3 pl-4">Student</th>
+                          <th className="p-3">Status</th>
+                          <th className="p-3 text-right pr-4">Manual Evaluation</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {missingSubmissionStudents.map((student) => (
+                          <tr key={student.id} className="hover:bg-gray-50/30">
+                            <td className="p-3 pl-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs">
+                                  {student.name[0]}
+                                </div>
+                                <div>
+                                  <span className="font-semibold text-gray-900 block">{student.name}</span>
+                                  <span className="text-[10px] text-gray-400 block font-mono">{student.email}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border bg-slate-50 text-slate-600 border-slate-100">
+                                No submission
+                              </span>
+                            </td>
+                            <td className="p-3 text-right pr-4">
+                              <button
+                                type="button"
+                                onClick={() => openManualGrading(student.id)}
+                                className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-xs font-semibold"
+                              >
+                                Add Manual Grade
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>

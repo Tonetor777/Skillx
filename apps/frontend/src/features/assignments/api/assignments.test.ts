@@ -15,3 +15,9 @@ test('assignment mutations refresh related dashboard data', () => {
   assert.ok(source.includes("queryClient.invalidateQueries({ queryKey: ['submissions'] })"));
   assert.ok(source.includes("queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })"));
 });
+
+test('assignment API hooks expose manual grading for missing submissions', () => {
+  assert.ok(source.includes('useManualGradeAssignment'));
+  assert.ok(source.includes('`/assignments/${assignmentId}/manual-grade`'));
+  assert.ok(source.includes('student_id, grade, feedback'));
+});

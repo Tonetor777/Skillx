@@ -213,3 +213,97 @@ def test_graded_submission_can_be_updated_and_remains_locked(domain):
     assert domain["submission"].is_locked is True
     assert resubmit.status_code == 400
     assert len(mail.outbox) == 2
+
+
+def test_teacher_can_manually_grade_missing_submission(domain):
+    missing_student = create_user("missing-grade@example.com", UserRole.STUDENT, cohort=domain["cohort"])
+
+    response = auth_client(domain["teacher"]).post(
+        f"/api/assignments/{domain['assignment'].id}/manual-grade/",
+        {"student_id": str(missing_student.id), "grade": 88, "feedback": "Manual grade for missing work."},
+        format="json",
+    )
+
+    submission = Submission.objects.get(assignment=domain["assignment"], student=missing_student)
+    assert response.status_code == 200
+    assert response.data["content"] == "No submission - manually graded"
+    assert response.data["status"] == "graded"
+    assert float(submission.score) == 88
+    assert submission.is_locked is True
+    assert len(mail.outbox) == 1
+
+
+def test_unassigned_teacher_cannot_manually_grade_missing_submission(domain):
+    missing_student = create_user("blocked-missing-grade@example.com", UserRole.STUDENT, cohort=domain["cohort"])
+
+    response = auth_client(domain["other_teacher"]).post(
+        f"/api/assignments/{domain['assignment'].id}/manual-grade/",
+        {"student_id": str(missing_student.id), "grade": 88, "feedback": "Manual grade for missing work."},
+        format="json",
+    )
+
+    assert response.status_code == 404
+    assert not Submission.objects.filter(assignment=domain["assignment"], student=missing_student).exists()
+
+
+def test_manual_grade_validates_assignment_max_points(domain):
+    missing_student = create_user("invalid-missing-grade@example.com", UserRole.STUDENT, cohort=domain["cohort"])
+
+    response = auth_client(domain["teacher"]).post(
+        f"/api/assignments/{domain['assignment'].id}/manual-grade/",
+        {"student_id": str(missing_student.id), "grade": 101, "feedback": "Manual grade for missing work."},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "Grade must be between 0 and 100" in str(response.data)
+
+
+def test_student_dashboard_averages_normalized_assignment_scores(domain):
+    cohort = domain["cohort"]
+    student = domain["student"]
+    teacher = domain["teacher"]
+    domain["assignment"].max_points = 2
+    domain["assignment"].save(update_fields=["max_points"])
+    domain["submission"].score = 1
+    domain["submission"].is_locked = True
+    domain["submission"].save(update_fields=["score", "is_locked"])
+    ten_point_assignment = Assignment.objects.create(
+        cohort=cohort,
+        module=domain["assignment"].module,
+        lesson=domain["assignment"].lesson,
+        title="Ten Point Assignment",
+        description="Submit work.",
+        max_points=10,
+        due_date=timezone.now() + timedelta(days=1),
+        created_by=teacher,
+    )
+    hundred_point_assignment = Assignment.objects.create(
+        cohort=cohort,
+        module=domain["assignment"].module,
+        lesson=domain["assignment"].lesson,
+        title="Hundred Point Assignment",
+        description="Submit work.",
+        max_points=100,
+        due_date=timezone.now() + timedelta(days=1),
+        created_by=teacher,
+    )
+    zero_small_assignment = Assignment.objects.create(
+        cohort=cohort,
+        module=domain["assignment"].module,
+        lesson=domain["assignment"].lesson,
+        title="Zero Small Assignment",
+        description="Submit work.",
+        max_points=2,
+        due_date=timezone.now() + timedelta(days=1),
+        created_by=teacher,
+    )
+    Submission.objects.create(assignment=ten_point_assignment, student=student, primary_link="https://example.com/ten", score=8, is_locked=True)
+    Submission.objects.create(assignment=hundred_point_assignment, student=student, primary_link="https://example.com/hundred", score=80, is_locked=True)
+    Submission.objects.create(assignment=zero_small_assignment, student=student, primary_link="https://example.com/zero", score=0, is_locked=True)
+
+    response = auth_client(student).get("/api/dashboard/summary/")
+
+    assert response.status_code == 200
+    assert response.data["grades"]["assignment_percent"] == 62.5
+    assert response.data["grades"]["average"] == 62.5

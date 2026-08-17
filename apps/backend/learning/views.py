@@ -8,8 +8,9 @@ from rest_framework.viewsets import ModelViewSet
 from accounts.choices import UserRole
 from accounts.permissions import IsActiveUser, IsTeacherAdminOrSuperAdmin
 from learning.models import Assignment, Lesson, LessonImage, Module, ModuleStatus, Resource
-from learning.serializers import AssignmentSerializer, LessonImageSerializer, LessonSerializer, ModuleSerializer, ResourceSerializer
+from learning.serializers import AssignmentSerializer, LessonImageSerializer, LessonSerializer, ManualAssignmentGradeSerializer, ModuleSerializer, ResourceSerializer
 from learning.services import delete_or_lock_assignment
+from submissions.services import manually_grade_missing_submission
 
 
 def scope_queryset_to_user(queryset, user, cohort_path="cohort_id"):
@@ -47,7 +48,7 @@ class AssignmentViewSet(ModelViewSet):
         return queryset
 
     def get_permissions(self):
-        if self.action in {"create", "partial_update", "destroy"}:
+        if self.action in {"create", "partial_update", "destroy", "manual_grade"}:
             return [IsTeacherAdminOrSuperAdmin()]
         return super().get_permissions()
 
@@ -56,6 +57,22 @@ class AssignmentViewSet(ModelViewSet):
         if was_locked and assignment:
             return Response(self.get_serializer(assignment).data, status=status.HTTP_200_OK)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["post"], url_path="manual-grade")
+    def manual_grade(self, request, pk=None):
+        assignment = self.get_object()
+        serializer = ManualAssignmentGradeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        submission = manually_grade_missing_submission(
+            assignment=assignment,
+            student_id=serializer.validated_data["student_id"],
+            grader=request.user,
+            grade=serializer.validated_data["grade"],
+            feedback=serializer.validated_data["feedback"],
+        )
+        from submissions.serializers import SubmissionSerializer
+
+        return Response(SubmissionSerializer(submission, context={"request": request}).data)
 
 
 class ModuleViewSet(ModelViewSet):

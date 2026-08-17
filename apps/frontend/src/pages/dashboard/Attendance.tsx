@@ -115,6 +115,23 @@ export default function Attendance() {
     showMessage('Attendance saved.');
   };
 
+  const handleSaveStudentAttendance = async (studentId: string) => {
+    if (!effectiveCohortId) return;
+    const session = selectedSession?.date === date
+      ? selectedSession
+      : await createSession.mutateAsync({ cohort_id: effectiveCohortId, date, title });
+    if (!session) return;
+    await saveRecords.mutateAsync({
+      sessionId: session.id,
+      records: [{
+        student_id: studentId,
+        status: statusByStudent[studentId] ?? 'present',
+        note: noteByStudent[studentId] ?? '',
+      }],
+    });
+    showMessage('Student attendance saved.');
+  };
+
   const isBusy = cohortsLoading || sessionsLoading || createSession.isPending || saveRecords.isPending || updateSettings.isPending;
 
   return (
@@ -193,7 +210,7 @@ export default function Attendance() {
             ) : (
               <div className="divide-y divide-slate-100">
                 {selectedCohort.students.map((student) => (
-                  <div key={student.id} className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(180px,240px)] lg:items-center">
+                  <div key={student.id} className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(180px,240px)_auto] lg:items-center">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-bold text-slate-900">{student.name}</p>
                       <p className="truncate text-xs text-slate-500">{student.email}</p>
@@ -219,6 +236,15 @@ export default function Attendance() {
                       placeholder="Note"
                       className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
                     />
+                    <button
+                      type="button"
+                      onClick={() => handleSaveStudentAttendance(student.id)}
+                      disabled={isBusy}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {saveRecords.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                      Save Row
+                    </button>
                   </div>
                 ))}
               </div>

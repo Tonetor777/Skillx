@@ -28,3 +28,10 @@ test('assignment dashboard exposes full submission details and student history f
   assert.ok(source.includes('Student Submission History'));
   assert.ok(source.includes('setHistoryStudentId(sub.student_id)'));
 });
+
+test('assignment dashboard includes missing-submission manual grading for staff', () => {
+  assert.ok(source.includes('Missing Submission Roster'));
+  assert.ok(source.includes('missingSubmissionStudents'));
+  assert.ok(source.includes('Add Manual Grade'));
+  assert.ok(source.includes('useManualGradeAssignment'));
+});

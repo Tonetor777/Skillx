@@ -80,6 +80,7 @@ All dashboard endpoints require an active JWT user unless noted otherwise.
 - `GET /api/assignments/{id}/`: retrieve an assignment.
 - `PATCH /api/assignments/{id}/`: update an assignment. Teacher/Admin/Super Admin only. Cohort and module scope are derived from the selected lesson.
 - `DELETE /api/assignments/{id}/`: delete an assignment when it has no submissions. If submissions exist, the assignment is locked and preserved instead. Teacher/Admin/Super Admin only.
+- `POST /api/assignments/{id}/manual-grade/`: create or update a locked manual grade row for an active student in the assignment cohort using `student_id`, `grade`, and `feedback`. Teacher/Admin/Super Admin only.
 - `GET /api/submissions/`: list submissions scoped to the current user. Supports `?assignment_id=`.
 - `POST /api/submissions/`: create or update the current student's submission. Graded submissions and locked assignments reject student edits.
 - `GET /api/submissions/{id}/`: retrieve a submission.
@@ -104,7 +105,7 @@ Response DTOs are shaped for the Vite frontend, including string IDs, lower-case
 
 ## Grades and Attendance
 
-Attendance is recorded per cohort date. Status scoring is `present = 1.0`, `excused = 1.0`, `late = 0.5`, and `absent = 0`. Cohorts default to 90% assignment grade weight and 10% attendance grade weight. Student dashboard summaries include `grades.assignment_percent`, `grades.attendance_percent`, `grades.total_percent`, `grades.assignment_weight`, and `grades.attendance_weight`.
+Attendance is recorded per cohort date. Status scoring is `present = 1.0`, `excused = 1.0`, `late = 0.5`, and `absent = 0`. Cohorts default to 90% assignment grade weight and 10% attendance grade weight. Assignment totals average each graded submission on a normalized 100-point scale. Assignments with `max_points >= 10` use strict percentage scoring; smaller assignments with a nonzero score use the small-assignment curve `((score + (10 - max_points)) / 10) * 100`, while zero remains zero. Student dashboard summaries include `grades.assignment_percent`, `grades.attendance_percent`, `grades.total_percent`, `grades.assignment_weight`, and `grades.attendance_weight`.
 
 ## Media Uploads
 

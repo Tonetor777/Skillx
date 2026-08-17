@@ -92,6 +92,35 @@ def test_grading_sends_email_notification(domain):
     assert message.alternatives[0][1] == "text/html"
 
 
+def test_leaderboard_uses_normalized_assignment_scores(domain):
+    _, teacher, student, cohort, assignment, submission = domain
+    other_student = create_user("normalized-other@example.com", UserRole.STUDENT, cohort=cohort)
+    assignment.max_points = 2
+    assignment.save(update_fields=["max_points"])
+    submission.score = 1
+    submission.is_locked = True
+    submission.save(update_fields=["score", "is_locked"])
+    hundred_point_assignment = Assignment.objects.create(
+        cohort=cohort,
+        module=assignment.module,
+        lesson=assignment.lesson,
+        title="Hundred Point Assignment",
+        description="Submit work.",
+        max_points=100,
+        due_date=timezone.now() + timedelta(days=1),
+        created_by=teacher,
+    )
+    Submission.objects.create(assignment=hundred_point_assignment, student=other_student, primary_link="https://example.com", score=80, is_locked=True)
+
+    response = auth_client(teacher).get(f"/api/leaderboard/?cohort_id={cohort.id}")
+
+    assert response.status_code == 200
+    assert response.data["results"][0]["student_id"] == str(student.id)
+    assert response.data["results"][0]["total_score"] == 90
+    assert response.data["results"][0]["average_score"] == 90
+    assert response.data["results"][1]["total_score"] == 80
+
+
 def test_scheduled_announcement_is_hidden_until_due(domain):
     admin, _, student, cohort, _, _ = domain
     Announcement.objects.create(

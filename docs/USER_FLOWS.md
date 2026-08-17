@@ -49,15 +49,18 @@
 6. Late submissions are flagged automatically.
 7. Grading locks the submission for student edits and sends a branded email notification to the student.
 8. Teachers, Admins, and Super Admins can update score and feedback after initial grading.
-9. Staff can expand full submission details and view a student's visible submission history from the assignment workspace.
-10. Leaderboards are derived from graded submissions and follow cohort visibility settings.
+9. Teachers, Admins, and Super Admins can manually create a locked grade row for an active enrolled student who did not submit.
+10. Staff can expand full submission details and view a student's visible submission history from the assignment workspace.
+11. Assignment grade totals and leaderboards use normalized 100-point assignment averages so different assignment max points do not change assignment weight.
+12. Leaderboards are derived from graded submissions and follow cohort visibility settings.
 
 ## Attendance and Weighted Grades
 
 1. Assigned teachers, Admins, or Super Admins create one attendance session per cohort date.
 2. Staff mark each student as present, late, excused, or absent.
-3. Present and excused count full attendance credit, late counts half, and absent counts zero.
-4. Assigned teachers, Admins, or Super Admins set cohort assignment and attendance grade weights that total 100%.
+3. Staff can save the full attendance roster or save an individual student's row.
+4. Present and excused count full attendance credit, late counts half, and absent counts zero.
+5. Assigned teachers, Admins, or Super Admins set cohort assignment and attendance grade weights that total 100%.
 5. Student dashboards show current assignment percent, attendance percent, and weighted total grade.
 
 ## Announcement Notifications
